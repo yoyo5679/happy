@@ -63,13 +63,23 @@ npm install
 npm run dev     # http://localhost:3000
 ```
 
-## Vercel 배포
+## 배포 (Cloudflare Pages, 무료)
 
-1. https://vercel.com 에서 GitHub 로그인 → **Add New → Project**
-2. 이 저장소(`yoyo5679/happy`) 선택 → 설정 그대로 **Deploy**
-3. 배포 주소가 나오면 `src/config/site.ts`의 `siteUrl`을 그 주소로 바꿔 주세요 (공유 미리보기용).
+사이트는 정적 HTML로 내보냅니다(`next.config.ts`의 `output: "export"` → `out/` 폴더). 서버가 필요 없어 어느 정적 호스팅에도 올릴 수 있습니다.
 
-이후 GitHub에 push할 때마다 자동으로 재배포됩니다.
+1. https://dash.cloudflare.com 가입 → **Workers & Pages → Create → Pages → Connect to Git**
+2. GitHub 연결 후 저장소 `yoyo5679/happy` 선택
+3. 빌드 설정
+   - Production branch: 배포할 브랜치
+   - Framework preset: **Next.js (Static HTML Export)**
+   - Build command: `npx next build`
+   - Build output directory: `out`
+   - Node 버전은 `.node-version`(22)으로 지정됨
+4. **Save and Deploy** → `프로젝트이름.pages.dev` 주소가 생깁니다.
+5. 내 도메인: 프로젝트 → **Custom domains** → `care.happycaremall.com` 추가 → 안내되는 CNAME 값을 도메인 관리 화면에 등록
+6. 최종 주소가 정해지면 `src/config/site.ts`의 `siteUrl`을 바꿔 주세요 (공유 미리보기용).
+
+이후 GitHub에 push할 때마다 자동으로 다시 배포됩니다.
 
 ## 주의
 

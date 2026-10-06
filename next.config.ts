@@ -1,10 +1,8 @@
 import type { NextConfig } from "next";
 
+// Cloudflare Pages(무료)에 올리기 위해 정적 HTML로 내보냅니다 → out/ 폴더
 const nextConfig: NextConfig = {
-  async redirects() {
-    // 질문형 '우리 집 맞춤'은 '우리 집에서 찾기'(장소별 + 안전 점검)로 통합. 이미 퍼진 링크(?src= 포함)는 그대로 연결.
-    return [{ source: "/recommend", destination: "/rooms", permanent: true }];
-  },
+  output: "export",
 };
 
 export default nextConfig;
