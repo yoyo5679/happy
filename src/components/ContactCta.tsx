@@ -12,7 +12,10 @@ export function ContactCta({ campaign }: { campaign: string }) {
         안내해 드려요.
       </p>
       <div className="cta-buttons">
-        <a className="btn primary" href={`tel:${site.phone.replace(/-/g, "")}`}>
+        <a className="btn primary" href={withUtm(site.storeUrl, campaign, "store_home")} target="_blank" rel="noopener">
+          🛒 {site.name} 쇼핑몰 바로가기
+        </a>
+        <a className="btn" href={`tel:${site.phone.replace(/-/g, "")}`}>
           📞 무료 상담 {site.phone}
         </a>
         {site.kakaoUrl && (
@@ -20,9 +23,6 @@ export function ContactCta({ campaign }: { campaign: string }) {
             💬 카카오톡 상담
           </a>
         )}
-        <a className="btn" href={withUtm(site.storeUrl, campaign, "store_home")} target="_blank" rel="noopener">
-          🛒 {site.name} 스토어 둘러보기
-        </a>
       </div>
     </section>
   );

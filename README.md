@@ -7,15 +7,33 @@
 | `/` | 랜딩 (두 도구 선택) |
 | `/grade` | 우리 부모님 장기요양등급 예상해보기 (12문항 → 1~5등급·인지지원등급 예상 + 추천 용품) |
 | `/recommend` | 우리 집 맞춤 복지용구 추천 (8문항 → 우선순위 Top 5 + 추천 이유 + 상품) |
+| `/catalog` | 18개 품목 360개 모델 전체 보기 + 본인부담률(15/9/6/0%)별 본인부담금 계산 |
 
-## 카탈로그 넣는 방법
+## 상품 데이터
 
-1. **`src/config/site.ts`** — 매장 이름, 스토어 주소, 상담 전화, 카카오톡 채널 링크, 배포 주소
-2. **`src/data/products.ts`** — 상품 목록. 상품마다 `category` 키만 맞게 지정하면 추천 로직이 자동으로 찾아 연결합니다.
-   - `url`: 상품 상세 페이지 주소
-   - `image`: 상품 사진 (`public/products/xxx.jpg`에 넣고 `"/products/xxx.jpg"`로 지정하거나 외부 URL)
-   - `priceNote`: 가격/본인부담금 안내 문구 (선택)
-   - 한 카테고리에 여러 상품을 넣으면 앞에서 2개가 노출됩니다.
+- **`src/data/catalog.json`** — 이로움케어 복지용구 카탈로그(PDF)에서 추출한 360개 모델: 급여코드, 모델명, 품목, 급여가(구입), 대여가(월). 모든 가격은 카탈로그의 15% 본인부담금과 교차 검증했습니다.
+- **`public/products/{급여코드}.webp`** — 카탈로그에서 추출한 상품 사진 (333개, 나머지는 아이콘 표시)
+- **`src/data/products.ts`** — 품목 이름/설명, 결과 화면에 먼저 보여줄 상품(`featured`) 지정
+
+## 쇼핑몰 연결 (happycaremall.com)
+
+상품 카드를 누르면 아래 순서로 연결됩니다.
+
+1. **`src/data/productLinks.ts`** 에 급여코드별 상세 페이지 주소가 있으면 → 그 상품 페이지
+2. 없으면 **`src/config/site.ts`의 `searchUrl`** 이 설정돼 있으면 → 쇼핑몰에서 모델명 검색 결과
+3. 둘 다 없으면 → 쇼핑몰 메인(`storeUrl`)
+
+쇼핑몰 검색 주소 형식만 알려 주시면 2번으로 전 상품이 한 번에 연결됩니다.
+
+## 카탈로그 갱신
+
+새 카탈로그 PDF가 나오면 `scripts/catalog/`의 스크립트로 다시 추출할 수 있습니다 (`pdftotext`, Python `pymupdf`·`pillow` 필요).
+
+```bash
+pdftotext -bbox-layout -f 5 -l 55 catalog.pdf bbox.html
+python3 scripts/catalog/parse_prices.py bbox.html items.json
+python3 scripts/catalog/extract_images.py catalog.pdf src/data/catalog.json public/products
+```
 
 ## 유입 채널 추적
 

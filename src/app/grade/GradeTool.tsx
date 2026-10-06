@@ -3,14 +3,15 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Quiz } from "@/components/Quiz";
-import { ProductCard } from "@/components/ProductCard";
+import { CategoryGroup } from "@/components/CategoryGroup";
+import { RatePicker } from "@/components/RatePicker";
 import { ContactCta } from "@/components/ContactCta";
 import { ShareButton } from "@/components/ShareButton";
-import { categories, productsFor } from "@/data/products";
 import { calcGrade, gradeQuestions, type GradeResult } from "@/lib/grade";
 
 export function GradeTool() {
   const [result, setResult] = useState<GradeResult | null>(null);
+  const [rate, setRate] = useState(0.15);
 
   if (!result) {
     return (
@@ -55,20 +56,10 @@ export function GradeTool() {
 
       <section>
         <h2 className="section-title">이 단계에서 많이 준비하는 복지용구</h2>
-        {result.categories.map((c) => {
-          const list = productsFor(c);
-          if (list.length === 0) return null;
-          return (
-            <div key={c} className="group">
-              <h3>
-                {categories[c].emoji} {categories[c].label}
-              </h3>
-              {list.map((p) => (
-                <ProductCard key={p.id} product={p} campaign="grade_check" />
-              ))}
-            </div>
-          );
-        })}
+        <RatePicker rate={rate} onChange={setRate} />
+        {result.categories.map((c) => (
+          <CategoryGroup key={c} category={c} campaign="grade_check" rate={rate} />
+        ))}
       </section>
 
       <ContactCta campaign="grade_check" />

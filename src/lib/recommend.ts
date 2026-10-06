@@ -94,10 +94,10 @@ export function recommend(a: Answers): Recommendation[] {
     add("electricBed", "누워 계신 시간이 길면 등·높이 조절이 되는 전동침대가 간병 부담을 크게 줄여요.", 10);
     add("pressureMattress", "같은 자세로 오래 계시면 욕창 위험이 높아요. 매트리스부터 바꿔 주세요.", 9);
     add("positioning", "돌아눕히기 쉽게 도와주는 쿠션으로 보호자 허리도 지킬 수 있어요.", 6);
+    add("simpleToilet", "누운 채로 용변을 보실 수 있어 밤중 간병이 한결 수월해져요.", 6);
+    add("bathtub", "욕실까지 옮기지 않고 방 안에서 목욕할 수 있어요.", 5);
   } else if (sleep === 0 && mobility >= 1) {
     add("electricBed", "바닥에서 일어나실 때 무릎·허리에 큰 부담이 가요. 침대 높이에서 바로 서실 수 있게 해 주세요.", 8);
-  } else if (sleep === 0) {
-    add("manualBed", "지금은 괜찮으셔도, 바닥에서 일어나는 동작이 낙상의 시작이 되는 경우가 많아요.", 4);
   }
   if (mobility === 3) {
     add("wheelchair", "실내외 이동이 휠체어 중심이라면 가벼운 접이식이 외출을 편하게 해요.", 7);
@@ -111,7 +111,7 @@ export function recommend(a: Answers): Recommendation[] {
   if (mobility >= 1 || fall === 1) {
     add("safetyHandle", "변기·욕조 옆에서 앉고 일어설 때 잡을 곳이 있으면 낙상이 크게 줄어요.", fall ? 10 : 8);
   }
-  add("antiSlip", bathroom === 0 ? "욕조 안팎은 집에서 가장 미끄러운 곳이에요." : "젖은 샤워 바닥에 미끄럼방지 매트 하나로 큰 사고를 막을 수 있어요.", fall ? 8 : 5);
+  add("antiSlipMat", bathroom === 0 ? "욕조 안팎은 집에서 가장 미끄러운 곳이에요." : "젖은 샤워 바닥에 미끄럼방지 매트 하나로 큰 사고를 막을 수 있어요.", fall ? 8 : 5);
   if (mobility >= 1 && mobility <= 3) {
     add("bathChair", "서서 샤워하시는 게 불안하다면 앉아서 씻는 게 훨씬 안전해요.", 6);
   }
@@ -127,6 +127,9 @@ export function recommend(a: Answers): Recommendation[] {
 
   // 인지
   if (wander === 1) add("wanderingSensor", "혼자 나가셨을 때 위치를 바로 확인할 수 있어 보호자 마음이 놓여요.", 9);
+  if (mobility >= 1 && mobility <= 2 && (fall === 1 || nightToilet >= 1)) {
+    add("antiSlipSocks", "실내에서 양말만 신고 걷다 미끄러지는 사고가 많아요. 바닥에 고무 처리된 양말로 바꿔 주세요.", 4);
+  }
 
   return out.sort((x, y) => y.priority - x.priority).slice(0, 5);
 }

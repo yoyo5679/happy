@@ -27,6 +27,7 @@ export default function Home() {
           <span className="btn primary">시작하기 →</span>
         </Link>
       </div>
+      <Link href="/catalog" className="btn wide">🛒 복지용구 전체 모델 · 본인부담금 보기</Link>
     </>
   );
 }

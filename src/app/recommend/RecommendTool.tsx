@@ -3,14 +3,15 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Quiz } from "@/components/Quiz";
-import { ProductCard } from "@/components/ProductCard";
+import { CategoryGroup } from "@/components/CategoryGroup";
+import { RatePicker } from "@/components/RatePicker";
 import { ContactCta } from "@/components/ContactCta";
 import { ShareButton } from "@/components/ShareButton";
-import { categories, productsFor } from "@/data/products";
 import { recommend, recommendQuestions, type Recommendation } from "@/lib/recommend";
 
 export function RecommendTool() {
   const [result, setResult] = useState<Recommendation[] | null>(null);
+  const [rate, setRate] = useState(0.15);
 
   if (!result) {
     return (
@@ -32,16 +33,9 @@ export function RecommendTool() {
         <p className="muted">위험도가 높은 순서로 정리했어요. 1순위부터 준비하시길 권해요.</p>
       </section>
 
+      <RatePicker rate={rate} onChange={setRate} />
       {result.map((r, i) => (
-        <section key={r.category} className="card group">
-          <h3>
-            <span className="rank">{i + 1}</span> {categories[r.category].emoji} {categories[r.category].label}
-          </h3>
-          <p className="reason">{r.reason}</p>
-          {productsFor(r.category).map((p) => (
-            <ProductCard key={p.id} product={p} campaign="home_recommend" />
-          ))}
-        </section>
+        <CategoryGroup key={r.category} category={r.category} campaign="home_recommend" rate={rate} rank={i + 1} reason={r.reason} />
       ))}
 
       <ContactCta campaign="home_recommend" />

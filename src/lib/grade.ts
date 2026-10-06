@@ -103,7 +103,7 @@ export function calcGrade(a: Answers): GradeResult {
       grade: "신청 대상 아님",
       headline: "현재는 장기요양보험 신청 대상이 아닐 수 있어요",
       detail: "65세 미만은 노인성 질병이 있어야 신청할 수 있어요. 등급과 관계없이 낙상 예방 용품은 일반 구매로 준비하실 수 있어요.",
-      categories: ["safetyHandle", "antiSlip", "cane"],
+      categories: ["safetyHandle", "antiSlipMat", "cane"],
     };
   }
 
@@ -119,47 +119,47 @@ export function calcGrade(a: Answers): GradeResult {
       score, grade: "1등급",
       headline: "1등급에 해당할 가능성이 있어요",
       detail: "일상생활 전반에 다른 사람의 도움이 필요한 상태예요. 와상 생활에 맞춘 침대와 욕창 예방이 가장 중요해요.",
-      categories: ["electricBed", "pressureMattress", "positioning", "incontinence"],
+      categories: ["electricBed", "pressureMattress", "positioning", "simpleToilet", "bathtub"],
     };
   if (score >= 75)
     return {
       score, grade: "2등급",
       headline: "2등급에 해당할 가능성이 있어요",
       detail: "일상생활 상당 부분에 도움이 필요해요. 침대에서 일어나고 이동하는 순간을 안전하게 만드는 용품을 추천해요.",
-      categories: ["electricBed", "pressureMattress", "wheelchair", "portableToilet"],
+      categories: ["electricBed", "pressureMattress", "wheelchair", "portableToilet", "incontinence"],
     };
   if (score >= 60)
     return {
       score, grade: "3등급",
       headline: "3등급에 해당할 가능성이 있어요",
       detail: "부분적으로 도움이 필요한 상태예요. 화장실·욕실 낙상 예방과 이동 보조가 핵심이에요.",
-      categories: ["manualBed", "safetyHandle", "bathChair", "walker"],
+      categories: ["safetyHandle", "portableToilet", "bathChair", "walker"],
     };
   if (score >= 51)
     return {
       score, grade: "4등급",
       headline: "4등급에 해당할 가능성이 있어요",
       detail: "일상생활 일부에 도움이 필요해요. 집 안 위험 구간(욕실·문턱)을 정비하면 혼자 하실 수 있는 일이 늘어나요.",
-      categories: ["safetyHandle", "antiSlip", "walker", "bathChair"],
+      categories: ["safetyHandle", "antiSlipMat", "walker", "bathChair"],
     };
   if (dementia && score >= 45)
     return {
       score, grade: "5등급",
       headline: "5등급(치매특별등급)에 해당할 가능성이 있어요",
       detail: "치매 어르신을 위한 등급이에요. 배회 대비와 낙상 예방 용품을 함께 준비하시면 좋아요.",
-      categories: ["wanderingSensor", "safetyHandle", "antiSlip"],
+      categories: ["wanderingSensor", "safetyHandle", "antiSlipSocks"],
     };
   if (dementia)
     return {
       score, grade: "인지지원등급",
       headline: "인지지원등급에 해당할 가능성이 있어요",
       detail: "신체 기능은 비교적 괜찮지만 치매가 있는 경우예요. 인지지원등급은 복지용구 급여도 받을 수 있어요.",
-      categories: ["wanderingSensor", "antiSlip", "safetyHandle"],
+      categories: ["wanderingSensor", "antiSlipSocks", "safetyHandle"],
     };
   return {
     score, grade: "등급외 가능성",
     headline: "아직은 등급 기준에 못 미칠 수 있어요",
     detail: "지금은 비교적 건강하신 편이에요. 다만 낙상 한 번이 큰 변화를 만드니, 욕실·현관부터 미리 준비하시길 권해요. 상태가 바뀌면 언제든 다시 신청할 수 있어요.",
-    categories: ["safetyHandle", "antiSlip", "cane"],
+    categories: ["safetyHandle", "antiSlipMat", "cane"],
   };
 }
