@@ -110,14 +110,15 @@ h3 { font-size: 1.1rem; margin: 0 0 0.5em; }
 .cta-buttons, .actions { display: grid; gap: 10px; margin-top: 12px; }
 .actions { text-align: center; }
 
-.code { font-size: 0.75rem; }
-.price s { font-weight: 400; font-size: 0.8rem; margin-left: 4px; }
+.list-price { font-weight: 400; font-size: 0.8rem; color: var(--muted); margin-left: 6px; }
 .more { display: block; text-align: center; padding: 12px; font-weight: 700; color: var(--brand); text-decoration: none; }
 .btn.wide { display: flex; width: 100%; margin-top: 8px; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
 .chip { min-height: 40px; padding: 6px 14px; border-radius: 99px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-size: 0.9rem; cursor: pointer; }
 .chip.on { background: var(--brand); border-color: var(--brand); color: #fff; font-weight: 700; }
-.rates { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 16px 0 4px; font-size: 0.9rem; }
+.rate-box { margin: 16px 0 4px; }
+.rates { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 0.9rem; }
+.rate-note { margin: 10px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--brand-weak); font-size: 0.85rem; line-height: 1.55; }
 .rates .chip { min-height: 36px; padding: 4px 12px; }
 .badge.out { color: #b42318; background: #fde8e7; }
 .product.sold-out { opacity: 0.55; }

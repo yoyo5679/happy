@@ -7,6 +7,7 @@ import { withUtm } from "@/lib/utm";
 export function ProductCard({ product, campaign, rate = 0.15 }: { product: Product; campaign: string; rate?: number }) {
   const cat = categories[product.category];
   const soldOut = isSoldOut(product);
+  const pct = `${Math.round(rate * 100)}%`;
   const [imgOk, setImgOk] = useState(!!product.img);
   return (
     <a
@@ -31,15 +32,16 @@ export function ProductCard({ product, campaign, rate = 0.15 }: { product: Produ
         <strong>{product.name}</strong>
         {product.rent && (
           <span className="price">
-            월 본인부담 {won(copay(product.rent.price, rate))} <s className="muted">{won(product.rent.price)}</s>
+            월 본인부담({pct}) {won(copay(product.rent.price, rate))}
+            <span className="list-price">월 급여가 {won(product.rent.price)}</span>
           </span>
         )}
         {product.buy && (
           <span className="price">
-            본인부담 {won(copay(product.buy.price, rate))} <s className="muted">{won(product.buy.price)}</s>
+            본인부담({pct}) {won(copay(product.buy.price, rate))}
+            <span className="list-price">급여가 {won(product.buy.price)}</span>
           </span>
         )}
-        {product.code && <span className="code muted">급여코드 {product.code}</span>}
       </div>
       <span className="go" aria-hidden>
         →
