@@ -3,6 +3,7 @@ import Link from "next/link";
 import { site } from "@/config/site";
 import { categories, products, type CategoryKey } from "@/data/products";
 import { limits, rateTargets } from "@/data/limits";
+import { AudienceTabs } from "@/components/AudienceTabs";
 
 export const metadata: Metadata = {
   title: "방문요양기관 선생님용 복지용구 도우미",
@@ -33,6 +34,7 @@ function supply(c: CategoryKey) {
 export default function Partner() {
   return (
     <>
+      <AudienceTabs current="agency" />
       <section className="hero">
         <p className="eyebrow">방문요양기관 선생님을 위한</p>
         <h1>복지용구 도우미</h1>

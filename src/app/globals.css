@@ -186,3 +186,9 @@ body { padding-bottom: 72px; }
 @media (min-width: 600px) {
   .partner-tools .tool:nth-child(3) { grid-column: auto; }
 }
+
+/* 보호자용 / 기관용 전환 탭 */
+.aud-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 8px; padding: 4px; border-radius: 14px; background: var(--brand-weak); }
+.aud-tabs a { display: grid; place-items: center; min-height: 44px; padding: 6px 8px; border-radius: 10px; text-align: center; font-size: 0.92rem; font-weight: 700; color: var(--muted); text-decoration: none; }
+.aud-tabs a.on { background: var(--card); color: var(--brand); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08); }
+.aud-tabs + .hero { padding-top: 16px; }

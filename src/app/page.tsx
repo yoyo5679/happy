@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { tools } from "@/config/tools";
 import { ProductPicks } from "@/components/ProductPicks";
+import { AudienceTabs } from "@/components/AudienceTabs";
 
 export default function Home() {
   return (
     <>
+      <AudienceTabs current="family" />
       <section className="hero">
         <p className="eyebrow">장기요양 등급이 있다면</p>
         <h1>
