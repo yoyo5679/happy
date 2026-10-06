@@ -1,0 +1,12 @@
+// Cloudflare Workers(정적 파일) 배포 설정: npm run build → out/ 폴더를 그대로 올립니다.
+{
+  "name": "happy",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./out",
+    // /rooms → rooms.html 처럼 .html 없이 열리게
+    "html_handling": "auto-trailing-slash",
+    // 없는 주소는 404.html
+    "not_found_handling": "404-page"
+  }
+}
