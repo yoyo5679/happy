@@ -1,5 +1,5 @@
-import { productsFor, type CategoryKey } from "@/data/products";
 import type { Answers, Question } from "./quiz";
+import { collector, type Recommendation } from "./recommender";
 
 export const recommendQuestions: Question[] = [
   {
@@ -74,18 +74,9 @@ export const recommendQuestions: Question[] = [
   },
 ];
 
-export type Recommendation = { category: CategoryKey; reason: string; priority: number };
-
 export function recommend(a: Answers): Recommendation[] {
-  const out: Recommendation[] = [];
-  const add = (category: CategoryKey, reason: string, priority: number) => {
-    const existing = out.find((r) => r.category === category);
-    if (existing) {
-      existing.priority = Math.max(existing.priority, priority);
-      return;
-    }
-    out.push({ category, reason, priority });
-  };
+  const c = collector();
+  const add = c.add;
 
   const { home = 0, mobility = 0, sleep = 0, bathroom = 0, threshold = 0, nightToilet = 0, fall = 0, wander = 0 } = a;
 
@@ -131,8 +122,5 @@ export function recommend(a: Answers): Recommendation[] {
     add("antiSlipSocks", "실내에서 양말만 신고 걷다 미끄러지는 사고가 많아요. 바닥에 고무 처리된 양말로 바꿔 주세요.", 4);
   }
 
-  return out
-    .filter((r) => productsFor(r.category).length > 0)
-    .sort((x, y) => y.priority - x.priority)
-    .slice(0, 5);
+  return c.finish();
 }

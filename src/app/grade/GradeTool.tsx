@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { Quiz } from "@/components/Quiz";
 import { CategoryGroup } from "@/components/CategoryGroup";
 import { RatePicker } from "@/components/RatePicker";
 import { ContactCta } from "@/components/ContactCta";
 import { ShareButton } from "@/components/ShareButton";
+import { OtherTools } from "@/components/OtherTools";
 import { calcGrade, gradeQuestions, type GradeResult } from "@/lib/grade";
 
 export function GradeTool() {
@@ -17,7 +17,7 @@ export function GradeTool() {
     return (
       <>
         <div className="page-title">
-          <h1>📋 장기요양등급 예상해보기</h1>
+          <h1>📋 장기요양등급 모의 계산</h1>
           <p className="muted">부모님의 평소 모습을 떠올리며 골라 주세요.</p>
         </div>
         <Quiz questions={gradeQuestions} onComplete={(a) => { setResult(calcGrade(a)); window.scrollTo(0, 0); }} />
@@ -66,7 +66,7 @@ export function GradeTool() {
 
       <div className="actions">
         <ShareButton title="우리 부모님 장기요양등급 예상해보기" />
-        <Link className="btn" href="/recommend">🏠 우리 집 맞춤 용품도 추천받기</Link>
+        <OtherTools current="/grade" />
         <button className="link" onClick={() => setResult(null)}>다시 해보기</button>
       </div>
     </>

@@ -4,9 +4,10 @@
 
 | 경로 | 기능 |
 |---|---|
-| `/` | 랜딩 (두 도구 선택) |
-| `/grade` | 우리 부모님 장기요양등급 예상해보기 (12문항 → 1~5등급·인지지원등급 예상 + 추천 용품) |
-| `/recommend` | 우리 집 맞춤 복지용구 추천 (8문항 → 우선순위 Top 5 + 추천 이유 + 상품) |
+| `/` | 랜딩 (세 도구 선택, 순서는 `src/config/tools.ts`) |
+| `/person` | ① 어르신 맞춤 복지용구 추천 (9문항: 걱정·걷기·일어서기·누워 있는 시간·피부·소변·기억·외출 → Top 5) |
+| `/recommend` | ② 우리 집 맞춤 복지용구 추천 (8문항 → 우선순위 Top 5 + 추천 이유 + 상품) |
+| `/grade` | ③ 장기요양등급 모의 계산 (12문항 → 1~5등급·인지지원등급 예상 + 추천 용품) |
 | `/catalog` | 해피케어몰 진열 상품 전체(344개 모델) + 본인부담률(15/9/6/0%)별 본인부담금 |
 
 ## 상품 데이터
@@ -34,7 +35,7 @@ python3 scripts/catalog/build_from_mall.py 상품목록.xlsx scripts/catalog/cat
 링크 뒤에 `?src=채널명`을 붙여 홍보하세요.
 
 - 블로그: `https://<배포주소>/?src=blog`
-- 유튜브 설명란: `https://<배포주소>/grade?src=youtube`
+- 유튜브 설명란: `https://<배포주소>/person?src=youtube`
 
 상품 링크로 이동할 때 `utm_source=youtube&utm_medium=care_tool&utm_campaign=grade_check&utm_content=<상품id>`가 자동으로 붙어, 스토어 통계에서 어느 채널·어느 도구가 매출로 이어졌는지 확인할 수 있습니다.
 
@@ -55,4 +56,4 @@ npm run dev     # http://localhost:3000
 
 ## 주의
 
-등급 예상은 공단 인정조사(52개 항목)를 단순화한 **참고용 모의 계산**입니다. 화면 하단과 결과에 실제 판정은 국민건강보험공단이 한다는 안내가 들어가 있습니다. 점수 기준은 `src/lib/grade.ts`, 추천 규칙은 `src/lib/recommend.ts`에서 조정할 수 있습니다.
+등급 예상은 공단 인정조사(52개 항목)를 단순화한 **참고용 모의 계산**입니다. 화면 하단과 결과에 실제 판정은 국민건강보험공단이 한다는 안내가 들어가 있습니다. 점수 기준은 `src/lib/grade.ts`, 추천 규칙은 `src/lib/person.ts`(어르신 맞춤)·`src/lib/recommend.ts`(집 맞춤)에서 조정할 수 있습니다.
