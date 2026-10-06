@@ -101,3 +101,13 @@ export const RATES = [
 export const copay = (price: number, rate: number) => Math.floor((price * rate) / 10) * 10;
 
 export const won = (n: number) => `${n.toLocaleString("ko-KR")}원`;
+
+/** 결과 공유 문구용: "전동침대 (예: SE7030 월 본인부담 11,470원)" */
+export function categorySummary(category: CategoryKey, rate: number): string {
+  const label = categories[category].label;
+  const p = productsFor(category, 1)[0];
+  if (!p) return label;
+  const l = p.rent && !p.rent.soldOut ? p.rent : p.buy ?? p.rent;
+  if (!l) return label;
+  return `${label} (예: ${p.name} ${l === p.rent ? "월 " : ""}본인부담 ${won(copay(l.price, rate))})`;
+}

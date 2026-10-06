@@ -1,18 +1,48 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Quiz } from "@/components/Quiz";
 import { CategoryGroup } from "@/components/CategoryGroup";
 import { RatePicker } from "@/components/RatePicker";
 import { ContactCta } from "@/components/ContactCta";
-import { ShareButton } from "@/components/ShareButton";
+import { ShareResult } from "@/components/ShareResult";
+import { SharedBanner } from "@/components/SharedBanner";
+import { categories } from "@/data/products";
+import type { Answers } from "@/lib/quiz";
+import { clearSharedParams, readSharedResult } from "@/lib/share";
 import { OtherTools } from "@/components/OtherTools";
 import { ProductPicks } from "@/components/ProductPicks";
 import { calcGrade, gradeQuestions, type GradeResult } from "@/lib/grade";
 
 export function GradeTool() {
   const [result, setResult] = useState<GradeResult | null>(null);
+  const [answers, setAnswers] = useState<Answers>({});
   const [rate, setRate] = useState(0.15);
+  const [shared, setShared] = useState(false);
+  const [round, setRound] = useState(0);
+
+  // 공유 링크(?a=…)로 들어오면 질문 없이 바로 결과를 보여줍니다
+  useEffect(() => {
+    const s = readSharedResult(gradeQuestions);
+    if (!s) return;
+    setAnswers(s.answers);
+    if (s.rate !== null) setRate(s.rate);
+    setResult(calcGrade(s.answers));
+    setShared(true);
+  }, []);
+
+  function retry() {
+    if (shared) {
+      clearSharedParams();
+      setShared(false);
+      setResult(null);
+      setRound(round + 1);
+    } else {
+      // 결과 기록에서 첫 질문 기록까지 되돌아가, 이후 뒤로가기가 자연스럽게 페이지를 벗어나도록
+      window.history.go(-gradeQuestions.length);
+    }
+    window.scrollTo(0, 0);
+  }
 
   const quiz = (
     <div hidden={!!result}>
@@ -20,7 +50,15 @@ export function GradeTool() {
         <h1>📋 장기요양등급 모의 계산</h1>
         <p className="muted">부모님의 평소 모습을 떠올리며 골라 주세요.</p>
       </div>
-      <Quiz questions={gradeQuestions} onComplete={(a) => setResult(calcGrade(a))} onReturn={() => setResult(null)} />
+      <Quiz
+        key={round}
+        questions={gradeQuestions}
+        onComplete={(a) => {
+          setAnswers(a);
+          setResult(calcGrade(a));
+        }}
+        onReturn={() => setResult(null)}
+      />
     </div>
   );
 
@@ -31,6 +69,7 @@ export function GradeTool() {
   return (
     <>
       {quiz}
+      {shared && <SharedBanner onRetry={retry} />}
       <section className="card result">
         <p className="eyebrow">예상 결과</p>
         <p className="grade">{result.grade}</p>
@@ -68,16 +107,20 @@ export function GradeTool() {
       <ContactCta campaign="grade_check" />
 
       <div className="actions">
-        <ShareButton title="우리 부모님 장기요양등급 예상해보기" />
+        <ShareResult
+          path="/grade"
+          heading="우리 부모님 장기요양등급 모의 계산 결과"
+          lines={[
+            `예상: ${result.grade} (모의 계산 · 참고용)`,
+            result.headline,
+            `준비하면 좋은 용품: ${result.categories.map((c) => categories[c].label).join(", ")}`,
+          ]}
+          questions={gradeQuestions}
+          answers={answers}
+          rate={rate}
+        />
         <OtherTools current="/grade" />
-        <button
-          className="link"
-          onClick={() => {
-            // 결과 기록에서 첫 질문 기록까지 되돌아가, 이후 뒤로가기가 자연스럽게 페이지를 벗어나도록
-            window.history.go(-gradeQuestions.length);
-            window.scrollTo(0, 0);
-          }}
-        >
+        <button className="link" onClick={retry}>
           다시 해보기
         </button>
       </div>

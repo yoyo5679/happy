@@ -12,7 +12,7 @@ export function rememberSource() {
   } catch {}
 }
 
-function source(): string {
+export function source(): string {
   try {
     return sessionStorage.getItem(KEY) || "direct";
   } catch {
