@@ -7,28 +7,30 @@ import { RatePicker } from "@/components/RatePicker";
 import { ContactCta } from "@/components/ContactCta";
 import { ShareButton } from "@/components/ShareButton";
 import { OtherTools } from "@/components/OtherTools";
+import { ProductPicks } from "@/components/ProductPicks";
 import { calcGrade, gradeQuestions, type GradeResult } from "@/lib/grade";
 
 export function GradeTool() {
   const [result, setResult] = useState<GradeResult | null>(null);
   const [rate, setRate] = useState(0.15);
 
-  if (!result) {
-    return (
-      <>
-        <div className="page-title">
-          <h1>📋 장기요양등급 모의 계산</h1>
-          <p className="muted">부모님의 평소 모습을 떠올리며 골라 주세요.</p>
-        </div>
-        <Quiz questions={gradeQuestions} onComplete={(a) => { setResult(calcGrade(a)); window.scrollTo(0, 0); }} />
-      </>
-    );
-  }
+  const quiz = (
+    <div hidden={!!result}>
+      <div className="page-title">
+        <h1>📋 장기요양등급 모의 계산</h1>
+        <p className="muted">부모님의 평소 모습을 떠올리며 골라 주세요.</p>
+      </div>
+      <Quiz questions={gradeQuestions} onComplete={(a) => setResult(calcGrade(a))} onReturn={() => setResult(null)} />
+    </div>
+  );
+
+  if (!result) return <>{quiz}</>;
 
   const eligible = result.grade !== "신청 대상 아님" && result.grade !== "등급외 가능성";
 
   return (
     <>
+      {quiz}
       <section className="card result">
         <p className="eyebrow">예상 결과</p>
         <p className="grade">{result.grade}</p>
@@ -62,12 +64,22 @@ export function GradeTool() {
         ))}
       </section>
 
+      <ProductPicks campaign="grade_check" exclude={result.categories} />
       <ContactCta campaign="grade_check" />
 
       <div className="actions">
         <ShareButton title="우리 부모님 장기요양등급 예상해보기" />
         <OtherTools current="/grade" />
-        <button className="link" onClick={() => setResult(null)}>다시 해보기</button>
+        <button
+          className="link"
+          onClick={() => {
+            // 결과 기록에서 첫 질문 기록까지 되돌아가, 이후 뒤로가기가 자연스럽게 페이지를 벗어나도록
+            window.history.go(-gradeQuestions.length);
+            window.scrollTo(0, 0);
+          }}
+        >
+          다시 해보기
+        </button>
       </div>
     </>
   );

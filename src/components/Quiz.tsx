@@ -1,23 +1,47 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Answers, Question } from "@/lib/quiz";
 
 type Props = {
   questions: Question[];
   onComplete: (answers: Answers) => void;
+  /** 결과 화면에서 휴대폰 뒤로가기로 질문에 돌아왔을 때 */
+  onReturn?: () => void;
 };
 
-export function Quiz({ questions, onComplete }: Props) {
+// 질문 한 단계마다 브라우저 기록을 남겨, 휴대폰 뒤로가기가 '이전 질문'으로 동작하게 합니다.
+export function Quiz({ questions, onComplete, onReturn }: Props) {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Answers>({});
   const q = questions[step];
 
+  useEffect(() => {
+    window.history.replaceState({ ...window.history.state, hcStep: 0 }, "");
+    const onPop = (e: PopStateEvent) => {
+      const s = e.state?.hcStep;
+      if (typeof s === "number") {
+        setStep(s);
+        onReturn?.();
+      }
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function choose(value: number) {
     const next = { ...answers, [q.id]: value };
     setAnswers(next);
-    if (step + 1 < questions.length) setStep(step + 1);
-    else onComplete(next);
+    if (step + 1 < questions.length) {
+      window.history.pushState({ ...window.history.state, hcStep: step + 1 }, "");
+      setStep(step + 1);
+      window.scrollTo(0, 0);
+    } else {
+      window.history.pushState({ ...window.history.state, hcStep: "result" }, "");
+      onComplete(next);
+      window.scrollTo(0, 0);
+    }
   }
 
   return (
@@ -42,7 +66,7 @@ export function Quiz({ questions, onComplete }: Props) {
         ))}
       </div>
       {step > 0 && (
-        <button className="link" onClick={() => setStep(step - 1)}>
+        <button className="link" onClick={() => window.history.back()}>
           ← 이전 질문
         </button>
       )}

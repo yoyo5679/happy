@@ -2,12 +2,13 @@ import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { site } from "@/config/site";
 import { SourceTracker } from "@/components/SourceTracker";
+import { FloatingKakao } from "@/components/FloatingKakao";
 import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.siteUrl),
   title: { default: `${site.name} | 우리 부모님 돌봄 자가진단`, template: `%s | ${site.name}` },
-  description: "1분 만에 장기요양등급을 예상해 보고, 집 구조에 맞는 복지용구를 추천받으세요.",
+  description: "장기요양 등급이 있으면 복지용구 연 160만원 지원. 우리 부모님께 맞는 용품과 예상 등급을 1분 만에 확인하세요.",
   openGraph: {
     title: "우리 부모님 장기요양등급, 1분 만에 예상해 보기",
     description: "클릭 몇 번으로 예상 등급과 맞춤 복지용구를 확인하세요.",
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </p>
           <p>© {site.name}</p>
         </footer>
+        <FloatingKakao />
       </body>
     </html>
   );
