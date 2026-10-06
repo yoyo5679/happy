@@ -1,7 +1,6 @@
-// 상품 데이터: 이로움케어 복지용구 카탈로그(catalog.json, 360개 품목)
-// 가격은 카탈로그 기준 급여가/대여가(월)이며, 본인부담금은 부담률을 곱해 계산합니다.
-import catalog from "./catalog.json";
-import { productLinks } from "./productLinks";
+// 상품 데이터: 해피케어몰 진열 상품 (products.json)
+// 가격은 쇼핑몰 급여가/월 대여가이며, 본인부담금은 부담률을 곱해 10원 미만 절사합니다.
+import data from "./products.json";
 import { site } from "@/config/site";
 
 export type CategoryKey =
@@ -45,34 +44,41 @@ export const categories: Record<CategoryKey, { label: string; emoji: string; des
   wheelchair: { label: "수동휠체어", emoji: "♿", desc: "걷기 어렵거나 오래 걷기 힘들 때" },
 };
 
-export type Product = {
-  /** 급여코드 */
-  code: string;
-  /** 모델명 */
-  name: string;
-  category: CategoryKey;
-  /** 카탈로그 페이지 */
-  page: number;
-  /** 급여가 (구입) */
-  price?: number;
-  /** 대여가 (월) */
-  rent?: number;
-  /** public/products/{code}.webp 이미지 있음 */
-  img?: boolean;
+type Listing = {
+  /** 급여가(구입) 또는 월 대여가 */
+  price: number;
+  /** 쇼핑몰 상품 페이지 */
+  url: string;
+  soldOut: boolean;
 };
 
-export const products = catalog as Product[];
+export type Product = {
+  id: string;
+  /** 급여코드 (카탈로그와 일치 확인된 상품만) */
+  code?: string;
+  name: string;
+  category: CategoryKey;
+  /** 로컬(/products/…) 또는 쇼핑몰 대표 이미지 URL */
+  img: string;
+  rent?: Listing;
+  buy?: Listing;
+};
 
-/** 결과 화면에 먼저 보여줄 상품 (급여코드). 지정하지 않은 카테고리는 카탈로그 순서대로 노출. */
+// 쇼핑몰 상품 엑셀 + 카탈로그로 생성 (scripts/catalog/build_from_mall.py)
+export const products = data as Product[];
+
+export const isSoldOut = (p: Product) => [p.rent, p.buy].every((l) => !l || l.soldOut);
+
+/** 결과 화면에 먼저 보여줄 상품 (id). 지정하지 않은 카테고리는 쇼핑몰 진열 순서대로 노출. */
 export const featured: Partial<Record<CategoryKey, string[]>> = {
-  // electricBed: ["S03090200002", "S03090200001"],
+  // electricBed: ["S03090200002"],
 };
 
 export function productsFor(category: CategoryKey, limit = 3): Product[] {
-  const all = products.filter((p) => p.category === category);
+  const all = products.filter((p) => p.category === category && !isSoldOut(p));
   const pick = featured[category] ?? [];
-  const head = pick.map((c) => all.find((p) => p.code === c)).filter((p): p is Product => !!p);
-  return [...head, ...all.filter((p) => !pick.includes(p.code))].slice(0, limit);
+  const head = pick.map((id) => all.find((p) => p.id === id)).filter((p): p is Product => !!p);
+  return [...head, ...all.filter((p) => !pick.includes(p.id))].slice(0, limit);
 }
 
 export function countFor(category: CategoryKey): number {
@@ -80,9 +86,8 @@ export function countFor(category: CategoryKey): number {
 }
 
 export function productUrl(p: Product): string {
-  if (productLinks[p.code]) return productLinks[p.code];
-  if (site.searchUrl) return site.searchUrl.replace("{q}", encodeURIComponent(p.name));
-  return site.storeUrl;
+  const l = [p.rent, p.buy].find((x) => x && !x.soldOut) ?? p.rent ?? p.buy;
+  return l?.url ?? site.storeUrl;
 }
 
 export const RATES = [
@@ -92,4 +97,7 @@ export const RATES = [
   { rate: 0, label: "기초수급 0%" },
 ] as const;
 
-export const won = (n: number) => `${Math.floor(n).toLocaleString("ko-KR")}원`;
+/** 본인부담금: 10원 미만 절사 (쇼핑몰 표기와 동일) */
+export const copay = (price: number, rate: number) => Math.floor((price * rate) / 10) * 10;
+
+export const won = (n: number) => `${n.toLocaleString("ko-KR")}원`;

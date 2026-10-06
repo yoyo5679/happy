@@ -119,3 +119,5 @@ h3 { font-size: 1.1rem; margin: 0 0 0.5em; }
 .chip.on { background: var(--brand); border-color: var(--brand); color: #fff; font-weight: 700; }
 .rates { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 16px 0 4px; font-size: 0.9rem; }
 .rates .chip { min-height: 36px; padding: 4px 12px; }
+.badge.out { color: #b42318; background: #fde8e7; }
+.product.sold-out { opacity: 0.55; }

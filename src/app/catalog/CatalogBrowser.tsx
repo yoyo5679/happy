@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { ProductCard } from "@/components/ProductCard";
 import { RatePicker } from "@/components/RatePicker";
 import { ContactCta } from "@/components/ContactCta";
-import { categories, products, type CategoryKey } from "@/data/products";
+import { categories, isSoldOut, products, type CategoryKey } from "@/data/products";
 
 const keys = Object.keys(categories) as CategoryKey[];
 
@@ -22,7 +22,8 @@ export function CatalogBrowser() {
     window.history.replaceState(null, "", `?c=${c}`);
   }
 
-  const list = products.filter((p) => p.category === cat);
+  const list = products.filter((p) => p.category === cat).sort((a, b) => Number(isSoldOut(a)) - Number(isSoldOut(b)));
+  const usable = keys.filter((k) => products.some((p) => p.category === k));
 
   return (
     <>
@@ -31,7 +32,7 @@ export function CatalogBrowser() {
         <p className="muted">장기요양 등급이 있으면 아래 본인부담금만 내고 구입·대여할 수 있어요. (연 한도 160만원)</p>
       </div>
       <div className="chips" role="tablist">
-        {keys.map((k) => (
+        {usable.map((k) => (
           <button key={k} role="tab" aria-selected={k === cat} className={k === cat ? "chip on" : "chip"} onClick={() => pick(k)}>
             {categories[k].label}
           </button>
@@ -44,7 +45,7 @@ export function CatalogBrowser() {
         </h3>
         <p className="reason">{categories[cat].desc}</p>
         {list.map((p) => (
-          <ProductCard key={p.code} product={p} campaign="catalog" rate={rate} />
+          <ProductCard key={p.id} product={p} campaign="catalog" rate={rate} />
         ))}
       </section>
       <ContactCta campaign="catalog" />

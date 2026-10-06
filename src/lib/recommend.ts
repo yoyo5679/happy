@@ -1,4 +1,4 @@
-import type { CategoryKey } from "@/data/products";
+import { productsFor, type CategoryKey } from "@/data/products";
 import type { Answers, Question } from "./quiz";
 
 export const recommendQuestions: Question[] = [
@@ -131,5 +131,8 @@ export function recommend(a: Answers): Recommendation[] {
     add("antiSlipSocks", "실내에서 양말만 신고 걷다 미끄러지는 사고가 많아요. 바닥에 고무 처리된 양말로 바꿔 주세요.", 4);
   }
 
-  return out.sort((x, y) => y.priority - x.priority).slice(0, 5);
+  return out
+    .filter((r) => productsFor(r.category).length > 0)
+    .sort((x, y) => y.priority - x.priority)
+    .slice(0, 5);
 }
