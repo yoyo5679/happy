@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image" },
 };
 
-export const viewport: Viewport = { themeColor: "#1f7a5a" };
+export const viewport: Viewport = { themeColor: "#068291" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -26,8 +26,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <SourceTracker />
         <header className="site-header">
-          <Link href="/" className="logo">
-            🌿 {site.name}
+          <Link href="/" className="logo" aria-label={`${site.name} 홈`}>
+            <img src="/logo.png" alt={site.name} width={140} height={36} />
           </Link>
         </header>
         <main>{children}</main>

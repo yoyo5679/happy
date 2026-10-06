@@ -32,7 +32,9 @@ export function ProductCard({ product, campaign, rate = 0.15 }: { product: Produ
         <strong>{product.name}</strong>
         {product.rent && (
           <span className="price">
-            월 본인부담({pct}) {won(copay(product.rent.price, rate))}
+            <span>
+              월 본인부담({pct}) {won(copay(product.rent.price, rate))}
+            </span>
             <span className="list-price">
               월 정상가 <s>{won(product.rent.price)}</s>
             </span>
@@ -40,7 +42,9 @@ export function ProductCard({ product, campaign, rate = 0.15 }: { product: Produ
         )}
         {product.buy && (
           <span className="price">
-            본인부담({pct}) {won(copay(product.buy.price, rate))}
+            <span>
+              본인부담({pct}) {won(copay(product.buy.price, rate))}
+            </span>
             <span className="list-price">
               정상가 <s>{won(product.buy.price)}</s>
             </span>
