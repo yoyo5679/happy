@@ -1,13 +1,15 @@
 """쇼핑몰(아임웹) 상품 엑셀 + 카탈로그 추출 데이터 → src/data/products.json
 
 usage: python build_from_mall.py <mall.xlsx> <catalog.json> <out.json>
+(public/products/ 에 쇼핑몰 대표 이미지를 내려받아 저장합니다. pillow 필요)
 
 - 쇼핑몰에 진열된 상품만 사용 (쇼핑몰이 기준)
 - 같은 모델의 대여/구입 상품을 하나로 묶고 각각의 URL을 보관
 - 카탈로그와 모델명이 일치하면 급여코드·추출 이미지를 붙이고 가격을 교차 검증
 """
-import json, re, sys, unicodedata
+import io, json, re, sys, unicodedata, urllib.request
 import openpyxl
+from PIL import Image
 
 xlsx, catalog_path, out = sys.argv[1], sys.argv[2], sys.argv[3]
 
@@ -107,6 +109,29 @@ for p in products.values():
         entry["buy"] = p["buy"]
     result.append(entry)
     report["matched" if p["code"] else "mallOnly"] += 1
+
+def save_local(p):
+    """쇼핑몰 대표 이미지를 public/products/{id}.webp 로 저장 (외부 CDN 의존 제거)"""
+    if not p["img"].startswith("http"):
+        return
+    try:
+        with urllib.request.urlopen(p["img"], timeout=30) as r:
+            im = Image.open(io.BytesIO(r.read()))
+        if im.mode in ("RGBA", "LA", "P"):
+            im = im.convert("RGBA")
+            bg = Image.new("RGB", im.size, "white")
+            bg.paste(im, mask=im.split()[-1])
+            im = bg
+        im = im.convert("RGB")
+        im.thumbnail((360, 360))
+        im.save(f"public/products/{p['id']}.webp", "WEBP", quality=78)
+        p["img"] = f"/products/{p['id']}.webp"
+    except Exception as e:
+        print("image download failed:", p["name"], e)
+
+
+for p in result:
+    save_local(p)
 
 order = list(CATS.values())
 result.sort(key=lambda p: (order.index(p["category"]), all(v["soldOut"] for v in (p.get("rent"), p.get("buy")) if v)))
