@@ -47,8 +47,8 @@ export function GradeTool() {
   const quiz = (
     <div hidden={!!result}>
       <div className="page-title">
-        <h1>📋 장기요양등급 모의 계산</h1>
-        <p className="muted">부모님의 평소 모습을 떠올리며 골라 주세요.</p>
+        <h1>📋 등급·혜택 확인</h1>
+        <p className="muted">부모님의 평소 모습을 떠올리며 골라 주세요. 예상 등급(모의 계산)과 복지용구 지원 대상인지 알려드려요.</p>
       </div>
       <Quiz
         key={round}

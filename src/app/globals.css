@@ -183,9 +183,6 @@ body { padding-bottom: 72px; }
 .tbl th { font-size: 0.8rem; color: var(--muted); font-weight: 700; white-space: nowrap; }
 .tbl td a { color: var(--brand); font-weight: 700; }
 .tbl .num { font-weight: 800; color: var(--accent); white-space: nowrap; }
-@media (min-width: 600px) {
-  .partner-tools .tool:nth-child(3) { grid-column: auto; }
-}
 
 /* 보호자용 / 기관용 전환 탭 */
 .aud-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 8px; padding: 4px; border-radius: 14px; background: var(--brand-weak); }
@@ -203,5 +200,10 @@ body { padding-bottom: 72px; }
 .room-intro { margin-top: 16px; }
 .room-intro h2 { margin-bottom: 4px; }
 .room-intro p { margin: 0; }
-.home-links { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
-.home-links .btn { margin: 0; font-size: 0.92rem; padding: 10px 8px; }
+
+.check-cta { display: flex; align-items: center; gap: 12px; margin: 12px 0 4px; padding: 14px 16px; border-radius: 14px; background: var(--brand-solid); color: #fff; text-decoration: none; }
+.check-cta .ico { font-size: 1.6rem; }
+.check-cta .txt { flex: 1; font-size: 0.92rem; line-height: 1.45; }
+.check-cta .txt strong { font-size: 1.02rem; }
+.check-cta .go { font-size: 1.3rem; }
+.crumb { display: inline-block; margin-bottom: 4px; font-size: 0.88rem; color: var(--brand); text-decoration: none; font-weight: 700; }

@@ -4,6 +4,7 @@ import { site } from "@/config/site";
 import { categories, products, type CategoryKey } from "@/data/products";
 import { limits, rateTargets } from "@/data/limits";
 import { AudienceTabs } from "@/components/AudienceTabs";
+import { tools } from "@/config/tools";
 
 export const metadata: Metadata = {
   title: "방문요양기관 선생님용 복지용구 도우미",
@@ -17,13 +18,6 @@ export const metadata: Metadata = {
   },
 };
 
-const staffTools = [
-  { href: "/person", emoji: "👵", title: "수급자 맞춤 추천", desc: "걷기·피부·소변 상태로 필요한 용품 Top 5" },
-  { href: "/check", emoji: "🔍", title: "가정 낙상 위험 점검표", desc: "첫 방문 때 13개 항목 체크" },
-  { href: "/recommend", emoji: "🏠", title: "집 구조 맞춤 추천", desc: "주거 환경별 낙상 예방 용품" },
-  { href: "/rooms", emoji: "🗺️", title: "장소별 상품 찾기", desc: "욕실·침실·거실·현관별 필요한 용품" },
-  { href: "/grade", emoji: "📋", title: "등급 모의 계산", desc: "신규·재신청 대상자 안내용" },
-];
 
 function supply(c: CategoryKey) {
   const list = products.filter((p) => p.category === c);
@@ -40,10 +34,18 @@ export default function Partner() {
         <p className="eyebrow">방문요양기관 선생님을 위한</p>
         <h1>복지용구 도우미</h1>
         <p className="muted">수급자 가정에서 바로 쓰는 추천·점검 도구와, 자주 찾는 한도 정보를 모았어요. 결과는 보호자 카톡으로 바로 보낼 수 있어요.</p>
+        <Link href="/check" className="hero-banner">
+          <span>
+            <strong>첫 방문이라면</strong>
+            <br />
+            13개 항목 가정 낙상 위험 점검표로 시작하세요
+          </span>
+          <span aria-hidden>→</span>
+        </Link>
       </section>
 
-      <div className="tools partner-tools">
-        {staffTools.map((t) => (
+      <div className="tools">
+        {tools.map((t) => (
           <Link key={t.href} href={t.href} className="tool card">
             <span className="tool-icon" aria-hidden>
               {t.emoji}
