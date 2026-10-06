@@ -21,6 +21,7 @@ const staffTools = [
   { href: "/person", emoji: "👵", title: "수급자 맞춤 추천", desc: "걷기·피부·소변 상태로 필요한 용품 Top 5" },
   { href: "/check", emoji: "🔍", title: "가정 낙상 위험 점검표", desc: "첫 방문 때 13개 항목 체크" },
   { href: "/recommend", emoji: "🏠", title: "집 구조 맞춤 추천", desc: "주거 환경별 낙상 예방 용품" },
+  { href: "/rooms", emoji: "🗺️", title: "장소별 상품 찾기", desc: "욕실·침실·거실·현관별 필요한 용품" },
   { href: "/grade", emoji: "📋", title: "등급 모의 계산", desc: "신규·재신청 대상자 안내용" },
 ];
 

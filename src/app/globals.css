@@ -192,3 +192,16 @@ body { padding-bottom: 72px; }
 .aud-tabs a { display: grid; place-items: center; min-height: 44px; padding: 6px 8px; border-radius: 10px; text-align: center; font-size: 0.92rem; font-weight: 700; color: var(--muted); text-decoration: none; }
 .aud-tabs a.on { background: var(--card); color: var(--brand); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08); }
 .aud-tabs + .hero { padding-top: 16px; }
+
+/* rooms */
+.fp-card { padding: 8px; }
+.floorplan { display: block; width: 100%; height: auto; }
+.fp-room { cursor: pointer; outline: none; }
+.fp-room:hover rect, .fp-room:focus-visible rect { stroke: #068291; }
+.room-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 4px 0 8px; }
+.room-tabs .chip { padding: 6px 4px; font-size: 0.88rem; }
+.room-intro { margin-top: 16px; }
+.room-intro h2 { margin-bottom: 4px; }
+.room-intro p { margin: 0; }
+.home-links { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.home-links .btn { margin: 0; font-size: 0.92rem; padding: 10px 8px; }
