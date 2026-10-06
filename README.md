@@ -37,8 +37,8 @@ python3 scripts/catalog/build_from_mall.py 상품목록.xlsx scripts/catalog/cat
 
 링크 뒤에 `?src=채널명`을 붙여 홍보하세요.
 
-- 블로그: `https://<배포주소>/?src=blog`
-- 유튜브 설명란: `https://<배포주소>/person?src=youtube`
+- 블로그: `https://happycare.pages.dev/?src=blog`
+- 유튜브 설명란: `https://happycare.pages.dev/person?src=youtube`
 
 상품 링크로 이동할 때 `utm_source=youtube&utm_medium=care_tool&utm_campaign=grade_check&utm_content=<상품id>`가 자동으로 붙어, 스토어 통계에서 어느 채널·어느 도구가 매출로 이어졌는지 확인할 수 있습니다.
 
@@ -49,7 +49,7 @@ python3 scripts/catalog/build_from_mall.py 상품목록.xlsx scripts/catalog/cat
 ## 방문요양기관 영업 자료 (`marketing/`)
 
 - `해피케어_방문요양기관_소개자료.pdf` — A4 소개 자료 (인쇄용)
-- `qr-agency_happycare.png` — 기관 전용 QR (`/partner?src=agency_happycare`)
+- `qr-agency_happycare.png` — 기관 전용 QR (`https://happycare.pages.dev/partner?src=agency_happycare`)
 - `leaflet-agency.html` — 소개 자료 원본 (문구 수정 후 브라우저 인쇄 → PDF 저장)
 
 다른 기관용 QR은 `src=agency_기관코드`만 바꿔 만들면 됩니다.
@@ -77,7 +77,9 @@ npm run dev     # http://localhost:3000
    - Node 버전은 `.node-version`(22)으로 지정됨
 4. **Save and Deploy** → `프로젝트이름.pages.dev` 주소가 생깁니다.
 5. 내 도메인: 프로젝트 → **Custom domains** → `care.happycaremall.com` 추가 → 안내되는 CNAME 값을 도메인 관리 화면에 등록
-6. 최종 주소가 정해지면 `src/config/site.ts`의 `siteUrl`을 바꿔 주세요 (공유 미리보기용).
+6. 주소가 바뀌면 `src/config/site.ts`의 `siteUrl`을 바꿔 주세요 (공유 미리보기용).
+
+현재 주소: **https://happycare.pages.dev**
 
 이후 GitHub에 push할 때마다 자동으로 다시 배포됩니다.
 
