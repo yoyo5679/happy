@@ -8,5 +8,5 @@ export const site = {
   /** 카카오톡 채널 채팅 링크 (없으면 빈 문자열) */
   kakaoUrl: "https://pf.kakao.com/_inqxmn",
   /** 배포 주소 (공유/OG 태그용) */
-  siteUrl: "https://happycare-tools.vercel.app",
+  siteUrl: "https://happy-gilt-theta.vercel.app",
 };

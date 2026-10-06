@@ -13,7 +13,9 @@ export const metadata: Metadata = {
     description: "클릭 몇 번으로 예상 등급과 맞춤 복지용구를 확인하세요.",
     type: "website",
     locale: "ko_KR",
+    siteName: site.name,
   },
+  twitter: { card: "summary_large_image" },
 };
 
 export const viewport: Viewport = { themeColor: "#1f7a5a" };
