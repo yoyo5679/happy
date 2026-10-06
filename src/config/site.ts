@@ -6,7 +6,7 @@ export const site = {
   /** 상담 전화번호 (tel: 링크로 사용) */
   phone: "1588-0000",
   /** 카카오톡 채널 채팅 링크 (없으면 빈 문자열) */
-  kakaoUrl: "",
+  kakaoUrl: "https://pf.kakao.com/_inqxmn",
   /** 배포 주소 (공유/OG 태그용) */
   siteUrl: "https://happycare-tools.vercel.app",
 };
