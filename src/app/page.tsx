@@ -26,13 +26,17 @@ export default function Home() {
       <div className="tools">
         {tools.map((t, i) => (
           <Link key={t.href} href={t.href} className="tool card">
-            <span className="tool-head">
+            <span className="tool-icon" aria-hidden>
+              {t.emoji}
               <span className="tool-num">{i + 1}</span>
-              <span className="tool-emoji">{t.emoji}</span>
             </span>
-            <h2>{t.title}</h2>
-            <p className="muted">{t.desc}</p>
-            <span className="btn primary">시작하기 →</span>
+            <span className="tool-body">
+              <h2>{t.title}</h2>
+              <p className="muted">{t.desc}</p>
+            </span>
+            <span className="tool-go" aria-hidden>
+              →
+            </span>
           </Link>
         ))}
       </div>
