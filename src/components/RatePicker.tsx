@@ -30,10 +30,10 @@ export function RatePicker({ rate, onChange }: { rate: number; onChange: (r: num
       <p className="rate-note">
         💡 <strong>본인부담({pct}%)</strong>: 실제로 내시는 금액이에요. (대상: {WHO[rate]})
         <br />
-        <strong>급여가</strong>: 나라에서 정한 제품 가격이에요.{" "}
+        <strong>정상가(급여가)</strong>: 나라에서 정한 제품 가격이에요.{" "}
         {pct === 0 ? "전액을 국민건강보험공단이 부담해요." : `그중 ${100 - pct}%는 국민건강보험공단이 부담해요.`}
         <br />
-        <span className="muted">복지용구는 연 160만원 한도 · 장기요양 등급이 없으면 급여가 전액 부담</span>
+        <span className="muted">복지용구는 연 160만원 한도 · 장기요양 등급이 없으면 정상가 전액 부담</span>
       </p>
     </div>
   );
