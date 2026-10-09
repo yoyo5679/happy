@@ -13,6 +13,7 @@ import { clearSharedParams, readSharedResult } from "@/lib/share";
 import { OtherTools } from "@/components/OtherTools";
 import { ProductPicks } from "@/components/ProductPicks";
 import { GradeExplain } from "@/components/GradeExplain";
+import { BenefitCard } from "@/components/BenefitCard";
 import { calcGrade, gradeQuestions, type GradeResult } from "@/lib/grade";
 
 export function GradeTool() {
@@ -84,6 +85,7 @@ export function GradeTool() {
         )}
       </section>
 
+      {result.grade !== "신청 대상 아님" && <BenefitCard grade={result.grade} rate={rate} />}
       {result.grade !== "신청 대상 아님" && <GradeExplain score={result.score} breakdown={result.breakdown} />}
 
       {eligible && (

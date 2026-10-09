@@ -42,6 +42,10 @@ python3 scripts/catalog/build_from_mall.py 상품목록.xlsx scripts/catalog/cat
 
 상품 링크로 이동할 때 `utm_source=youtube&utm_medium=care_tool&utm_campaign=grade_check&utm_content=<상품id>`가 자동으로 붙어, 스토어 통계에서 어느 채널·어느 도구가 매출로 이어졌는지 확인할 수 있습니다.
 
+## 등급별 혜택 (매년 1월 갱신)
+
+`src/data/benefits.ts` — 2026년 재가급여 월 한도액(1등급 2,512,900원 ~ 인지지원등급 676,320원), 복지용구 연 160만원, 등급별 이용 서비스·시설 입소 여부. 등급 결과 화면의 혜택 카드에 쓰입니다.
+
 ## 결과 보내기
 
 모든 결과 화면의 "📩 결과 보내기"는 답변을 링크(`?a=…&r=…`)에 담아 보냅니다. 받은 사람은 같은 결과 화면을 보고, `src`(채널·영업사원·기관 코드)도 함께 전달되어 쇼핑몰 통계에 잡힙니다.

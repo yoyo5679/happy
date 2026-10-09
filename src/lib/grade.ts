@@ -3,7 +3,7 @@ import type { Answers, Question } from "./quiz";
 
 // 국민건강보험공단 '장기요양 인정조사표'(5개 영역 52개 항목)의 구성을 따라 18문항으로 줄인 '참고용' 모의 계산입니다.
 // 등급 구간(95·75·60·51·45점)과 5등급·인지지원등급의 치매 요건은 「장기요양등급판정기준」을 따르고,
-// 문항별 배점은 공단 판정 모형(비공개)을 대신해 영역별 비중으로 단순화했습니다.
+// 문항별 배점은 공단 판정 모형(공개된 단순 계산식이 아님)을 대신해 영역별 비중으로 단순화했습니다.
 // 실제 등급은 공단 방문조사 + 의사소견서 + 등급판정위원회 심의로 결정됩니다.
 
 const help = (self: string, part: string, full: string) => [
@@ -65,14 +65,18 @@ export const gradeQuestions: GradeQuestion[] = [
   ] },
 ];
 
-// 영역별 배점 (합계 100점)
+// 영역별 배점 (합계 100점 상한)
+// 신체기능은 공식 등급 설명(1등급=일상생활 전적 도움, 2등급=상당 부분, 3등급=부분적, 4등급=일정 부분)과
+// 2026년 1분기 인정자 분포(4등급 42.6%, 3등급 23.7%)에 맞춰, 도움 정도가 커질수록 점수가 빠르게 오르게 했습니다.
+//   - 문항별: 혼자 0, 일부 도움 0.5, 전적 도움 1 → 평균(s)
+//   - 신체기능 점수 = 95 × √s  (모두 전적 도움 → 95점 = 1등급, 모두 일부 도움 → 약 67점 = 3등급, 절반 일부 도움 → 약 50점 = 4등급 경계)
 export type DomainKey = "adl" | "cog" | "beh" | "nurse" | "rehab";
 export const domains: Record<DomainKey, { label: string; official: string; max: number }> = {
-  adl: { label: "신체기능", official: "옷 입기·세수·양치·목욕·식사·체위 변경·일어나 앉기·옮겨 앉기·방 밖으로 나오기·화장실 이용·대변·소변 조절 (12개)", max: 60 },
-  cog: { label: "인지기능", official: "단기 기억, 날짜·장소·나이 인지, 지시 이행, 상황 판단, 의사소통 (7개)", max: 10 },
-  beh: { label: "행동변화", official: "망상, 환각, 배회, 길 잃음, 폭언·폭행, 도움 거부 등 (14개)", max: 8 },
+  adl: { label: "신체기능", official: "옷 입기·세수·양치·목욕·식사·체위 변경·일어나 앉기·옮겨 앉기·방 밖으로 나오기·화장실 이용·대변·소변 조절 (12개)", max: 95 },
+  cog: { label: "인지기능", official: "단기 기억, 날짜·장소·나이 인지, 지시 이행, 상황 판단, 의사소통 (7개)", max: 8 },
+  beh: { label: "행동변화", official: "망상, 환각, 배회, 길 잃음, 폭언·폭행, 도움 거부 등 (14개)", max: 6 },
   nurse: { label: "간호처치", official: "기관지 절개관, 흡인, 산소요법, 욕창, 도뇨관, 경관영양, 투석, 장루 등 (9개)", max: 10 },
-  rehab: { label: "재활", official: "팔다리 운동장애, 관절 제한 (10개)", max: 12 },
+  rehab: { label: "재활", official: "팔다리 운동장애, 관절 제한 (10개)", max: 6 },
 };
 export const domainOrder: DomainKey[] = ["adl", "cog", "beh", "nurse", "rehab"];
 
@@ -80,6 +84,11 @@ export function domainScores(a: Answers): Record<DomainKey, number> {
   const out = {} as Record<DomainKey, number>;
   for (const d of domainOrder) {
     const qs = gradeQuestions.filter((q) => q.domain === d);
+    if (d === "adl") {
+      const sAvg = qs.reduce((sum, q) => sum + (a[q.id] === 2 ? 1 : a[q.id] === 1 ? 0.5 : 0), 0) / qs.length;
+      out[d] = Math.round(domains.adl.max * Math.sqrt(sAvg));
+      continue;
+    }
     const got = qs.reduce((sum, q) => sum + (a[q.id] ?? 0), 0);
     const max = qs.reduce((sum, q) => sum + Math.max(...q.options.map((o) => o.value)), 0);
     out[d] = Math.round((got / max) * domains[d].max);

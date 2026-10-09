@@ -103,6 +103,11 @@ export function GradeExplain({ score, breakdown }: { score: number; breakdown?: 
           <strong>단순화한 것</strong>: 질문 수({gradeQuestions.length}개)와 문항별 배점. 공단의 실제 판정 모형은 공개된 단순 계산식이
           아니라서 그대로 재현할 수 없어요.
         </li>
+        <li>
+          <strong>점수 맞춤 기준</strong>: 신체기능 점수는 공식 등급 설명(1등급 &lsquo;전적으로&rsquo;, 2등급 &lsquo;상당 부분&rsquo;, 3등급
+          &lsquo;부분적으로&rsquo;, 4등급 &lsquo;일정 부분&rsquo; 도움 필요)과 2026년 1분기 인정자 분포(4등급 42.6%로 최다)에 맞춰
+          도움 정도가 커질수록 점수가 오르게 했어요. 영역 점수의 합은 100점에서 멈춰요.
+        </li>
         <li>그래서 실제 판정과 한 등급 정도 차이가 날 수 있어요. 결과는 신청 여부를 판단하는 참고용으로만 봐 주세요.</li>
         <li>정확한 등급은 국민건강보험공단(☎ 1577-1000)에 장기요양인정을 신청해야 알 수 있어요.</li>
       </ul>
