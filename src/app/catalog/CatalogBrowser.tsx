@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { ProductCard } from "@/components/ProductCard";
 import { RatePicker } from "@/components/RatePicker";
 import { ContactCta } from "@/components/ContactCta";
-import { categories, isSoldOut, products, type CategoryKey } from "@/data/products";
+import { categories, categoryGroups, isSoldOut, products, type CategoryKey } from "@/data/products";
 
-const keys = Object.keys(categories) as CategoryKey[];
+const count = (c: CategoryKey) => products.filter((p) => p.category === c).length;
+const groups = categoryGroups.map((g) => ({ ...g, items: g.items.filter((c) => count(c) > 0) }));
+const groupOf = (c: CategoryKey) => groups.find((g) => g.items.includes(c)) ?? groups[0];
 
 export function CatalogBrowser() {
   const [cat, setCat] = useState<CategoryKey>("electricBed");
@@ -14,30 +16,43 @@ export function CatalogBrowser() {
 
   useEffect(() => {
     const c = new URLSearchParams(window.location.search).get("c");
-    if (c && c in categories) setCat(c as CategoryKey);
+    if (c && c in categories && count(c as CategoryKey) > 0) setCat(c as CategoryKey);
   }, []);
 
   function pick(c: CategoryKey) {
     setCat(c);
-    window.history.replaceState(null, "", `?c=${c}`);
+    window.history.replaceState(window.history.state, "", `?c=${c}`);
   }
 
+  const group = groupOf(cat);
   const list = products.filter((p) => p.category === cat).sort((a, b) => Number(isSoldOut(a)) - Number(isSoldOut(b)));
-  const usable = keys.filter((k) => products.some((p) => p.category === k));
 
   return (
     <>
       <div className="page-title">
         <h1>🛒 복지용구 전체 모델</h1>
-        <p className="muted">장기요양 등급이 있으면 아래 본인부담금만 내고 구입·대여할 수 있어요. (연 한도 160만원)</p>
+        <p className="muted">장기요양 등급이 있으면 아래 본인부담금만 내고 구입·대여할 수 있어요.</p>
       </div>
-      <div className="chips" role="tablist">
-        {usable.map((k) => (
-          <button key={k} role="tab" aria-selected={k === cat} className={k === cat ? "chip on" : "chip"} onClick={() => pick(k)}>
-            {categories[k].label}
+
+      <nav className="cat-groups" role="tablist" aria-label="품목 분류">
+        {groups.map((g) => (
+          <button key={g.key} role="tab" aria-selected={g.key === group.key} className={g.key === group.key ? "on" : ""} onClick={() => pick(g.items[0])}>
+            <span className="ico" aria-hidden>
+              {g.emoji}
+            </span>
+            {g.label}
+          </button>
+        ))}
+      </nav>
+
+      <div className="cat-items" role="tablist" aria-label={`${group.label} 세부 품목`}>
+        {group.items.map((c) => (
+          <button key={c} role="tab" aria-selected={c === cat} className={c === cat ? "chip on" : "chip"} onClick={() => pick(c)}>
+            {categories[c].label} <span className="cnt">{count(c)}</span>
           </button>
         ))}
       </div>
+
       <RatePicker rate={rate} onChange={setRate} />
       <section className="card group">
         <h3>

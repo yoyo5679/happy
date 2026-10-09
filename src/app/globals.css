@@ -119,9 +119,13 @@ h3 { font-size: 1.1rem; margin: 0 0 0.5em; }
 .chip { min-height: 40px; padding: 6px 14px; border-radius: 99px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-size: 0.9rem; cursor: pointer; }
 .chip.on { background: var(--brand-solid); border-color: var(--brand-solid); color: #fff; font-weight: 700; }
 .rate-box { margin: 16px 0 4px; }
-.rates { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 0.9rem; }
+.rates { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 4px; border-radius: 14px; background: var(--brand-weak); }
 .rate-note { margin: 10px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--brand-weak); font-size: 0.85rem; line-height: 1.55; }
-.rates .chip { min-height: 36px; padding: 4px 12px; }
+.rate-title { margin: 0 0 6px; font-size: 0.85rem; font-weight: 700; color: var(--muted); }
+.seg { display: grid; place-items: center; gap: 0; min-height: 48px; padding: 4px 2px; border: 0; border-radius: 10px; background: transparent; color: var(--muted); font: inherit; cursor: pointer; }
+.seg strong { font-size: 1rem; line-height: 1.2; }
+.seg span { font-size: 0.72rem; }
+.seg.on { background: var(--brand-solid); color: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12); }
 .badge.out { color: #b42318; background: #fde8e7; }
 .product.sold-out { opacity: 0.55; }
 .tool-num { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--brand-solid); color: #fff; font-weight: 800; }
@@ -216,3 +220,13 @@ body { padding-bottom: 72px; }
 .benefit-list strong { font-size: 1.2rem; font-weight: 900; color: var(--text); }
 .benefit-list strong.sm { font-size: 0.95rem; font-weight: 700; }
 .benefit-list em { font-style: normal; font-size: 0.85rem; color: var(--accent); font-weight: 700; }
+
+/* 전체 모델: 큰 묶음 4개 + 세부 품목 한 줄 */
+.cat-groups { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 12px 0 8px; }
+.cat-groups button { display: grid; place-items: center; gap: 2px; min-height: 68px; padding: 8px 2px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--card); color: var(--text); font: inherit; font-size: 0.85rem; font-weight: 700; cursor: pointer; }
+.cat-groups .ico { font-size: 1.5rem; line-height: 1; }
+.cat-groups button.on { border-color: var(--brand-solid); background: var(--brand-weak); color: var(--brand); }
+.cat-items { display: flex; gap: 6px; overflow-x: auto; margin: 0 -16px 12px; padding: 2px 16px 6px; scrollbar-width: none; }
+.cat-items::-webkit-scrollbar { display: none; }
+.cat-items .chip { flex: 0 0 auto; white-space: nowrap; }
+.cat-items .cnt { font-size: 0.75rem; opacity: 0.7; margin-left: 2px; }

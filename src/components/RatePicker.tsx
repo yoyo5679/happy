@@ -13,19 +13,23 @@ export function RatePicker({ rate, onChange }: { rate: number; onChange: (r: num
   const pct = Math.round(rate * 100);
   return (
     <div className="rate-box">
+      <p className="rate-title">본인부담률</p>
       <div className="rates" role="radiogroup" aria-label="본인부담률">
-        <span className="muted">본인부담률</span>
-        {RATES.map((r) => (
-          <button
-            key={r.rate}
-            role="radio"
-            aria-checked={rate === r.rate}
-            className={rate === r.rate ? "chip on" : "chip"}
-            onClick={() => onChange(r.rate)}
-          >
-            {r.label}
-          </button>
-        ))}
+        {RATES.map((r) => {
+          const [kind, num] = r.label.split(" ");
+          return (
+            <button
+              key={r.rate}
+              role="radio"
+              aria-checked={rate === r.rate}
+              className={rate === r.rate ? "seg on" : "seg"}
+              onClick={() => onChange(r.rate)}
+            >
+              <strong>{num}</strong>
+              <span>{kind}</span>
+            </button>
+          );
+        })}
       </div>
       <p className="rate-note">
         💡 <strong>본인부담({pct}%)</strong>: 실제로 내시는 금액이에요. (대상: {WHO[rate]})

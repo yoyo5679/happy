@@ -52,6 +52,14 @@ type Listing = {
   soldOut: boolean;
 };
 
+// 전체 모델 페이지의 큰 묶음 (쇼핑몰처럼 4개 그룹 → 세부 품목)
+export const categoryGroups: { key: string; label: string; emoji: string; items: CategoryKey[] }[] = [
+  { key: "bed", label: "침상·욕창", emoji: "🛏️", items: ["electricBed", "pressureMattress", "pressureCushion", "positioning"] },
+  { key: "move", label: "이동·보행", emoji: "🦯", items: ["walker", "cane", "wheelchair", "ramp"] },
+  { key: "bath", label: "목욕·화장실", emoji: "🛁", items: ["bathChair", "bathtub", "portableToilet", "simpleToilet", "incontinence"] },
+  { key: "safe", label: "낙상·안전", emoji: "🛡️", items: ["safetyHandle", "antiSlipMat", "antiSlipSocks", "wanderingSensor"] },
+];
+
 export type Product = {
   id: string;
   /** 급여코드 (카탈로그와 일치 확인된 상품만) */
