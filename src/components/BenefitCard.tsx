@@ -32,22 +32,23 @@ export function BenefitCard({ grade, rate }: { grade: string; rate: number }) {
       <h3>🎁 {grade}이 나오면 받을 수 있는 혜택</h3>
       <ul className="benefit-list">
         <li>
-          <span>재가서비스 월 한도</span>
-          <strong>{won(b.monthly)}</strong>
+          <span>🏠 집으로 오는 돌봄 서비스 (방문요양·방문목욕 등)</span>
+          <strong>매달 {won(b.monthly)}어치까지</strong>
           <em>
             {pct === 0
-              ? "기초생활수급자는 본인부담 없이 이용할 수 있어요"
-              : `한도까지 다 써도 본인부담(${pct}%)은 월 ${won(copay(b.monthly, rate))}`}
+              ? "비용은 나라에서 내 드려요 (본인부담 없음)"
+              : `쓴 만큼의 ${pct}%만 내세요 · 예) 100만원어치 이용 → ${won(copay(1_000_000, rate))}`}
           </em>
         </li>
         <li>
-          <span>복지용구 (구입·대여)</span>
-          <strong>연 {won(EQUIPMENT_LIMIT)}</strong>
+          <span>🛏️ 복지용구 (침대·보행기·안전손잡이 등)</span>
+          <strong>1년에 {won(EQUIPMENT_LIMIT)}어치까지</strong>
           <em>
             {pct === 0
-              ? "본인부담 없이 이용 · 재가서비스 한도와 별도"
-              : `160만원어치를 써도 본인부담(${pct}%)은 ${won(copay(EQUIPMENT_LIMIT, rate))} · 재가서비스 한도와 별도`}
+              ? "비용은 나라에서 내 드려요 (본인부담 없음)"
+              : `가격의 ${pct}%만 내세요 · 예) 20만원짜리 보행기 → ${won(copay(200_000, rate))}`}
           </em>
+          <small>돌봄 서비스와 따로 쓸 수 있어요</small>
         </li>
         <li>
           <span>이용 가능한 서비스</span>
@@ -59,8 +60,8 @@ export function BenefitCard({ grade, rate }: { grade: string; rate: number }) {
         </li>
       </ul>
       <p className="muted small">
-        {BENEFIT_YEAR}년 기준 · 한도액은 매년 바뀌어요. 한도를 넘는 이용분은 전액 본인 부담이며, 시설 이용 시 본인부담은 20%예요.
-        정확한 내용은 국민건강보험공단(☎ 1577-1000)에서 확인하세요.
+        {BENEFIT_YEAR}년 기준 · 금액은 매년 바뀌어요. 정해진 금액보다 더 쓰면 넘은 부분은 직접 내셔야 해요. 요양원 이용 시에는 20%를
+        내요. 정확한 내용은 국민건강보험공단(☎ 1577-1000)에서 확인하세요.
       </p>
     </section>
   );

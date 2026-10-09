@@ -219,7 +219,8 @@ body { padding-bottom: 72px; }
 .benefit-list span { font-size: 0.85rem; color: var(--muted); }
 .benefit-list strong { font-size: 1.2rem; font-weight: 900; color: var(--text); }
 .benefit-list strong.sm { font-size: 0.95rem; font-weight: 700; }
-.benefit-list em { font-style: normal; font-size: 0.85rem; color: var(--accent); font-weight: 700; }
+.benefit-list em { font-style: normal; font-size: 0.88rem; color: var(--accent); font-weight: 700; }
+.benefit-list small { font-size: 0.8rem; color: var(--muted); }
 
 /* 전체 모델: 큰 묶음 4개 + 세부 품목 한 줄 */
 .cat-groups { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 12px 0 8px; }
