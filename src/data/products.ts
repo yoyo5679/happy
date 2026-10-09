@@ -117,5 +117,6 @@ export function categorySummary(category: CategoryKey, rate: number): string {
   if (!p) return label;
   const l = p.rent && !p.rent.soldOut ? p.rent : p.buy ?? p.rent;
   if (!l) return label;
+  if (rate === 0) return `${label} (예: ${p.name}, 본인부담 없음)`;
   return `${label} (예: ${p.name} ${l === p.rent ? "월 " : ""}본인부담 ${won(copay(l.price, rate))})`;
 }

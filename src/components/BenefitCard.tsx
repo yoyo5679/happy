@@ -35,14 +35,18 @@ export function BenefitCard({ grade, rate }: { grade: string; rate: number }) {
           <span>재가서비스 월 한도</span>
           <strong>{won(b.monthly)}</strong>
           <em>
-            다 쓰면 본인부담({pct}%) 월 {won(copay(b.monthly, rate))}
+            {pct === 0
+              ? "기초생활수급자는 본인부담 없이 이용할 수 있어요"
+              : `한도까지 다 써도 본인부담(${pct}%)은 월 ${won(copay(b.monthly, rate))}`}
           </em>
         </li>
         <li>
           <span>복지용구 (구입·대여)</span>
           <strong>연 {won(EQUIPMENT_LIMIT)}</strong>
           <em>
-            본인부담({pct}%) 최대 {won(copay(EQUIPMENT_LIMIT, rate))} · 재가서비스 한도와 별도
+            {pct === 0
+              ? "본인부담 없이 이용 · 재가서비스 한도와 별도"
+              : `160만원어치를 써도 본인부담(${pct}%)은 ${won(copay(EQUIPMENT_LIMIT, rate))} · 재가서비스 한도와 별도`}
           </em>
         </li>
         <li>
