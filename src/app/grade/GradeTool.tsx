@@ -12,6 +12,7 @@ import type { Answers } from "@/lib/quiz";
 import { clearSharedParams, readSharedResult } from "@/lib/share";
 import { OtherTools } from "@/components/OtherTools";
 import { ProductPicks } from "@/components/ProductPicks";
+import { GradeExplain } from "@/components/GradeExplain";
 import { calcGrade, gradeQuestions, type GradeResult } from "@/lib/grade";
 
 export function GradeTool() {
@@ -82,6 +83,8 @@ export function GradeTool() {
           </div>
         )}
       </section>
+
+      {result.grade !== "신청 대상 아님" && <GradeExplain score={result.score} breakdown={result.breakdown} />}
 
       {eligible && (
         <section className="card">
