@@ -31,7 +31,9 @@ export function RatePicker({ rate, onChange }: { rate: number; onChange: (r: num
           );
         })}
       </div>
-      <p className="rate-note">
+      <details className="rate-help">
+        <summary>본인부담이 뭔가요?</summary>
+        <p className="rate-note">
         💡 <strong>본인부담({pct}%)</strong>: 실제로 내시는 금액이에요. (대상: {WHO[rate]})
         <br />
         <strong>정상가(급여가)</strong>: 나라에서 정한 제품 가격이에요.{" "}
@@ -39,6 +41,7 @@ export function RatePicker({ rate, onChange }: { rate: number; onChange: (r: num
         <br />
         <span className="muted">복지용구는 연 160만원 한도 · 장기요양 등급이 없으면 정상가 전액 부담</span>
       </p>
+      </details>
     </div>
   );
 }

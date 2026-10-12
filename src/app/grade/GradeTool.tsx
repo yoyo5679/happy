@@ -12,6 +12,8 @@ import type { Answers } from "@/lib/quiz";
 import { clearSharedParams, readSharedResult } from "@/lib/share";
 import { OtherTools } from "@/components/OtherTools";
 import { BudgetLink } from "@/components/BudgetLink";
+import { ResultBar } from "@/components/ResultBar";
+import { QuickCost } from "@/components/QuickCost";
 import { ProductPicks } from "@/components/ProductPicks";
 import { GradeExplain } from "@/components/GradeExplain";
 import { BenefitCard } from "@/components/BenefitCard";
@@ -84,6 +86,7 @@ export function GradeTool() {
             <span>모의 점수 {result.score}점</span>
           </div>
         )}
+        <QuickCost categories={result.categories} rate={rate} />
       </section>
 
       {result.grade !== "신청 대상 아님" && <BenefitCard grade={result.grade} rate={rate} />}
@@ -131,6 +134,19 @@ export function GradeTool() {
           다시 해보기
         </button>
       </div>
+      <ResultBar share={<ShareResult
+          compact
+          path="/grade"
+          heading="우리 부모님 장기요양등급 모의 계산 결과"
+          lines={[
+            `예상: ${result.grade} (모의 계산 · 참고용)`,
+            result.headline,
+            `준비하면 좋은 용품: ${result.categories.map((c) => categories[c].label).join(", ")}`,
+          ]}
+          questions={gradeQuestions}
+          answers={answers}
+          rate={rate}
+        />} budgetCategories={result.categories} />
     </>
   );
 }

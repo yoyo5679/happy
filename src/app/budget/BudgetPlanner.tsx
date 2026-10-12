@@ -4,15 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import { RatePicker } from "@/components/RatePicker";
 import { ContactCta } from "@/components/ContactCta";
 import { categories, categoryGroups, copay, productUrl, won, type CategoryKey } from "@/data/products";
-import { buildPlans, EQUIPMENT_LIMIT, groupKeys, groupOfCategory, groupPlan, tiers, type Line, type Plan } from "@/lib/budget";
+import { buildPlans, EQUIPMENT_LIMIT, groupKeys, groupOfCategory, groupPlan, lineCopay, planCopay, tiers, type Plan } from "@/lib/budget";
 import { source, withUtm } from "@/lib/utm";
 import { ShareText } from "@/components/ShareText";
+import { ResultBar } from "@/components/ResultBar";
 
 const BUDGETS = [300_000, 500_000, 1_000_000, EQUIPMENT_LIMIT];
 
-/** 품목 본인부담: 대여는 쇼핑몰처럼 '월 본인부담(10원 미만 절사) × 개월' */
-const lineCopay = (l: Line, rate: number, months: number) => (l.rental ? copay(l.monthly!, rate) * months : copay(l.unit, rate) * l.qty);
-const planCopay = (p: Plan, rate: number, months: number) => p.lines.reduce((s, l) => s + lineCopay(l, rate, months), 0);
 const MONTHS = [3, 6, 12];
 const orderOf = (c: CategoryKey) => {
   const g = groupOfCategory(c)!;
@@ -209,6 +207,31 @@ export function BudgetPlanner() {
       )}
 
       <ContactCta campaign="budget" />
+      {ordered.length > 0 && <ResultBar share={<ShareText
+              compact
+              heading={`복지용구 예산 세트 (160만원 중 ${won(budget)})`}
+              lines={[
+                `담은 품목: ${ordered.filter((c) => !missing.includes(c)).map((c) => categories[c].label).join(", ")}`,
+                "",
+                ...plans.map((p) => {
+                  const t = tiers.find((x) => x.key === p.tier)!;
+                  const pay = rate === 0 ? "본인부담 없음" : `본인부담 ${won(planCopay(p, rate, months))}`;
+                  return `${p === best ? "⭐ " : "• "}${t.label}: ${won(p.total)}어치 (${pay})`;
+                }),
+                ...(plans.some((p) => p.lines.some((l) => l.rental)) ? [`(대여 품목은 ${months}개월 기준)`] : []),
+              ]}
+              url={() => {
+                const u = new URL("/budget", window.location.origin);
+                u.searchParams.set("b", String(budget));
+                u.searchParams.set("c", ordered.join(","));
+                u.searchParams.set("m", String(months));
+                u.searchParams.set("r", String(Math.round(rate * 100)));
+                if (!withQty) u.searchParams.set("q", "0");
+                const src = source();
+                if (src !== "direct") u.searchParams.set("src", src);
+                return u.toString();
+              }}
+            />} />}
     </>
   );
 }

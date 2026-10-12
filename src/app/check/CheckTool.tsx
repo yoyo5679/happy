@@ -10,6 +10,8 @@ import { ShareResult } from "@/components/ShareResult";
 import { SharedBanner } from "@/components/SharedBanner";
 import { OtherTools } from "@/components/OtherTools";
 import { BudgetLink } from "@/components/BudgetLink";
+import { ResultBar } from "@/components/ResultBar";
+import { QuickCost } from "@/components/QuickCost";
 import { categorySummary } from "@/data/products";
 import { checkAreas, checkItems, evaluateCheck, type CheckResult } from "@/lib/check";
 import type { Answers } from "@/lib/quiz";
@@ -114,6 +116,7 @@ export function CheckTool() {
           {checkItems.length}개 항목 중 {result.count}개 해당
         </h1>
         <p className="muted">{LEVEL_TEXT[result.level]}</p>
+        <QuickCost categories={result.recs.map((r) => r.category)} rate={rate} />
       </section>
 
       {result.recs.length > 0 && (
@@ -143,6 +146,15 @@ export function CheckTool() {
           점검표로 돌아가기
         </button>
       </div>
+      <ResultBar share={<ShareResult
+          compact
+          path="/check"
+          heading={`가정 낙상 위험 점검 결과: 위험 ${result.level} (${result.count}개 해당)`}
+          lines={result.recs.map((r, i) => `${i + 1}. ${categorySummary(r.category, rate)}`)}
+          questions={checkItems}
+          answers={answers}
+          rate={rate}
+        />} budgetCategories={result.recs.map((r) => r.category)} />
     </>
   );
 }

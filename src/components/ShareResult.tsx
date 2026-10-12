@@ -11,9 +11,10 @@ type Props = {
   questions: Question[];
   answers: Answers;
   rate: number;
+  compact?: boolean;
 };
 
 // 질문형 결과: 답변을 링크에 담아 보냅니다
-export function ShareResult({ path, heading, lines, questions, answers, rate }: Props) {
-  return <ShareText heading={heading} lines={lines} url={() => resultUrl(path, questions, answers, rate)} />;
+export function ShareResult({ path, heading, lines, questions, answers, rate, compact }: Props) {
+  return <ShareText heading={heading} lines={lines} url={() => resultUrl(path, questions, answers, rate)} compact={compact} />;
 }

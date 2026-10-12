@@ -11,6 +11,8 @@ import { categorySummary } from "@/data/products";
 import { clearSharedParams, readSharedResult } from "@/lib/share";
 import { OtherTools } from "@/components/OtherTools";
 import { BudgetLink } from "@/components/BudgetLink";
+import { ResultBar } from "@/components/ResultBar";
+import { QuickCost } from "@/components/QuickCost";
 import { ProductPicks } from "@/components/ProductPicks";
 import type { Answers, Question } from "@/lib/quiz";
 import type { Recommendation } from "@/lib/recommender";
@@ -80,6 +82,7 @@ export function RecommenderTool({ href, title, subtitle, resultTitle, resultNote
         <p className="eyebrow">맞춤 추천 결과</p>
         <h1>{resultTitle(result.length)}</h1>
         <p className="muted">{resultNote}</p>
+        <QuickCost categories={result.map((r) => r.category)} rate={rate} count={result.length} />
       </section>
 
       <RatePicker rate={rate} onChange={setRate} />
@@ -105,6 +108,15 @@ export function RecommenderTool({ href, title, subtitle, resultTitle, resultNote
           다시 해보기
         </button>
       </div>
+      <ResultBar share={<ShareResult
+          compact
+          path={href}
+          heading={resultTitle(result.length)}
+          lines={result.map((r, i) => `${i + 1}. ${categorySummary(r.category, rate)}`)}
+          questions={questions}
+          answers={answers}
+          rate={rate}
+        />} budgetCategories={result.map((r) => r.category)} />
       </>}
     </>
   );

@@ -1,4 +1,4 @@
-import { categoryGroups, isSoldOut, products, type CategoryKey, type Product } from "@/data/products";
+import { categoryGroups, copay, isSoldOut, products, type CategoryKey, type Product } from "@/data/products";
 
 // 예산(160만원 한도 중 쓸 금액, 정상가 기준)에 맞춰 금액대별 세트를 짭니다.
 
@@ -140,3 +140,7 @@ export function categoriesFor(groups: string[], extras: CategoryKey[]): Category
 export function groupOfCategory(c: CategoryKey): string | undefined {
   return groupKeys.find((g) => groupPlan[g].core.includes(c) || groupPlan[g].extra.includes(c));
 }
+
+/** 품목 본인부담: 대여는 쇼핑몰처럼 '월 본인부담(10원 미만 절사) × 개월', 구입은 '단가 본인부담 × 수량' */
+export const lineCopay = (l: Line, rate: number, months: number) => (l.rental ? copay(l.monthly!, rate) * months : copay(l.unit, rate) * l.qty);
+export const planCopay = (p: Plan, rate: number, months: number) => p.lines.reduce((s, l) => s + lineCopay(l, rate, months), 0);

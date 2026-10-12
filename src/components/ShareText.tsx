@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 // 휴대폰에서는 공유창(카카오톡 등)을 열고, PC에서는 문구+링크를 복사합니다.
-export function ShareText({ heading, lines, url }: { heading: string; lines: string[]; url: () => string }) {
+export function ShareText({ heading, lines, url, compact }: { heading: string; lines: string[]; url: () => string; compact?: boolean }) {
   const [copied, setCopied] = useState(false);
 
   async function share() {
@@ -25,8 +25,8 @@ export function ShareText({ heading, lines, url }: { heading: string; lines: str
   }
 
   return (
-    <button className="btn primary" onClick={share}>
-      {copied ? "✅ 복사됐어요. 카톡 대화창에 붙여넣어 주세요" : "📩 결과 보내기 (카톡·문자)"}
+    <button className={compact ? "rb-btn rb-share" : "btn primary"} onClick={share}>
+      {compact ? (copied ? "✅ 복사됨" : "📩 카톡 보내기") : copied ? "✅ 복사됐어요. 카톡 대화창에 붙여넣어 주세요" : "📩 결과 보내기 (카톡·문자)"}
     </button>
   );
 }

@@ -2,7 +2,8 @@ import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { site } from "@/config/site";
 import { SourceTracker } from "@/components/SourceTracker";
-import { FloatingKakao } from "@/components/FloatingKakao";
+import { FloatingContact } from "@/components/FloatingContact";
+import { FontToggle } from "@/components/FontToggle";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -24,12 +25,23 @@ export const viewport: Viewport = { themeColor: "#068291", colorScheme: "only li
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko">
+      <head>
+        {/* 큰 글씨 설정을 화면이 그려지기 전에 적용 (깜빡임 방지) */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{if(localStorage.getItem("hc_big")==="1")document.documentElement.classList.add("big")}catch(e){}`,
+          }}
+        />
+      </head>
       <body>
         <SourceTracker />
         <header className="site-header">
+          <div className="hdr">
           <Link href="/" className="logo" aria-label={`${site.name} 홈`}>
             <img src="/logo.png" alt={site.name} width={140} height={36} />
           </Link>
+          <FontToggle />
+          </div>
         </header>
         <main>{children}</main>
         <footer className="site-footer">
@@ -39,7 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </p>
           <p>© {site.name}</p>
         </footer>
-        <FloatingKakao />
+        <FloatingContact />
       </body>
     </html>
   );

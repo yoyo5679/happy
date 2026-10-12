@@ -7,6 +7,7 @@ import { CategoryGroup } from "@/components/CategoryGroup";
 import { RatePicker } from "@/components/RatePicker";
 import { ContactCta } from "@/components/ContactCta";
 import { BudgetLink } from "@/components/BudgetLink";
+import { ResultBar } from "@/components/ResultBar";
 import { productsFor } from "@/data/products";
 import { roomOrder, rooms, type RoomKey } from "@/data/rooms";
 
@@ -76,6 +77,7 @@ export function RoomsBrowser() {
       </div>
 
       <ContactCta campaign={`room_${room}`} />
+      <ResultBar budgetCategories={items.map((i) => i.category)} />
     </>
   );
 }
