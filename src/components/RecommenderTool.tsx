@@ -10,6 +10,7 @@ import { SharedBanner } from "@/components/SharedBanner";
 import { categorySummary } from "@/data/products";
 import { clearSharedParams, readSharedResult } from "@/lib/share";
 import { OtherTools } from "@/components/OtherTools";
+import { BudgetLink } from "@/components/BudgetLink";
 import { ProductPicks } from "@/components/ProductPicks";
 import type { Answers, Question } from "@/lib/quiz";
 import type { Recommendation } from "@/lib/recommender";
@@ -98,6 +99,7 @@ export function RecommenderTool({ href, title, subtitle, resultTitle, resultNote
           answers={answers}
           rate={rate}
         />
+        <BudgetLink categories={result.map((r) => r.category)} />
         <OtherTools current={href} />
         <button className="link" onClick={retry}>
           다시 해보기

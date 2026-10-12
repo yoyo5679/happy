@@ -42,6 +42,14 @@ export default function Partner() {
           </span>
           <span aria-hidden>→</span>
         </Link>
+        <Link href="/budget" className="hero-banner">
+          <span>
+            <strong>보호자가 &ldquo;얼마 들어요?&rdquo; 물으면</strong>
+            <br />
+            예산으로 세트 짜기로 금액대별 구성을 보여 주세요
+          </span>
+          <span aria-hidden>→</span>
+        </Link>
       </section>
 
       <div className="tools">

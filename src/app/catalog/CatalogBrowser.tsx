@@ -34,6 +34,15 @@ export function CatalogBrowser() {
         <p className="muted">장기요양 등급이 있으면 아래 본인부담금만 내고 구입·대여할 수 있어요.</p>
       </div>
 
+      <a href="/budget" className="hero-banner">
+        <span>
+          <strong>💰 뭘 골라야 할지 모르겠다면?</strong>
+          <br />
+          예산만 정하면 금액대별 세트를 짜 드려요
+        </span>
+        <span aria-hidden>→</span>
+      </a>
+
       <nav className="cat-groups" role="tablist" aria-label="품목 분류">
         {groups.map((g) => (
           <button key={g.key} role="tab" aria-selected={g.key === group.key} className={g.key === group.key ? "on" : ""} onClick={() => pick(g.items[0])}>

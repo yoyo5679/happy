@@ -231,3 +231,34 @@ body { padding-bottom: 72px; }
 .cat-items::-webkit-scrollbar { display: none; }
 .cat-items .chip { flex: 0 0 auto; white-space: nowrap; }
 .cat-items .cnt { font-size: 0.75rem; opacity: 0.7; margin-left: 2px; }
+
+/* 예산으로 세트 짜기 */
+.bp-step h3 { margin-bottom: 10px; }
+.bp-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.bp-custom { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 0.92rem; color: var(--muted); }
+.bp-custom input { width: 90px; min-height: 40px; padding: 6px 10px; border: 1.5px solid var(--line); border-radius: 10px; font: inherit; font-size: 1rem; text-align: right; }
+.bp-items { margin-top: 10px; }
+.bp-empty { text-align: center; padding: 24px 0; }
+.bp-plan.best { border: 2px solid var(--brand-solid); }
+.bp-plan.over { opacity: 0.7; }
+.bp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.bp-head h3 { margin: 0; display: flex; align-items: center; gap: 6px; }
+.bp-head p { margin: 2px 0 0; }
+.bp-sum { text-align: right; flex: 0 0 auto; }
+.bp-sum strong { display: block; font-size: 1.35rem; font-weight: 900; color: var(--accent); }
+.bp-bar { height: 10px; margin-top: 12px; border-radius: 99px; background: var(--brand-weak); overflow: hidden; }
+.bp-bar div { height: 100%; background: var(--brand-solid); }
+.bp-barlabel { margin: 6px 0 4px; color: var(--muted); }
+.bp-barlabel strong { color: var(--text); }
+.over-txt { color: #c0392b; font-weight: 700; }
+.bp-lines { list-style: none; padding: 0; margin: 8px 0; }
+.bp-lines li a { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); text-decoration: none; }
+.bp-lines img { flex: 0 0 48px; width: 48px; height: 48px; object-fit: contain; border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 2px; }
+.bp-name { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.bp-name strong { font-size: 0.95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bp-price { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; font-weight: 800; font-size: 0.95rem; }
+.home-links { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.home-links .btn { margin: 0; font-size: 0.92rem; padding: 10px 8px; }
+.budget-btn { background: #fff7ec; border-color: #f0d9bd; color: #8a4300; }
+.hero-banner + .hero-banner { margin-top: 8px; }
+.bp-warn { background: #fff4f2; border-color: #f3c6bf; color: #8a2a1d; font-size: 0.92rem; }

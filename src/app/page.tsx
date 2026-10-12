@@ -34,9 +34,14 @@ export default function Home() {
           </Link>
         ))}
       </div>
-      <Link href="/catalog" className="btn wide">
-        🛒 복지용구 전체 모델 · 본인부담금 보기
-      </Link>
+      <div className="home-links">
+        <Link href="/budget" className="btn">
+          💰 예산으로 세트 짜기
+        </Link>
+        <Link href="/catalog" className="btn">
+          🛒 전체 모델 보기
+        </Link>
+      </div>
       <ProductPicks campaign="home" />
     </>
   );

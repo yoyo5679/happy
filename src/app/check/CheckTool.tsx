@@ -9,6 +9,7 @@ import { ProductPicks } from "@/components/ProductPicks";
 import { ShareResult } from "@/components/ShareResult";
 import { SharedBanner } from "@/components/SharedBanner";
 import { OtherTools } from "@/components/OtherTools";
+import { BudgetLink } from "@/components/BudgetLink";
 import { categorySummary } from "@/data/products";
 import { checkAreas, checkItems, evaluateCheck, type CheckResult } from "@/lib/check";
 import type { Answers } from "@/lib/quiz";
@@ -136,6 +137,7 @@ export function CheckTool() {
           answers={answers}
           rate={rate}
         />
+        <BudgetLink categories={result.recs.map((r) => r.category)} />
         <OtherTools current="/check" />
         <button className="link" onClick={retry}>
           점검표로 돌아가기

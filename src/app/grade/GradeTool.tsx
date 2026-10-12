@@ -11,6 +11,7 @@ import { categories } from "@/data/products";
 import type { Answers } from "@/lib/quiz";
 import { clearSharedParams, readSharedResult } from "@/lib/share";
 import { OtherTools } from "@/components/OtherTools";
+import { BudgetLink } from "@/components/BudgetLink";
 import { ProductPicks } from "@/components/ProductPicks";
 import { GradeExplain } from "@/components/GradeExplain";
 import { BenefitCard } from "@/components/BenefitCard";
@@ -124,6 +125,7 @@ export function GradeTool() {
           answers={answers}
           rate={rate}
         />
+        <BudgetLink categories={result.categories} />
         <OtherTools current="/grade" />
         <button className="link" onClick={retry}>
           다시 해보기
