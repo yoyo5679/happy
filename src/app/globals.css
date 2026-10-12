@@ -255,7 +255,7 @@ body { padding-bottom: 72px; }
 .bp-lines li a { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); text-decoration: none; }
 .bp-lines img { flex: 0 0 48px; width: 48px; height: 48px; object-fit: contain; border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 2px; }
 .bp-name { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.bp-name strong { font-size: 0.95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bp-name strong { font-size: 0.95rem; line-height: 1.35; word-break: break-all; }
 .bp-price { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; text-align: right; line-height: 1.35; }
 .bp-copay { font-weight: 800; font-size: 0.95rem; color: var(--accent); }
 .home-links { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
@@ -263,3 +263,6 @@ body { padding-bottom: 72px; }
 .budget-btn { background: #fff7ec; border-color: #f0d9bd; color: #8a4300; }
 .hero-banner + .hero-banner { margin-top: 8px; }
 .bp-warn { background: #fff4f2; border-color: #f3c6bf; color: #8a2a1d; font-size: 0.92rem; }
+.bp-toggle { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: var(--brand-weak); font-size: 0.9rem; font-weight: 700; cursor: pointer; }
+.bp-toggle input { width: 20px; height: 20px; accent-color: var(--brand-solid); }
+.bp-qty { color: var(--accent); font-weight: 900; }

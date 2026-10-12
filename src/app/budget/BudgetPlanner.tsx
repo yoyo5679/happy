@@ -11,7 +11,7 @@ import { ShareText } from "@/components/ShareText";
 const BUDGETS = [300_000, 500_000, 1_000_000, EQUIPMENT_LIMIT];
 
 /** 품목 본인부담: 대여는 쇼핑몰처럼 '월 본인부담(10원 미만 절사) × 개월' */
-const lineCopay = (l: Line, rate: number, months: number) => (l.rental ? copay(l.monthly!, rate) * months : copay(l.cost, rate));
+const lineCopay = (l: Line, rate: number, months: number) => (l.rental ? copay(l.monthly!, rate) * months : copay(l.unit, rate) * l.qty);
 const planCopay = (p: Plan, rate: number, months: number) => p.lines.reduce((s, l) => s + lineCopay(l, rate, months), 0);
 const MONTHS = [3, 6, 12];
 const orderOf = (c: CategoryKey) => {
@@ -26,6 +26,7 @@ export function BudgetPlanner() {
   const [selected, setSelected] = useState<CategoryKey[]>([]);
   const [months, setMonths] = useState(3);
   const [rate, setRate] = useState(0.15);
+  const [withQty, setWithQty] = useState(true);
 
   // ?c=품목,품목 (추천 결과에서 넘어옴) 또는 ?g=묶음
   useEffect(() => {
@@ -44,6 +45,7 @@ export function BudgetPlanner() {
     if (MONTHS.includes(m)) setMonths(m);
     const r = Number(q.get("r"));
     if (q.has("r") && [15, 9, 6, 0].includes(r)) setRate(r / 100);
+    if (q.get("q") === "0") setWithQty(false);
   }, []);
 
   const activeGroups = groupKeys.filter((g) => selected.some((c) => groupOfCategory(c) === g));
@@ -62,7 +64,7 @@ export function BudgetPlanner() {
   }
 
   const ordered = useMemo(() => [...selected].sort((a, b) => orderOf(a) - orderOf(b)), [selected]);
-  const { plans, missing } = useMemo(() => buildPlans(ordered, months), [ordered, months]);
+  const { plans, missing } = useMemo(() => buildPlans(ordered, months, withQty), [ordered, months, withQty]);
   // 예산 안에 드는 가장 높은 단계를 추천 (든든형은 160만원 기준이라 예산과 비교하지 않음)
   const best = [...plans].reverse().find((p) => p.tier !== "premium" && p.total <= budget);
 
@@ -158,9 +160,21 @@ export function BudgetPlanner() {
                 : p.total > EQUIPMENT_LIMIT
                   ? "고른 품목이 많아 160만원 안에 다 담을 수 없어요. 가장 합리적인 모델로 담았어요"
                   : p.total < EQUIPMENT_LIMIT - 50_000
-                    ? "고른 품목을 가장 좋은 모델로 담은 구성 (160만원보다 적게 들어요)"
+                    ? withQty
+                      ? "품목별 수량 한도까지 담아도 160만원보다 적게 들어요"
+                      : "고른 품목을 가장 좋은 모델로 담은 구성 (160만원보다 적게 들어요)"
                     : t.desc;
-            return <PlanCard key={p.tier} plan={p} budget={budget} rate={rate} months={months} highlight={p === best} label={t.label} desc={desc} />;
+            return (
+              <PlanCard key={p.tier} plan={p} budget={budget} rate={rate} months={months} highlight={p === best} label={t.label} desc={desc}>
+                {p.tier === "premium" && (
+                  <label className="bp-toggle">
+                    <input type="checkbox" checked={withQty} onChange={(e) => setWithQty(e.target.checked)} />
+                    수량까지 늘려서 160만원 채우기
+                    <span className="muted small"> (품목별 급여 수량 한도 안에서)</span>
+                  </label>
+                )}
+              </PlanCard>
+            );
           })}
           <div className="actions">
             <ShareText
@@ -181,6 +195,7 @@ export function BudgetPlanner() {
                 u.searchParams.set("c", ordered.join(","));
                 u.searchParams.set("m", String(months));
                 u.searchParams.set("r", String(Math.round(rate * 100)));
+                if (!withQty) u.searchParams.set("q", "0");
                 const src = source();
                 if (src !== "direct") u.searchParams.set("src", src);
                 return u.toString();
@@ -198,7 +213,25 @@ export function BudgetPlanner() {
   );
 }
 
-function PlanCard({ plan, budget, rate, months, highlight, label, desc }: { plan: Plan; budget: number; rate: number; months: number; highlight?: boolean; label: string; desc: string }) {
+function PlanCard({
+  plan,
+  budget,
+  rate,
+  months,
+  highlight,
+  label,
+  desc,
+  children,
+}: {
+  plan: Plan;
+  budget: number;
+  rate: number;
+  months: number;
+  highlight?: boolean;
+  label: string;
+  desc: string;
+  children?: React.ReactNode;
+}) {
   // 든든형은 예산과 상관없이 160만원 한도를 채우는 세트라 '예산 초과' 표시를 하지 않음
   const over = plan.tier === "premium" ? 0 : plan.total - budget;
   const pct = Math.round(rate * 100);
@@ -219,6 +252,7 @@ function PlanCard({ plan, budget, rate, months, highlight, label, desc }: { plan
         </div>
       </div>
 
+      {children}
       <div className="bp-bar" aria-label={`160만원 중 ${used}% 사용`}>
         <div style={{ width: `${used}%` }} />
       </div>
@@ -238,18 +272,22 @@ function PlanCard({ plan, budget, rate, months, highlight, label, desc }: { plan
               <img src={l.product.img} alt="" loading="lazy" />
               <span className="bp-name">
                 <span className="muted small">{categories[l.category].label}</span>
-                <strong>{l.product.name}</strong>
-              </span>
-              <span className="bp-price">
-                <span className="bp-copay">{rate === 0 ? "본인부담 없음" : `본인부담 ${won(lineCopay(l, rate, months))}`}</span>
+                <strong>
+                  {l.product.name}
+                  {l.qty > 1 && <span className="bp-qty"> × {l.qty}개</span>}
+                </strong>
                 <span className="small muted">
                   {l.rental
-                    ? rate === 0
-                      ? `월 ${won(l.monthly!)} × ${months}개월`
-                      : `월 ${won(copay(l.monthly!, rate))} × ${months}개월`
-                    : `정상가 ${won(l.cost)}`}
+                    ? `월 ${won(l.monthly!)} × ${months}개월 = ${won(l.cost)}`
+                    : l.qty > 1
+                      ? `정상가 ${won(l.unit)} × ${l.qty}개 = ${won(l.cost)}`
+                      : `정상가 ${won(l.cost)}`}
                 </span>
-                {l.rental && <span className="small muted">정상가 {won(l.cost)}</span>}
+              </span>
+              <span className="bp-price">
+                <span className="muted small">본인부담</span>
+                <span className="bp-copay">{rate === 0 ? "없음" : won(lineCopay(l, rate, months))}</span>
+                {l.rental && rate > 0 && <span className="small muted">월 {won(copay(l.monthly!, rate))}</span>}
               </span>
             </a>
           </li>
