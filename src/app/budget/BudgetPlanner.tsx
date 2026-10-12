@@ -4,11 +4,15 @@ import { useEffect, useMemo, useState } from "react";
 import { RatePicker } from "@/components/RatePicker";
 import { ContactCta } from "@/components/ContactCta";
 import { categories, categoryGroups, copay, productUrl, won, type CategoryKey } from "@/data/products";
-import { buildPlans, EQUIPMENT_LIMIT, groupKeys, groupOfCategory, groupPlan, tiers, type Plan } from "@/lib/budget";
+import { buildPlans, EQUIPMENT_LIMIT, groupKeys, groupOfCategory, groupPlan, tiers, type Line, type Plan } from "@/lib/budget";
 import { source, withUtm } from "@/lib/utm";
 import { ShareText } from "@/components/ShareText";
 
 const BUDGETS = [300_000, 500_000, 1_000_000, EQUIPMENT_LIMIT];
+
+/** 품목 본인부담: 대여는 쇼핑몰처럼 '월 본인부담(10원 미만 절사) × 개월' */
+const lineCopay = (l: Line, rate: number, months: number) => (l.rental ? copay(l.monthly!, rate) * months : copay(l.cost, rate));
+const planCopay = (p: Plan, rate: number, months: number) => p.lines.reduce((s, l) => s + lineCopay(l, rate, months), 0);
 const MONTHS = [3, 6, 12];
 const orderOf = (c: CategoryKey) => {
   const g = groupOfCategory(c)!;
@@ -166,7 +170,7 @@ export function BudgetPlanner() {
                 "",
                 ...plans.map((p) => {
                   const t = tiers.find((x) => x.key === p.tier)!;
-                  const pay = rate === 0 ? "본인부담 없음" : `본인부담 ${won(copay(p.total, rate))}`;
+                  const pay = rate === 0 ? "본인부담 없음" : `본인부담 ${won(planCopay(p, rate, months))}`;
                   return `${p === best ? "⭐ " : "• "}${t.label}: ${won(p.total)}어치 (${pay})`;
                 }),
                 ...(plans.some((p) => p.lines.some((l) => l.rental)) ? [`(대여 품목은 ${months}개월 기준)`] : []),
@@ -211,7 +215,7 @@ function PlanCard({ plan, budget, rate, months, highlight, label, desc }: { plan
         </div>
         <div className="bp-sum">
           <span className="muted small">본인부담({pct}%)</span>
-          <strong>{rate === 0 ? "없음" : won(copay(plan.total, rate))}</strong>
+          <strong>{rate === 0 ? "없음" : won(planCopay(plan, rate, months))}</strong>
         </div>
       </div>
 
@@ -237,14 +241,15 @@ function PlanCard({ plan, budget, rate, months, highlight, label, desc }: { plan
                 <strong>{l.product.name}</strong>
               </span>
               <span className="bp-price">
-                {l.rental ? (
-                  <>
-                    <span className="small muted">월 {won(l.monthly!)} × {months}개월</span>
-                    {won(l.cost)}
-                  </>
-                ) : (
-                  won(l.cost)
-                )}
+                <span className="bp-copay">{rate === 0 ? "본인부담 없음" : `본인부담 ${won(lineCopay(l, rate, months))}`}</span>
+                <span className="small muted">
+                  {l.rental
+                    ? rate === 0
+                      ? `월 ${won(l.monthly!)} × ${months}개월`
+                      : `월 ${won(copay(l.monthly!, rate))} × ${months}개월`
+                    : `정상가 ${won(l.cost)}`}
+                </span>
+                {l.rental && <span className="small muted">정상가 {won(l.cost)}</span>}
               </span>
             </a>
           </li>
