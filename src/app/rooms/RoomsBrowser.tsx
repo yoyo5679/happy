@@ -30,7 +30,7 @@ export function RoomsBrowser() {
   return (
     <>
       <div className="page-title">
-        <h1>🏠 우리 집에서 찾기</h1>
+        <h1>🏠 장소별로 찾기</h1>
         <p className="muted">집 안에서 걱정되는 곳을 눌러 보세요.</p>
       </div>
 

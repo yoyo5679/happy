@@ -69,7 +69,7 @@ export function CheckTool() {
       <>
         <div className="page-title">
           <Link href="/rooms" className="crumb">
-            ← 우리 집에서 찾기
+            ← 장소별로 찾기
           </Link>
           <h1>🔍 가정 낙상 위험 점검표</h1>
           <p className="muted">집을 둘러보며 해당하는 항목을 눌러 주세요. 첫 방문 때 함께 점검하기 좋아요.</p>

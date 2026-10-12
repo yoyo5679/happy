@@ -5,7 +5,8 @@ import { RatePicker } from "@/components/RatePicker";
 import { ContactCta } from "@/components/ContactCta";
 import { categories, categoryGroups, copay, productUrl, won, type CategoryKey } from "@/data/products";
 import { buildPlans, EQUIPMENT_LIMIT, groupKeys, groupOfCategory, groupPlan, tiers, type Plan } from "@/lib/budget";
-import { withUtm } from "@/lib/utm";
+import { source, withUtm } from "@/lib/utm";
+import { ShareText } from "@/components/ShareText";
 
 const BUDGETS = [300_000, 500_000, 1_000_000, EQUIPMENT_LIMIT];
 const MONTHS = [3, 6, 12];
@@ -30,7 +31,15 @@ export function BudgetPlanner() {
     if (cs.length) setSelected(cs);
     else if (gs.length) setSelected(gs.flatMap((g) => groupPlan[g].core));
     const b = Number(q.get("b"));
-    if (b > 0) setBudget(Math.min(EQUIPMENT_LIMIT, b));
+    if (b > 0) {
+      const v = Math.min(EQUIPMENT_LIMIT, b);
+      setBudget(v);
+      if (!BUDGETS.includes(v)) setCustom(String(Math.round(v / 10_000)));
+    }
+    const m = Number(q.get("m"));
+    if (MONTHS.includes(m)) setMonths(m);
+    const r = Number(q.get("r"));
+    if (q.has("r") && [15, 9, 6, 0].includes(r)) setRate(r / 100);
   }, []);
 
   const activeGroups = groupKeys.filter((g) => selected.some((c) => groupOfCategory(c) === g));
@@ -149,6 +158,31 @@ export function BudgetPlanner() {
                     : t.desc;
             return <PlanCard key={p.tier} plan={p} budget={budget} rate={rate} months={months} highlight={p === best} label={t.label} desc={desc} />;
           })}
+          <div className="actions">
+            <ShareText
+              heading={`복지용구 예산 세트 (160만원 중 ${won(budget)})`}
+              lines={[
+                `담은 품목: ${ordered.filter((c) => !missing.includes(c)).map((c) => categories[c].label).join(", ")}`,
+                "",
+                ...plans.map((p) => {
+                  const t = tiers.find((x) => x.key === p.tier)!;
+                  const pay = rate === 0 ? "본인부담 없음" : `본인부담 ${won(copay(p.total, rate))}`;
+                  return `${p === best ? "⭐ " : "• "}${t.label}: ${won(p.total)}어치 (${pay})`;
+                }),
+                ...(plans.some((p) => p.lines.some((l) => l.rental)) ? [`(대여 품목은 ${months}개월 기준)`] : []),
+              ]}
+              url={() => {
+                const u = new URL("/budget", window.location.origin);
+                u.searchParams.set("b", String(budget));
+                u.searchParams.set("c", ordered.join(","));
+                u.searchParams.set("m", String(months));
+                u.searchParams.set("r", String(Math.round(rate * 100)));
+                const src = source();
+                if (src !== "direct") u.searchParams.set("src", src);
+                return u.toString();
+              }}
+            />
+          </div>
           <p className="muted small">
             품목마다 1개씩 담았어요. 이미 받은 품목은 내구연한 동안 다시 받을 수 없으니 빼고 보세요. 가격은 해피케어몰 판매가 기준이에요.
           </p>
