@@ -49,9 +49,9 @@ export function BudgetPlanner() {
   }
 
   const ordered = useMemo(() => [...selected].sort((a, b) => orderOf(a) - orderOf(b)), [selected]);
-  const { plans, fit } = useMemo(() => buildPlans(ordered, months, budget), [ordered, months, budget]);
-  // 예산 안에 드는 가장 높은 단계를 추천. 하나도 없으면 '예산 맞춤' 세트를 추천
-  const best = [...plans].reverse().find((p) => p.total <= budget) ?? (fit && fit.lines.length > 0 ? fit : undefined);
+  const { plans, missing } = useMemo(() => buildPlans(ordered, months), [ordered, months]);
+  // 예산 안에 드는 가장 높은 단계를 추천 (든든형은 160만원 기준이라 예산과 비교하지 않음)
+  const best = [...plans].reverse().find((p) => p.tier !== "premium" && p.total <= budget);
 
   return (
     <>
@@ -125,20 +125,28 @@ export function BudgetPlanner() {
       ) : (
         <>
           <h2 className="section-title">금액대별 추천 세트</h2>
-          {fit &&
-            (fit.lines.length > 0 ? (
-              <PlanCard plan={fit} budget={budget} rate={rate} months={months} highlight={fit === best} label="예산 맞춤" desc="예산 안에 들어오도록 꼭 필요한 품목부터 담았어요" />
-            ) : (
-              <p className="card bp-warn">
-                고르신 품목은 가장 저렴한 모델 하나도 예산({won(budget)})을 넘어요. 예산을 늘리거나, 대여 기간을 줄이거나, 품목을 빼 보세요.
-              </p>
-            ))}
+          {!best && plans[0].lines.length > 0 && (
+            <p className="card bp-warn">
+              체크하신 품목을 모두 담으면 가장 합리적인 실속형도 {won(plans[0].total)}이라 예산({won(budget)})보다 많아요. 예산을 늘리거나,
+              대여 기간을 줄이거나, 꼭 필요하지 않은 품목의 체크를 빼 보세요.
+            </p>
+          )}
+          {missing.length > 0 && (
+            <p className="card bp-warn">
+              지금 품절이라 세트에 넣지 못한 품목: <strong>{missing.map((c) => categories[c].label).join(", ")}</strong> · 입고 일정은 상담으로
+              문의해 주세요.
+            </p>
+          )}
           {plans.map((p) => {
             const t = tiers.find((x) => x.key === p.tier)!;
             const desc =
-              p.tier === "premium" && p.total < EQUIPMENT_LIMIT - 50_000
-                ? "고른 품목을 가장 좋은 모델로 담은 구성 (160만원보다 적게 들어요)"
-                : t.desc;
+              p.tier !== "premium"
+                ? t.desc
+                : p.total > EQUIPMENT_LIMIT
+                  ? "고른 품목이 많아 160만원 안에 다 담을 수 없어요. 가장 합리적인 모델로 담았어요"
+                  : p.total < EQUIPMENT_LIMIT - 50_000
+                    ? "고른 품목을 가장 좋은 모델로 담은 구성 (160만원보다 적게 들어요)"
+                    : t.desc;
             return <PlanCard key={p.tier} plan={p} budget={budget} rate={rate} months={months} highlight={p === best} label={t.label} desc={desc} />;
           })}
           <p className="muted small">
@@ -208,9 +216,6 @@ function PlanCard({ plan, budget, rate, months, highlight, label, desc }: { plan
           </li>
         ))}
       </ul>
-      {plan.dropped.length > 0 && (
-        <p className="small muted">예산 때문에 뺀 품목: {plan.dropped.map((c) => categories[c].label).join(", ")}</p>
-      )}
       {monthlyAfter > 0 && (
         <p className="small muted">
           대여 품목을 {months}개월 넘게 쓰시면 매달 {won(monthlyAfter)}
