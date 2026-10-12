@@ -135,7 +135,11 @@ export function BudgetPlanner() {
             ))}
           {plans.map((p) => {
             const t = tiers.find((x) => x.key === p.tier)!;
-            return <PlanCard key={p.tier} plan={p} budget={budget} rate={rate} months={months} highlight={p === best} label={t.label} desc={t.desc} />;
+            const desc =
+              p.tier === "premium" && p.total < EQUIPMENT_LIMIT - 50_000
+                ? "고른 품목을 가장 좋은 모델로 담은 구성 (160만원보다 적게 들어요)"
+                : t.desc;
+            return <PlanCard key={p.tier} plan={p} budget={budget} rate={rate} months={months} highlight={p === best} label={t.label} desc={desc} />;
           })}
           <p className="muted small">
             품목마다 1개씩 담았어요. 이미 받은 품목은 내구연한 동안 다시 받을 수 없으니 빼고 보세요. 가격은 해피케어몰 판매가 기준이에요.
@@ -149,7 +153,8 @@ export function BudgetPlanner() {
 }
 
 function PlanCard({ plan, budget, rate, months, highlight, label, desc }: { plan: Plan; budget: number; rate: number; months: number; highlight?: boolean; label: string; desc: string }) {
-  const over = plan.total - budget;
+  // 든든형은 예산과 상관없이 160만원 한도를 채우는 세트라 '예산 초과' 표시를 하지 않음
+  const over = plan.tier === "premium" ? 0 : plan.total - budget;
   const pct = Math.round(rate * 100);
   const used = Math.min(100, Math.round((plan.total / EQUIPMENT_LIMIT) * 100));
   const monthlyAfter = plan.lines.filter((l) => l.rental).reduce((s, l) => s + (l.monthly ?? 0), 0);
