@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { won, type CategoryKey } from "@/data/products";
-import { buildPlans, groupOfCategory, planCopay } from "@/lib/budget";
+import { buildPlans, EQUIPMENT_LIMIT, groupOfCategory, planCopay } from "@/lib/budget";
 
 // 결과 맨 위 한 줄 요약: 추천 품목을 실속형으로 모두 담으면 얼마인지
 export function QuickCost({ categories, rate, count }: { categories: CategoryKey[]; rate: number; count?: number }) {
   const cs = categories.filter((c) => groupOfCategory(c));
   if (cs.length === 0) return null;
-  const basic = buildPlans(cs, 3).plans[0];
+  const basic = buildPlans(cs, 3, EQUIPMENT_LIMIT, false).plans[0];
   if (basic.lines.length === 0) return null;
   const pay = planCopay(basic, rate, 3);
   return (

@@ -62,9 +62,9 @@ export function BudgetPlanner() {
   }
 
   const ordered = useMemo(() => [...selected].sort((a, b) => orderOf(a) - orderOf(b)), [selected]);
-  const { plans, missing } = useMemo(() => buildPlans(ordered, months, withQty), [ordered, months, withQty]);
-  // 예산 안에 드는 가장 높은 단계를 추천 (든든형은 160만원 기준이라 예산과 비교하지 않음)
-  const best = [...plans].reverse().find((p) => p.tier !== "premium" && p.total <= budget);
+  const { plans, missing } = useMemo(() => buildPlans(ordered, months, budget, withQty), [ordered, months, budget, withQty]);
+  // 추천: 예산 안이면 균형 잡힌 표준형, 아니면 실속형
+  const best = plans[1].total <= budget ? plans[1] : plans[0].total <= budget ? plans[0] : undefined;
 
   return (
     <>
@@ -140,8 +140,8 @@ export function BudgetPlanner() {
           <h2 className="section-title">금액대별 추천 세트</h2>
           {!best && plans[0].lines.length > 0 && (
             <p className="card bp-warn">
-              체크하신 품목을 모두 담으면 가장 합리적인 실속형도 {won(plans[0].total)}이라 예산({won(budget)})보다 많아요. 예산을 늘리거나,
-              대여 기간을 줄이거나, 꼭 필요하지 않은 품목의 체크를 빼 보세요.
+              체크하신 품목을 모두 담으면 가장 합리적인 실속형도 {won(plans[0].total)}이라 예산({won(budget)})보다 많아요. 그래서 실속형만
+              보여 드려요. 예산을 늘리면 표준형·든든형도 나와요. 대여 기간을 줄이거나 꼭 필요하지 않은 품목의 체크를 빼도 돼요.
             </p>
           )}
           {missing.length > 0 && (
@@ -150,24 +150,24 @@ export function BudgetPlanner() {
               문의해 주세요.
             </p>
           )}
-          {plans.map((p) => {
+          {(plans[0].total >= budget ? plans.slice(0, 1) : plans).map((p) => {
             const t = tiers.find((x) => x.key === p.tier)!;
             const desc =
               p.tier !== "premium"
                 ? t.desc
-                : p.total > EQUIPMENT_LIMIT
-                  ? "고른 품목이 많아 160만원 안에 다 담을 수 없어요. 가장 합리적인 모델로 담았어요"
-                  : p.total < EQUIPMENT_LIMIT - 50_000
+                : p.total > budget
+                  ? "예산 안에 다 담을 수 없어 가장 합리적인 모델로 담았어요"
+                  : p.total < budget - 30_000
                     ? withQty
-                      ? "품목별 수량 한도까지 담아도 160만원보다 적게 들어요"
-                      : "고른 품목을 가장 좋은 모델로 담은 구성 (160만원보다 적게 들어요)"
+                      ? "품목별 수량 한도까지 담아도 예산보다 적게 들어요"
+                      : "고른 품목을 가장 좋은 모델로 담아도 예산보다 적게 들어요"
                     : t.desc;
             return (
               <PlanCard key={p.tier} plan={p} budget={budget} rate={rate} months={months} highlight={p === best} label={t.label} desc={desc}>
                 {p.tier === "premium" && (
                   <label className="bp-toggle">
                     <input type="checkbox" checked={withQty} onChange={(e) => setWithQty(e.target.checked)} />
-                    수량까지 늘려서 160만원 채우기
+                    수량까지 늘려서 예산 채우기
                     <span className="muted small"> (품목별 급여 수량 한도 안에서)</span>
                   </label>
                 )}
@@ -255,8 +255,7 @@ function PlanCard({
   desc: string;
   children?: React.ReactNode;
 }) {
-  // 든든형은 예산과 상관없이 160만원 한도를 채우는 세트라 '예산 초과' 표시를 하지 않음
-  const over = plan.tier === "premium" ? 0 : plan.total - budget;
+  const over = plan.total - budget;
   const pct = Math.round(rate * 100);
   const used = Math.min(100, Math.round((plan.total / EQUIPMENT_LIMIT) * 100));
   const monthlyAfter = plan.lines.filter((l) => l.rental).reduce((s, l) => s + (l.monthly ?? 0), 0);

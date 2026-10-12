@@ -15,10 +15,10 @@ export const groupPlan: Record<string, { core: CategoryKey[]; extra: CategoryKey
 export const groupKeys = categoryGroups.map((g) => g.key);
 
 export type Tier = "basic" | "standard" | "premium";
-export const tiers: { key: Tier; label: string; desc: string; pct: number }[] = [
-  { key: "basic", label: "실속형", desc: "품목마다 가장 합리적인 모델", pct: 0 },
-  { key: "standard", label: "표준형", desc: "많이 고르는 중간 가격대", pct: 0.5 },
-  { key: "premium", label: "든든형", desc: "연 160만원 한도를 꽉 채운 구성", pct: 1 },
+export const tiers: { key: Tier; label: string; desc: string }[] = [
+  { key: "basic", label: "실속형", desc: "품목마다 가장 합리적인 모델" },
+  { key: "standard", label: "표준형", desc: "실속형과 예산의 중간 금액에 맞춘 구성" },
+  { key: "premium", label: "든든형", desc: "선택한 예산을 꽉 채운 구성" },
 ];
 
 /** cost = 단가(unit) × 수량(qty). 대여는 unit = 월 대여가 × 개월, qty = 1 */
@@ -52,10 +52,6 @@ function options(category: CategoryKey, months: number): Line[] {
     .sort((a, b) => a.cost - b.cost);
 }
 
-function pick(list: Line[], pct: number) {
-  return list[Math.min(list.length - 1, Math.round((list.length - 1) * pct))];
-}
-
 const sum = (lines: Line[]) => lines.reduce((s, l) => s + l.cost, 0);
 
 /**
@@ -63,7 +59,7 @@ const sum = (lines: Line[]) => lines.reduce((s, l) => s + l.cost, 0);
  * 가격이 모두 100원 단위라 100원 단위 배낭(DP)으로 정확히 계산합니다.
  * 가장 싼 조합도 한도를 넘으면(대여 12개월 + 품목이 많을 때) 가장 싼 조합 그대로 보여 줍니다.
  */
-function fillToLimit(cats: CategoryKey[], months: number, limit: number, withQty: boolean): Plan {
+function fillToLimit(cats: CategoryKey[], months: number, limit: number, withQty: boolean, tier: Tier): Plan {
   // 품목별 후보: (모델 × 수량). 같은 합계 금액은 하나만 남김
   const opts = cats.map((c) => {
     const cap = withQty ? (QTY_CAP[c] ?? 1) : 1;
@@ -80,7 +76,7 @@ function fillToLimit(cats: CategoryKey[], months: number, limit: number, withQty
     return out.sort((a, b) => a.cost - b.cost);
   });
   const cheapest = cats.map((c) => options(c, months)[0]);
-  if (opts.some((o) => o.length === 0) || sum(cheapest) > limit) return { tier: "premium", lines: cheapest, total: sum(cheapest) };
+  if (opts.some((o) => o.length === 0) || sum(cheapest) > limit) return { tier, lines: cheapest, total: sum(cheapest) };
 
   const S = Math.floor(limit / 100);
   let reach = new Uint8Array(S + 1);
@@ -111,19 +107,27 @@ function fillToLimit(cats: CategoryKey[], months: number, limit: number, withQty
     picked.unshift(l);
     t -= l.cost / 100;
   }
-  return { tier: "premium", lines: picked, total: sum(picked) };
+  return { tier, lines: picked, total: sum(picked) };
 }
 
 /** 체크한 품목은 모든 세트에 빠짐없이 담습니다. 품절로 담을 모델이 없는 품목은 missing으로 알려 줍니다. */
-export function buildPlans(categories: CategoryKey[], months: number, withQty = true) {
+/**
+ * 선택한 예산(budget)을 기준으로 세 가지 세트를 짭니다. 체크한 품목은 모든 세트에 빠짐없이 담깁니다.
+ *  - 실속형: 품목마다 가장 싼 모델 1개
+ *  - 표준형: 실속형 금액과 예산의 중간 금액에 가장 가깝게 (모델만, 1개씩)
+ *  - 든든형: 예산에 가장 가깝게 꽉 채움 (withQty면 급여 수량 한도 안에서 수량까지)
+ * 품절로 담을 모델이 없는 품목은 missing으로 알려 줍니다.
+ */
+export function buildPlans(categories: CategoryKey[], months: number, budget: number, withQty = true) {
   const avail = categories.filter((c) => options(c, months).length > 0);
   const missing = categories.filter((c) => !avail.includes(c));
-  const plans: Plan[] = tiers.map((t) => {
-    if (t.key === "premium") return fillToLimit(avail, months, EQUIPMENT_LIMIT, withQty);
-    const lines = avail.map((c) => pick(options(c, months), t.pct));
-    return { tier: t.key, lines, total: sum(lines) };
-  });
-  return { plans, missing };
+  const basicLines = avail.map((c) => options(c, months)[0]);
+  const basic: Plan = { tier: "basic", lines: basicLines, total: sum(basicLines) };
+  const cap = Math.min(budget, EQUIPMENT_LIMIT);
+  const mid = basic.total + Math.max(0, cap - basic.total) / 2;
+  const standard = fillToLimit(avail, months, Math.max(mid, basic.total), false, "standard");
+  const premium = fillToLimit(avail, months, Math.max(cap, basic.total), withQty, "premium");
+  return { plans: [basic, standard, premium], missing };
 }
 
 /** 묶음 선택 → 담을 품목 목록 */
