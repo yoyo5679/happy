@@ -328,7 +328,9 @@ function PlanCard({
 }) {
   const over = plan.total - budget;
   const pct = Math.round(rate * 100);
-  const used = Math.min(100, Math.round((plan.total / EQUIPMENT_LIMIT) * 100));
+  // 막대·남은 금액은 고객이 고른 예산 기준 (160만원 한도는 넘을 때만 안내)
+  const used = Math.min(100, Math.round((plan.total / budget) * 100));
+  const budgetLabel = budget % 10_000 === 0 ? `${(budget / 10_000).toLocaleString("ko-KR")}만원` : won(budget);
   const monthlyAfter = plan.lines.filter((l) => l.rental).reduce((s, l) => s + (l.monthly ?? 0), 0);
   return (
     <section className={`card bp-plan${highlight ? " best" : ""}${over > 0 ? " over" : ""}`}>
@@ -346,11 +348,11 @@ function PlanCard({
       </div>
 
       {children}
-      <div className="bp-bar" aria-label={`160만원 중 ${used}% 사용`}>
+      <div className="bp-bar" aria-label={`예산 ${budgetLabel} 중 ${used}% 사용`}>
         <div style={{ width: `${used}%` }} />
       </div>
       <p className="bp-barlabel small">
-        160만원 중 <strong>{won(plan.total)}</strong> 사용 · 남은 한도 {won(Math.max(0, EQUIPMENT_LIMIT - plan.total))}
+        예산 {budgetLabel} 중 <strong>{won(plan.total)}</strong> 사용{over <= 0 && ` · 남은 예산 ${won(budget - plan.total)}`}
         {plan.total > EQUIPMENT_LIMIT ? (
           <span className="over-txt"> · 연 160만원 한도를 {won(plan.total - EQUIPMENT_LIMIT)} 넘어요 (넘는 금액은 전액 본인 부담)</span>
         ) : (
