@@ -79,7 +79,7 @@ const sum = (lines: Line[]) => lines.reduce((s, l) => s + l.cost, 0);
  * 가격이 모두 100원 단위라 100원 단위 배낭(DP)으로 정확히 계산합니다.
  * 가장 싼 조합도 한도를 넘으면(대여 12개월 + 품목이 많을 때) 가장 싼 조합 그대로 보여 줍니다.
  */
-function fillToLimit(cats: CategoryKey[], months: number, limit: number, withQty: boolean, tier: Tier, pins: Pins): Plan {
+function fillToLimit(cats: CategoryKey[], months: number, limit: number, withQty: boolean, tier: Tier, pins: Pins = {}): Plan {
   // 품목별 후보: (모델 × 수량). 같은 합계 금액은 하나만 남김
   const opts = cats.map((c) => {
     const cap = withQty ? (QTY_CAP[c] ?? 1) : 1;
@@ -135,19 +135,32 @@ function fillToLimit(cats: CategoryKey[], months: number, limit: number, withQty
  *  - 실속형: 품목마다 가장 싼 모델 1개
  *  - 표준형: 실속형 금액과 예산의 중간 금액에 가장 가깝게 (모델만, 1개씩)
  *  - 든든형: 예산에 가장 가깝게 꽉 채움 (withQty면 급여 수량 한도 안에서 수량까지)
- * 고객이 직접 고른 모델(pins)은 세 세트 모두 그 모델로 고정하고, 나머지 품목으로 금액을 맞춥니다.
+ * 고객이 직접 고른 모델(pins)은 추천 세트를 먼저 짠 뒤 그 품목만 고른 모델로 바꿉니다.
+ * 나머지 품목은 그대로 두므로, 더 비싼 모델을 고르면 합계·본인부담금도 그만큼 올라갑니다.
  * 품절 상품은 후보에서 빠지며, 품절로 담을 모델이 없는 품목은 missing으로 알려 줍니다.
  */
 export function buildPlans(categories: CategoryKey[], months: number, budget: number, withQty = true, pins: Pins = {}) {
   const avail = categories.filter((c) => options(c, months).length > 0);
   const missing = categories.filter((c) => !avail.includes(c));
-  const basicLines = avail.map((c) => options(c, months, pins)[0]);
+  const basicLines = avail.map((c) => options(c, months)[0]);
   const basic: Plan = { tier: "basic", lines: basicLines, total: sum(basicLines) };
   const cap = Math.min(budget, EQUIPMENT_LIMIT);
   const mid = basic.total + Math.max(0, cap - basic.total) / 2;
-  const standard = fillToLimit(avail, months, Math.max(mid, basic.total), false, "standard", pins);
-  const premium = fillToLimit(avail, months, Math.max(cap, basic.total), withQty, "premium", pins);
-  return { plans: [basic, standard, premium], missing };
+  const standard = fillToLimit(avail, months, Math.max(mid, basic.total), false, "standard", {});
+  const premium = fillToLimit(avail, months, Math.max(cap, basic.total), withQty, "premium", {});
+  const plans = [basic, standard, premium].map((p) => applyPins(p, months, pins));
+  return { plans, missing };
+}
+
+/** 세트에서 고른 품목만 고른 모델로 교체 (수량은 원래 세트의 수량 유지, 대여는 1개) */
+function applyPins(plan: Plan, months: number, pins: Pins): Plan {
+  const lines = plan.lines.map((l) => {
+    const pick = pins[l.category] && options(l.category, months, pins)[0];
+    if (!pick || pick.product.id === l.product.id && pick.rental === l.rental) return l;
+    const qty = pick.rental ? 1 : l.qty;
+    return { ...pick, qty, cost: pick.unit * qty };
+  });
+  return { ...plan, lines, total: sum(lines) };
 }
 
 /** 묶음 선택 → 담을 품목 목록 */

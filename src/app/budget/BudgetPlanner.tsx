@@ -184,7 +184,7 @@ export function BudgetPlanner() {
             <p className="card bp-pinned">
               📌 직접 고른 모델: <strong>{(Object.keys(pinned) as CategoryKey[]).filter((c) => ordered.includes(c)).map((c) => categories[c].label).join(", ")}</strong>
               <br />
-              <span className="muted small">세 세트 모두 이 모델로 담고, 나머지 품목으로 금액을 맞췄어요.</span>{" "}
+              <span className="muted small">세 세트 모두 이 모델로 바꿨어요. 나머지 품목은 그대로라 금액과 본인부담금이 바뀐 만큼 달라져요.</span>{" "}
               <button className="link small" onClick={() => setPins({})}>
                 모두 추천 모델로 되돌리기
               </button>
