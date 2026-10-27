@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { RatePicker } from "@/components/RatePicker";
 import { ContactCta } from "@/components/ContactCta";
 import { categories, categoryGroups, copay, productUrl, won, type CategoryKey } from "@/data/products";
-import { buildPlans, EQUIPMENT_LIMIT, groupKeys, groupOfCategory, groupPlan, lineCopay, planCopay, tiers, type Plan } from "@/lib/budget";
+import { activePins, buildPlans, EQUIPMENT_LIMIT, groupKeys, groupOfCategory, groupPlan, lineCopay, modelChoices, planCopay, tiers, type Pins, type Plan } from "@/lib/budget";
 import { source, withUtm } from "@/lib/utm";
 import { ShareText } from "@/components/ShareText";
 import { ResultBar } from "@/components/ResultBar";
@@ -25,6 +25,9 @@ export function BudgetPlanner() {
   const [months, setMonths] = useState(3);
   const [rate, setRate] = useState(0.15);
   const [withQty, setWithQty] = useState(true);
+  const [pins, setPins] = useState<Pins>({});
+  /** 모델 바꾸기 목록을 연 줄 (세트·품목) */
+  const [swap, setSwap] = useState<{ tier: string; category: CategoryKey } | null>(null);
 
   // ?c=품목,품목 (추천 결과에서 넘어옴) 또는 ?g=묶음
   useEffect(() => {
@@ -44,6 +47,13 @@ export function BudgetPlanner() {
     const r = Number(q.get("r"));
     if (q.has("r") && [15, 9, 6, 0].includes(r)) setRate(r / 100);
     if (q.get("q") === "0") setWithQty(false);
+    // ?p=품목:상품id,품목:상품id (고객이 고른 모델)
+    const ps: Pins = {};
+    for (const pair of (q.get("p") ?? "").split(",")) {
+      const [c, id] = pair.split(":");
+      if (c in categories && id) ps[c as CategoryKey] = id;
+    }
+    setPins(ps);
   }, []);
 
   const activeGroups = groupKeys.filter((g) => selected.some((c) => groupOfCategory(c) === g));
@@ -62,7 +72,17 @@ export function BudgetPlanner() {
   }
 
   const ordered = useMemo(() => [...selected].sort((a, b) => orderOf(a) - orderOf(b)), [selected]);
-  const { plans, missing } = useMemo(() => buildPlans(ordered, months, budget, withQty), [ordered, months, budget, withQty]);
+  const pinned = useMemo(() => activePins(pins, months), [pins, months]);
+  const { plans, missing } = useMemo(() => buildPlans(ordered, months, budget, withQty, pinned), [ordered, months, budget, withQty, pinned]);
+  function choose(c: CategoryKey, id: string | null) {
+    setPins((p) => {
+      const next = { ...p };
+      if (id) next[c] = id;
+      else delete next[c];
+      return next;
+    });
+    setSwap(null);
+  }
   // 추천: 예산 안이면 균형 잡힌 표준형, 아니면 실속형
   const best = plans[1].total <= budget ? plans[1] : plans[0].total <= budget ? plans[0] : undefined;
 
@@ -150,6 +170,16 @@ export function BudgetPlanner() {
               문의해 주세요.
             </p>
           )}
+          {Object.keys(pinned).length > 0 && (
+            <p className="card bp-pinned">
+              📌 직접 고른 모델: <strong>{(Object.keys(pinned) as CategoryKey[]).filter((c) => ordered.includes(c)).map((c) => categories[c].label).join(", ")}</strong>
+              <br />
+              <span className="muted small">세 세트 모두 이 모델로 담고, 나머지 품목으로 금액을 맞췄어요.</span>{" "}
+              <button className="link small" onClick={() => setPins({})}>
+                모두 추천 모델로 되돌리기
+              </button>
+            </p>
+          )}
           {(plans[0].total >= budget ? plans.slice(0, 1) : plans).map((p) => {
             const t = tiers.find((x) => x.key === p.tier)!;
             const desc =
@@ -163,7 +193,20 @@ export function BudgetPlanner() {
                       : "고른 품목을 가장 좋은 모델로 담아도 예산보다 적게 들어요"
                     : t.desc;
             return (
-              <PlanCard key={p.tier} plan={p} budget={budget} rate={rate} months={months} highlight={p === best} label={t.label} desc={desc}>
+              <PlanCard
+                key={p.tier}
+                plan={p}
+                budget={budget}
+                rate={rate}
+                months={months}
+                highlight={p === best}
+                label={t.label}
+                desc={desc}
+                pins={pinned}
+                swapping={swap?.tier === p.tier ? swap.category : null}
+                onSwap={(c) => setSwap(swap?.tier === p.tier && swap.category === c ? null : { tier: p.tier, category: c })}
+                onChoose={choose}
+              >
                 {p.tier === "premium" && (
                   <label className="bp-toggle">
                     <input type="checkbox" checked={withQty} onChange={(e) => setWithQty(e.target.checked)} />
@@ -194,6 +237,8 @@ export function BudgetPlanner() {
                 u.searchParams.set("m", String(months));
                 u.searchParams.set("r", String(Math.round(rate * 100)));
                 if (!withQty) u.searchParams.set("q", "0");
+                const pp = Object.entries(pinned).map(([c, id]) => `${c}:${id}`).join(",");
+                if (pp) u.searchParams.set("p", pp);
                 const src = source();
                 if (src !== "direct") u.searchParams.set("src", src);
                 return u.toString();
@@ -227,6 +272,8 @@ export function BudgetPlanner() {
                 u.searchParams.set("m", String(months));
                 u.searchParams.set("r", String(Math.round(rate * 100)));
                 if (!withQty) u.searchParams.set("q", "0");
+                const pp = Object.entries(pinned).map(([c, id]) => `${c}:${id}`).join(",");
+                if (pp) u.searchParams.set("p", pp);
                 const src = source();
                 if (src !== "direct") u.searchParams.set("src", src);
                 return u.toString();
@@ -244,8 +291,16 @@ function PlanCard({
   highlight,
   label,
   desc,
+  pins,
+  swapping,
+  onSwap,
+  onChoose,
   children,
 }: {
+  pins: Pins;
+  swapping: CategoryKey | null;
+  onSwap: (c: CategoryKey) => void;
+  onChoose: (c: CategoryKey, id: string | null) => void;
   plan: Plan;
   budget: number;
   rate: number;
@@ -312,6 +367,15 @@ function PlanCard({
                 {l.rental && rate > 0 && <span className="small muted">월 {won(copay(l.monthly!, rate))}</span>}
               </span>
             </a>
+            <div className="bp-swap-row">
+              {pins[l.category] === l.product.id && <span className="bp-pin">📌 직접 고른 모델</span>}
+              <button className="bp-swap" aria-expanded={swapping === l.category} onClick={() => onSwap(l.category)}>
+                {swapping === l.category ? "닫기" : "🔄 다른 모델로 바꾸기"}
+              </button>
+            </div>
+            {swapping === l.category && (
+              <ModelPicker category={l.category} current={l.product.id} pinned={!!pins[l.category]} rate={rate} months={months} onChoose={onChoose} />
+            )}
           </li>
         ))}
       </ul>
@@ -322,5 +386,53 @@ function PlanCard({
         </p>
       )}
     </section>
+  );
+}
+
+function ModelPicker({
+  category,
+  current,
+  pinned,
+  rate,
+  months,
+  onChoose,
+}: {
+  category: CategoryKey;
+  current: string;
+  pinned: boolean;
+  rate: number;
+  months: number;
+  onChoose: (c: CategoryKey, id: string | null) => void;
+}) {
+  const models = modelChoices(category, months);
+  return (
+    <div className="bp-picker">
+      <p className="small muted">
+        {categories[category].label} {models.length}개 모델 (품절 제외) · 고른 모델은 실속·표준·든든 세트 모두에 들어가요.
+      </p>
+      {pinned && (
+        <button className="link small" onClick={() => onChoose(category, null)}>
+          ↩ 추천 모델로 되돌리기
+        </button>
+      )}
+      <ul>
+        {models.map((m) => (
+          <li key={m.product.id}>
+            <button className={m.product.id === current ? "on" : ""} onClick={() => onChoose(category, m.product.id)} aria-pressed={m.product.id === current}>
+              <img src={m.product.img} alt="" loading="lazy" />
+              <span className="bp-name">
+                <strong>{m.product.name}</strong>
+                <span className="small muted">{m.rental ? `대여 월 ${won(m.monthly!)}` : `구입 정상가 ${won(m.unit)}`}</span>
+              </span>
+              <span className="bp-price">
+                <span className="small muted">{m.rental ? "월 본인부담" : "본인부담"}</span>
+                <span className="bp-copay">{rate === 0 ? "없음" : won(copay(m.rental ? m.monthly! : m.unit, rate))}</span>
+                {m.product.id === current && <span className="small bp-cur">담긴 모델</span>}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

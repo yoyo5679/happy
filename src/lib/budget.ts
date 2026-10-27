@@ -45,11 +45,31 @@ function cost(p: Product, months: number) {
   return { rental: true, monthly: m, unit: m * months, qty: 1, cost: m * months };
 }
 
-function options(category: CategoryKey, months: number): Line[] {
+/** 고객이 직접 고른 모델 (품목 → 상품 id) */
+export type Pins = Partial<Record<CategoryKey, string>>;
+
+/** 품목의 담을 수 있는 모델 (품절 제외, 싼 순서) */
+export function modelChoices(category: CategoryKey, months: number): Line[] {
   return products
     .filter((p) => p.category === category && !isSoldOut(p))
     .map((p) => ({ category, product: p, ...cost(p, months) }))
     .sort((a, b) => a.cost - b.cost);
+}
+
+/** 세트 계산에 쓸 후보: 고객이 고른 모델이 있으면 그 모델만 (품절이 되면 고른 것을 무시하고 추천으로) */
+function options(category: CategoryKey, months: number, pins: Pins = {}): Line[] {
+  const all = modelChoices(category, months);
+  const pinned = pins[category] && all.find((l) => l.product.id === pins[category]);
+  return pinned ? [pinned] : all;
+}
+
+/** 실제로 적용되는 고른 모델 (품절 등으로 못 쓰는 것은 뺌) */
+export function activePins(pins: Pins, months: number): Pins {
+  const out: Pins = {};
+  for (const [c, id] of Object.entries(pins) as [CategoryKey, string][]) {
+    if (modelChoices(c, months).some((l) => l.product.id === id)) out[c] = id;
+  }
+  return out;
 }
 
 const sum = (lines: Line[]) => lines.reduce((s, l) => s + l.cost, 0);
@@ -59,13 +79,13 @@ const sum = (lines: Line[]) => lines.reduce((s, l) => s + l.cost, 0);
  * 가격이 모두 100원 단위라 100원 단위 배낭(DP)으로 정확히 계산합니다.
  * 가장 싼 조합도 한도를 넘으면(대여 12개월 + 품목이 많을 때) 가장 싼 조합 그대로 보여 줍니다.
  */
-function fillToLimit(cats: CategoryKey[], months: number, limit: number, withQty: boolean, tier: Tier): Plan {
+function fillToLimit(cats: CategoryKey[], months: number, limit: number, withQty: boolean, tier: Tier, pins: Pins): Plan {
   // 품목별 후보: (모델 × 수량). 같은 합계 금액은 하나만 남김
   const opts = cats.map((c) => {
     const cap = withQty ? (QTY_CAP[c] ?? 1) : 1;
     const out: Line[] = [];
     const seen = new Set<number>();
-    for (const l of options(c, months)) {
+    for (const l of options(c, months, pins)) {
       for (let q = 1; q <= (l.rental ? 1 : cap); q++) {
         const total = l.unit * q;
         if (total > limit || seen.has(total)) continue;
@@ -75,7 +95,7 @@ function fillToLimit(cats: CategoryKey[], months: number, limit: number, withQty
     }
     return out.sort((a, b) => a.cost - b.cost);
   });
-  const cheapest = cats.map((c) => options(c, months)[0]);
+  const cheapest = cats.map((c) => options(c, months, pins)[0]);
   if (opts.some((o) => o.length === 0) || sum(cheapest) > limit) return { tier, lines: cheapest, total: sum(cheapest) };
 
   const S = Math.floor(limit / 100);
@@ -110,23 +130,23 @@ function fillToLimit(cats: CategoryKey[], months: number, limit: number, withQty
   return { tier, lines: picked, total: sum(picked) };
 }
 
-/** 체크한 품목은 모든 세트에 빠짐없이 담습니다. 품절로 담을 모델이 없는 품목은 missing으로 알려 줍니다. */
 /**
  * 선택한 예산(budget)을 기준으로 세 가지 세트를 짭니다. 체크한 품목은 모든 세트에 빠짐없이 담깁니다.
  *  - 실속형: 품목마다 가장 싼 모델 1개
  *  - 표준형: 실속형 금액과 예산의 중간 금액에 가장 가깝게 (모델만, 1개씩)
  *  - 든든형: 예산에 가장 가깝게 꽉 채움 (withQty면 급여 수량 한도 안에서 수량까지)
- * 품절로 담을 모델이 없는 품목은 missing으로 알려 줍니다.
+ * 고객이 직접 고른 모델(pins)은 세 세트 모두 그 모델로 고정하고, 나머지 품목으로 금액을 맞춥니다.
+ * 품절 상품은 후보에서 빠지며, 품절로 담을 모델이 없는 품목은 missing으로 알려 줍니다.
  */
-export function buildPlans(categories: CategoryKey[], months: number, budget: number, withQty = true) {
+export function buildPlans(categories: CategoryKey[], months: number, budget: number, withQty = true, pins: Pins = {}) {
   const avail = categories.filter((c) => options(c, months).length > 0);
   const missing = categories.filter((c) => !avail.includes(c));
-  const basicLines = avail.map((c) => options(c, months)[0]);
+  const basicLines = avail.map((c) => options(c, months, pins)[0]);
   const basic: Plan = { tier: "basic", lines: basicLines, total: sum(basicLines) };
   const cap = Math.min(budget, EQUIPMENT_LIMIT);
   const mid = basic.total + Math.max(0, cap - basic.total) / 2;
-  const standard = fillToLimit(avail, months, Math.max(mid, basic.total), false, "standard");
-  const premium = fillToLimit(avail, months, Math.max(cap, basic.total), withQty, "premium");
+  const standard = fillToLimit(avail, months, Math.max(mid, basic.total), false, "standard", pins);
+  const premium = fillToLimit(avail, months, Math.max(cap, basic.total), withQty, "premium", pins);
   return { plans: [basic, standard, premium], missing };
 }
 
