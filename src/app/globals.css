@@ -412,3 +412,25 @@ em.opt { background: #eef1f0; color: var(--muted); }
 .bp-picker img { flex: 0 0 44px; width: 44px; height: 44px; object-fit: contain; }
 .bp-cur { color: var(--brand); font-weight: 700; }
 .bp-pinned { background: var(--brand-weak); }
+
+/* 상담 연결 (전화·카카오톡 카드) */
+.contact-cta { margin: 24px 0; padding: 28px 16px 22px; border-radius: 18px; text-align: center; color: #fff; background: linear-gradient(135deg, #0b5f6a 0%, #068291 55%, #2a9aa6 100%); }
+.contact-cta h3 { margin: 0 0 6px; font-size: 1.45rem; line-height: 1.35; }
+.contact-cta h3 em { font-style: normal; color: #7fe3ec; }
+.contact-cta > p { margin: 0 0 18px; font-size: 0.95rem; opacity: 0.92; }
+.contact-cards { display: grid; gap: 12px; }
+@media (min-width: 600px) { .contact-cards { grid-template-columns: 1fr 1fr; } }
+.contact-card { display: flex; align-items: center; gap: 14px; padding: 18px 16px; border-radius: 14px; text-align: left; text-decoration: none; color: #1d2a24; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12); transition: transform 0.15s; }
+.contact-card:active { transform: scale(0.98); }
+.contact-card.tel { background: #fff; }
+.contact-card.kakao { background: var(--kakao); color: #191919; }
+.cc-ico { flex: none; display: grid; place-items: center; width: 52px; height: 52px; }
+.contact-card.tel .cc-ico { color: var(--brand); padding: 4px; }
+.cc-ico.talk { border-radius: 50%; background: #3b1e1e; color: var(--kakao); font-size: 0.95rem; font-weight: 900; letter-spacing: -0.02em; }
+.cc-body { display: flex; flex-direction: column; min-width: 0; }
+.cc-label { font-size: 0.9rem; font-weight: 700; }
+.contact-card strong { font-size: 1.3rem; line-height: 1.3; white-space: nowrap; letter-spacing: -0.02em; }
+@media (min-width: 600px) { .contact-card { padding: 16px 14px; gap: 10px; } .contact-card strong { font-size: 1.12rem; } .cc-ico { width: 44px; height: 44px; } }
+.contact-card.tel strong { color: var(--brand); }
+.cc-desc { font-size: 0.85rem; opacity: 0.8; }
+.cc-store { display: inline-block; margin-top: 16px; color: #fff; font-weight: 700; font-size: 0.95rem; }
