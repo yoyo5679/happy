@@ -1,0 +1,5 @@
+# Cloudflare Pages 응답 헤더
+# 해피케어몰(아임웹) 카테고리 필터가 칩 데이터를 읽을 수 있게 허용 (imweb/category-filter.html)
+/imweb/*
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=600

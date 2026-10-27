@@ -1,0 +1,284 @@
+<!-- 해피케어: 카테고리별 필터 칩 (원본: happycare-web/imweb/category-filter.html, 2026-10-27)
+     칩 데이터: https://happycare.pages.dev/imweb/filters.json (scripts/catalog/build_filters.py가 관리자 '상품 정보 일괄 수정용' 엑셀로 만듦)
+     - 전동침대는 원래 칩을 그대로 두고, 다른 품목은 규격에 맞는 칩으로 바꿈
+     - 칩이 없는 곳(여러 품목이 섞인 '전체' 묶음, 상품이 적은 품목)은 칩 줄을 숨기고 상품 수·정렬만 남김
+     - 칩을 누르면 그 카테고리 상품 전체를 아임웹 목록 API로 한 번 받아(다른 페이지 포함) 함께 거름.
+       같은 묶음 칩은 '또는', 다른 묶음끼리는 '그리고'. 결과는 12개씩 보여 주고 '더 보기'로 이어서 보여 줌
+     - 사이트 카드 꾸미기 코드가 카드마다 상품 상세를 불러오므로, 받아 온 카드는 보여 줄 때만 꾸미게 함(과다 요청 차단 방지)
+     - 데이터를 못 읽으면 원래 필터를 그대로 둠
+     주의: 이 코드에는 HTML 기호(앰퍼샌드+이름+세미콜론)를 쓰지 않습니다. -->
+<style>
+  .hcf-empty { margin: 24px 0; padding: 28px 16px; border-radius: 14px; background: #f4f8f8; color: #555; font-size: 15px; text-align: center; }
+  .hcf-more { display: block; width: 100%; max-width: 420px; min-height: 52px; margin: 24px auto 8px; border: 1px solid #068291; border-radius: 12px; background: #fff; color: #068291; font-size: 16px; font-weight: 700; cursor: pointer; }
+</style>
+<script>
+(function () {
+  var DATA_URL = 'https://happycare.pages.dev/imweb/filters.json';
+  var STEP = 12;
+  var slug = location.pathname.replace(/^\/+|\/+$/g, '').split('/')[0];
+  var STATE_KEY = 'hcfActive:' + slug;
+  var active = [];
+  var limit = STEP;
+  var conf = null;
+  var loaded = null;
+  var countText = '';
+
+  function wait(test, ms) {
+    return new Promise(function (ok, fail) {
+      var t = 0;
+      (function poll() {
+        var v = test();
+        if (v) return ok(v);
+        if ((t += 200) > ms) return fail(new Error('timeout'));
+        setTimeout(poll, 200);
+      })();
+    });
+  }
+
+  function loadData() {
+    try {
+      var c = JSON.parse(sessionStorage.getItem('hcfData') || 'null');
+      if (c && Date.now() - c.at < 3600000) return Promise.resolve(c.data);
+    } catch (e) {}
+    return fetch(DATA_URL).then(function (r) { return r.json(); }).then(function (data) {
+      try { sessionStorage.setItem('hcfData', JSON.stringify({ at: Date.now(), data: data })); } catch (e) {}
+      return data;
+    });
+  }
+
+  function idxOf(item) {
+    try { return String(JSON.parse(item.getAttribute('data-product-properties') || '{}').idx || ''); } catch (e) { return ''; }
+  }
+  function grid() { var it = document.querySelector('.shop-content .shop-item'); return it && it.parentElement; }
+  function items() { var g = grid(); return g ? [].slice.call(g.querySelectorAll(':scope > .shop-item')) : []; }
+  function paging() { return document.querySelector('.shop-content .paging-block'); }
+  function nudge() { var c = document.createComment('hcf'); document.body.appendChild(c); c.remove(); }
+
+  // 숨김은 카드에 직접 지정 (카드에 사이트 코드가 넣은 강제 스타일이 있고, 원래 필터 코드가 수시로 다시 보이게 함)
+  function hide(el, off) {
+    el.classList.toggle('hcf-off', off);
+    var now = el.style.getPropertyValue('display') === 'none';
+    if (off && !now) el.style.setProperty('display', 'none', 'important');
+    if (!off && now) el.style.removeProperty('display');
+  }
+  function enforce() {
+    items().concat([paging(), document.querySelector('.hcf-empty'), document.querySelector('.hcf-more')]).forEach(function (el) {
+      if (el) hide(el, el.classList.contains('hcf-off'));
+    });
+  }
+
+  function setCount(n) {
+    countText = n == null ? '' : '총 ' + n + '개 상품';
+    document.querySelectorAll('[data-hcare-product-count]').forEach(function (node) {
+      if (countText && node.textContent !== countText) node.textContent = countText;
+    });
+  }
+
+  // 이 목록 위젯이 '더보기'에 쓰는 아임웹 목록 API 값 (카테고리 내부 코드 등)
+  function listParams() {
+    var g = grid();
+    var code = g ? (g.id || '').replace(/^container_/, '') : '';
+    var found = null;
+    [].some.call(document.scripts, function (s) {
+      var t = s.textContent || '';
+      var j = t.indexOf("'widget_code': '" + code + "'");
+      if (!code || j < 0 || t.indexOf('get_shop_list_view.cm') < 0) return false;
+      var seg = t.slice(Math.max(0, j - 900), j);
+      var cat = seg.match(/'category'\s*:\s*'([^']*)'/g);
+      var sort = seg.match(/'sort'\s*:\s*"([^"]*)"/g);
+      var menu = seg.match(/'menu_url'\s*:\s*'([^']*)'/g);
+      if (!cat || !menu) return false;
+      var last = function (arr) { var m = /:\s*['"]([^'"]*)['"]/.exec(arr[arr.length - 1]); return m ? m[1] : ''; };
+      found = { category: last(cat), sort: sort ? last(sort) : 'like', menu_url: last(menu), widget_code: code };
+      return true;
+    });
+    return found;
+  }
+
+  function getPage(p, size, q) {
+    return new Promise(function (ok) {
+      window.jQuery.ajax({
+        type: 'GET', url: '/ajax/get_shop_list_view.cm', dataType: 'json', cache: false,
+        data: { page: p, pagesize: size, category: q.category, sort: q.sort, menu_url: q.menu_url, widget_code: q.widget_code },
+        success: function (res) { ok(res && res.msg === 'SUCCESS' ? res.html || '' : ''); },
+        error: function () { ok(''); }
+      });
+    }).then(function (html) {
+      return [].slice.call(new DOMParser().parseFromString(html, 'text/html').querySelectorAll('.shop-item'));
+    });
+  }
+
+  // 카테고리 상품 전체를 한 번만 받아 정렬 순서대로 배치 (원래 페이지 카드는 그대로 옮기고, 나머지는 꾸미기 전 상태로 숨겨 둠)
+  function loadAll() {
+    if (loaded) return loaded;
+    var q = listParams();
+    if (!q || !window.jQuery) return (loaded = Promise.resolve());
+    var urlSort = (/[?&]sort=([^&]+)/.exec(location.search) || [])[1];
+    if (urlSort) q.sort = decodeURIComponent(urlSort);
+    var SIZE = 120;
+    var all = [];
+    function more(p) {
+      return getPage(p, SIZE, q).then(function (list) {
+        all = all.concat(list);
+        if (list.length >= SIZE && p < 10) return more(p + 1);
+      });
+    }
+    loaded = more(1).then(function () {
+      var g = grid();
+      if (!g || !all.length) return;
+      var mine = {};
+      items().forEach(function (it) { mine[idxOf(it)] = it; });
+      var seen = {};
+      all.forEach(function (node) {
+        var id = idxOf(node);
+        if (!id || seen[id]) return;
+        seen[id] = 1;
+        if (mine[id]) { g.appendChild(mine[id]); return; }
+        var it = document.importNode(node, true);
+        it.classList.add('hcf-extra');
+        it.setAttribute('data-hcare-unified-ready', 'true');
+        it.setAttribute('data-hcf-fresh', '1');
+        hide(it, true);
+        g.appendChild(it);
+      });
+      // 목록에 없던 원래 카드(만약 있다면)는 맨 뒤로
+      Object.keys(mine).forEach(function (id) { if (!seen[id]) g.appendChild(mine[id]); });
+    });
+    return loaded;
+  }
+
+  // 받아 온 카드는 보여 줄 때 처음으로 사이트 카드 꾸미기를 받게 함
+  function activate(it) {
+    if (it.getAttribute('data-hcf-fresh') !== '1') return;
+    it.removeAttribute('data-hcf-fresh');
+    it.removeAttribute('data-hcare-unified-ready');
+  }
+
+  function matches(item) {
+    var tags = (conf.items[idxOf(item)] || '').split(' ');
+    var groups = {};
+    active.forEach(function (k) {
+      var chip = conf.chips.filter(function (c) { return c.k === k; })[0];
+      if (chip) (groups[chip.g] = groups[chip.g] || []).push(k);
+    });
+    return Object.keys(groups).every(function (g) {
+      return groups[g].some(function (k) { return tags.indexOf(k) >= 0; });
+    });
+  }
+
+  function extras() {
+    var g = grid();
+    if (!g) return {};
+    var empty = document.querySelector('.hcf-empty');
+    if (!empty) {
+      empty = document.createElement('p');
+      empty.className = 'hcf-empty';
+      empty.textContent = '조건에 맞는 상품이 없어요. 칩을 하나 빼 보세요.';
+      hide(empty, true);
+      g.parentNode.insertBefore(empty, g.nextSibling);
+    }
+    var btn = document.querySelector('.hcf-more');
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'hcf-more';
+      hide(btn, true);
+      btn.addEventListener('click', function () { limit += STEP; apply(); });
+      empty.parentNode.insertBefore(btn, empty.nextSibling);
+    }
+    return { empty: empty, btn: btn };
+  }
+
+  function apply() {
+    var mount = document.getElementById('hcare-category-filter');
+    var x = extras();
+    if (!active.length) {
+      items().forEach(function (it) { hide(it, it.classList.contains('hcf-extra')); });
+      var pg0 = paging(); if (pg0) hide(pg0, false);
+      if (x.empty) hide(x.empty, true);
+      if (x.btn) hide(x.btn, true);
+      setCount(null);
+      return Promise.resolve();
+    }
+    var chips = mount ? [].slice.call(mount.querySelectorAll('[data-hcf]')) : [];
+    chips.forEach(function (b) { b.classList.add('is-loading'); });
+    return loadAll().then(function () {
+      var hit = items().filter(matches);
+      var show = hit.slice(0, limit);
+      items().forEach(function (it) {
+        var on = show.indexOf(it) >= 0;
+        if (on) activate(it);
+        hide(it, !on);
+      });
+      nudge();
+      var pg = paging(); if (pg) hide(pg, true);
+      if (x.empty) hide(x.empty, hit.length > 0);
+      if (x.btn) {
+        x.btn.textContent = '조건에 맞는 상품 더 보기 (' + show.length + ' / ' + hit.length + ')';
+        hide(x.btn, hit.length <= show.length);
+      }
+      setCount(hit.length);
+    }).then(function () {
+      chips.forEach(function (b) { b.classList.remove('is-loading'); });
+    });
+  }
+
+  function render(mount) {
+    var opts = mount.querySelector('.hcare-category-filter__options');
+    var label = mount.querySelector('.hcare-category-filter__label');
+    if (!conf || !conf.chips.length) {
+      if (opts) opts.style.display = 'none';
+      if (label) label.style.display = 'none';
+      return;
+    }
+    try { active = JSON.parse(sessionStorage.getItem(STATE_KEY) || '[]'); } catch (e) { active = []; }
+    active = active.filter(function (k) { return conf.chips.some(function (c) { return c.k === k; }); });
+    opts.innerHTML = '';
+    conf.chips.forEach(function (c) {
+      var on = active.indexOf(c.k) >= 0;
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'hcare-category-chip' + (on ? ' is-active' : '');
+      b.setAttribute('data-hcf', c.k);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      var icon = document.createElement('span');
+      icon.className = 'hcare-category-chip__icon';
+      icon.setAttribute('aria-hidden', 'true');
+      var text = document.createElement('span');
+      text.textContent = c.l;
+      b.appendChild(icon);
+      b.appendChild(text);
+      opts.appendChild(b);
+    });
+    opts.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-hcf]');
+      if (!b) return;
+      var k = b.getAttribute('data-hcf');
+      var i = active.indexOf(k);
+      if (i >= 0) active.splice(i, 1); else active.push(k);
+      b.classList.toggle('is-active', i < 0);
+      b.setAttribute('aria-pressed', i < 0 ? 'true' : 'false');
+      try { sessionStorage.setItem(STATE_KEY, JSON.stringify(active)); } catch (x) {}
+      limit = STEP;
+      apply();
+    });
+    // 원래 필터 코드가 상품 수를 다시 쓰거나 숨긴 카드를 다시 보이게 하면 되돌림
+    new MutationObserver(function () { if (countText) setCount(Number(countText.replace(/\D/g, ''))); })
+      .observe(mount, { childList: true, characterData: true, subtree: true });
+    var g = grid();
+    if (g) new MutationObserver(enforce).observe(g.parentNode, { attributes: true, attributeFilter: ['style'], subtree: true, childList: true });
+    if (active.length) apply();
+  }
+
+  Promise.all([
+    loadData(),
+    wait(function () { var m = document.getElementById('hcare-category-filter'); return m && m.querySelector('.hcare-category-filter__options') && m; }, 15000)
+  ]).then(function (r) {
+    var data = r[0], mount = r[1];
+    var kind = data.pages[slug];
+    if (kind === 'KEEP') return;
+    conf = kind ? data.kinds[kind] : null;
+    render(mount);
+  }).catch(function () {});
+})();
+</script>

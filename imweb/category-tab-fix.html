@@ -1,0 +1,31 @@
+<!-- 해피케어: 카테고리 탭에서 하위 분류가 있는 탭을 누르면 그 분류의 '전체' 목록으로 이동 (원본: happycare-web/imweb/category-tab-fix.html, 2026-10-27)
+     성인용보행기·안전손잡이·미끄럼방지 양말·요실금팬티 탭은 하위 탭 줄만 펼치고 상품 목록은 그대로라, 고객이 '전체'를 한 번 더 눌러야 했음.
+     이미 그 '전체' 페이지에 있을 때는 원래처럼 하위 탭 줄을 접고 펼침.
+     주의: 이 코드에는 HTML 기호(앰퍼샌드+이름+세미콜론)를 쓰지 않습니다. -->
+<script>
+(function () {
+  function path(u) {
+    try { return new URL(u, location.origin).pathname.replace(/\/$/, ''); } catch (e) { return ''; }
+  }
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a.hc-auto-top-link.hc-has-children');
+    if (!a) return;
+    var parent = a.getAttribute('href');
+    var widget = a.closest('[doz_type="widget"]');
+    // 원래 메뉴에서 이 탭의 하위 메뉴 중 '전체' (없으면 이 탭 주소)
+    var target = parent;
+    if (widget) {
+      widget.querySelectorAll('.nav.sub-menu li > a[href]').forEach(function (src) {
+        if (src.getAttribute('href') !== parent) return;
+        var all = [].filter.call(src.parentNode.querySelectorAll('ul a[href]'), function (c) { return c.textContent.trim() === '전체'; })[0];
+        if (all) target = all.getAttribute('href');
+      });
+    }
+    var here = path(location.href);
+    if (here === path(target) || here === path(parent)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    location.href = target;
+  }, true);
+})();
+</script>
