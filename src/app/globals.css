@@ -448,3 +448,9 @@ em.opt { background: #eef1f0; color: var(--muted); }
 .contact-card.tel strong { color: var(--brand); }
 .cc-desc { font-size: 0.85rem; opacity: 0.8; }
 .cc-store { display: inline-block; margin-top: 16px; color: #fff; font-weight: 700; font-size: 0.95rem; }
+.bp-pinned p { margin: 0 0 6px; }
+.bp-pinned-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 8px; }
+.bp-pinned-actions .btn { margin: 0; }
+.bp-changes { margin: 10px 0; padding: 10px 12px; border-radius: 10px; background: #fff7e6; font-size: 0.875rem; }
+.bp-changes p { margin: 0 0 4px; font-weight: 700; }
+.bp-changes ul { margin: 0; padding-left: 18px; }

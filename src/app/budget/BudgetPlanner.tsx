@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { RatePicker } from "@/components/RatePicker";
 import { ContactCta } from "@/components/ContactCta";
 import { categories, categoryGroups, copay, isSoldOut, productUrl, products, won, type CategoryKey } from "@/data/products";
-import { activePins, buildPlans, EQUIPMENT_LIMIT, groupKeys, groupOfCategory, groupPlan, lineCopay, modelChoices, planCopay, tiers, type Pins, type Plan } from "@/lib/budget";
+import { activePins, buildPlans, EQUIPMENT_LIMIT, groupKeys, groupOfCategory, groupPlan, lineCopay, modelChoices, planCopay, tiers, type Change, type Pins, type Plan } from "@/lib/budget";
 import { source, withUtm } from "@/lib/utm";
 import { cartUrl } from "@/lib/cart";
 import { ShareText } from "@/components/ShareText";
@@ -30,6 +30,8 @@ export function BudgetPlanner() {
   const [rate, setRate] = useState(0.15);
   const [withQty, setWithQty] = useState(true);
   const [pins, setPins] = useState<Pins>({});
+  /** 고른 모델 때문에 예산을 넘는 세트는 나머지 품목을 다시 골라 예산 안으로 */
+  const [fit, setFit] = useState(false);
   /** 모델 바꾸기 목록을 연 줄 (세트·품목) */
   const [swap, setSwap] = useState<{ tier: string; category: CategoryKey } | null>(null);
 
@@ -51,6 +53,7 @@ export function BudgetPlanner() {
     const r = Number(q.get("r"));
     if (q.has("r") && [15, 9, 6, 0].includes(r)) setRate(r / 100);
     if (q.get("q") === "0") setWithQty(false);
+    if (q.get("f") === "1") setFit(true);
     // ?p=품목:상품id,품목:상품id (고객이 고른 모델)
     const ps: Pins = {};
     for (const pair of (q.get("p") ?? "").split(",")) {
@@ -77,7 +80,11 @@ export function BudgetPlanner() {
 
   const ordered = useMemo(() => [...selected].sort((a, b) => orderOf(a) - orderOf(b)), [selected]);
   const pinned = useMemo(() => activePins(pins, months), [pins, months]);
-  const { plans, missing, stretch } = useMemo(() => buildPlans(ordered, months, budget, withQty, pinned), [ordered, months, budget, withQty, pinned]);
+  const fitOn = fit && Object.keys(pinned).length > 0;
+  const { plans, missing, stretch, changes, fittable } = useMemo(
+    () => buildPlans(ordered, months, budget, withQty, pinned, fitOn),
+    [ordered, months, budget, withQty, pinned, fitOn],
+  );
   function choose(c: CategoryKey, id: string | null) {
     setPins((p) => {
       const next = { ...p };
@@ -88,9 +95,9 @@ export function BudgetPlanner() {
     setSwap(null);
   }
   // 추천: 예산 안이면 균형 잡힌 표준형, 아니면 실속형
-  const best = plans[1].total <= budget ? plans[1] : plans[0];
   // 금액이 같은 세트는 하나만 (모델이 하나뿐인 품목만 골랐을 때 등)
   const shown = plans.filter((p, i) => plans.slice(0, i).every((q) => q.total !== p.total));
+  const best = shown.includes(plans[1]) && plans[1].total <= budget ? plans[1] : plans[0];
   const overBy = (p: Plan) => p.total - budget;
 
   return (
@@ -185,21 +192,51 @@ export function BudgetPlanner() {
             </p>
           )}
           {Object.keys(pinned).length > 0 && (
-            <p className="card bp-pinned">
-              📌 직접 고른 모델: <strong>{(Object.keys(pinned) as CategoryKey[]).filter((c) => ordered.includes(c)).map((c) => categories[c].label).join(", ")}</strong>
-              <br />
-              <span className="muted small">세 세트 모두 이 모델로 바꿨어요. 나머지 품목은 그대로라 금액과 본인부담금이 바뀐 만큼 달라져요.</span>
-              {!stretch && shown.some((p) => overBy(p) > 0) && (
-                <span className="muted small">
-                  {" "}
-                  고른 모델 때문에 예산보다 {shown.filter((p) => overBy(p) > 0).map((p) => `${tiers.find((t) => t.key === p.tier)!.label} ${won(overBy(p))}`).join(" · ")}{" "}
-                  더 들어요.
-                </span>
-              )}{" "}
-              <button className="link small" onClick={() => setPins({})}>
-                모두 추천 모델로 되돌리기
-              </button>
-            </p>
+            <div className="card bp-pinned">
+              <p>
+                📌 직접 고른 모델:{" "}
+                <strong>{(Object.keys(pinned) as CategoryKey[]).filter((c) => ordered.includes(c)).map((c) => categories[c].label).join(", ")}</strong>
+              </p>
+              {fitOn ? (
+                <p className="muted small">
+                  고른 모델은 그대로 두고, 예산을 넘던 세트는 나머지 품목을 바꿔 예산 안으로 맞췄어요. 바뀐 품목은 세트마다 표시돼요.
+                </p>
+              ) : (
+                <p className="muted small">
+                  세 세트 모두 이 모델로 바꿨어요. 나머지 품목은 그대로라 금액과 본인부담금이 바뀐 만큼 달라져요.
+                  {!stretch && shown.some((p) => overBy(p) > 0) && (
+                    <>
+                      {" "}
+                      고른 모델 때문에 예산보다{" "}
+                      {shown.filter((p) => overBy(p) > 0).map((p) => `${tiers.find((t) => t.key === p.tier)!.label} ${won(overBy(p))}`).join(" · ")} 더
+                      들어요.
+                      {!fittable && " 나머지 품목을 가장 저렴한 모델로 바꿔도 예산을 넘어서, 예산에 맞추려면 고른 모델을 바꾸거나 예산을 늘려야 해요."}
+                    </>
+                  )}
+                </p>
+              )}
+              <div className="bp-pinned-actions">
+                {fittable && !fitOn && shown.some((p) => overBy(p) > 0) && (
+                  <button className="btn small primary" onClick={() => setFit(true)}>
+                    예산에 맞게 나머지 조정하기
+                  </button>
+                )}
+                {fitOn && (
+                  <button className="btn small" onClick={() => setFit(false)}>
+                    조정 취소 (고른 대로 보기)
+                  </button>
+                )}
+                <button
+                  className="link small"
+                  onClick={() => {
+                    setPins({});
+                    setFit(false);
+                  }}
+                >
+                  모두 추천 모델로 되돌리기
+                </button>
+              </div>
+            </div>
           )}
           <div className={shown.length > 1 ? "bp-plans multi" : "bp-plans"}>
           {shown.map((p) => {
@@ -234,6 +271,7 @@ export function BudgetPlanner() {
                 swapping={swap?.tier === p.tier ? swap.category : null}
                 onSwap={(c) => setSwap(swap?.tier === p.tier && swap.category === c ? null : { tier: p.tier, category: c })}
                 onChoose={choose}
+                changes={changes[p.tier]}
               >
                 {p.tier === "premium" && (
                   <label className="bp-toggle">
@@ -268,6 +306,7 @@ export function BudgetPlanner() {
                 if (!withQty) u.searchParams.set("q", "0");
                 const pp = Object.entries(pinned).map(([c, id]) => `${c}:${id}`).join(",");
                 if (pp) u.searchParams.set("p", pp);
+                if (pp && fitOn) u.searchParams.set("f", "1");
                 const src = source();
                 if (src !== "direct") u.searchParams.set("src", src);
                 return u.toString();
@@ -303,6 +342,7 @@ export function BudgetPlanner() {
                 if (!withQty) u.searchParams.set("q", "0");
                 const pp = Object.entries(pinned).map(([c, id]) => `${c}:${id}`).join(",");
                 if (pp) u.searchParams.set("p", pp);
+                if (pp && fitOn) u.searchParams.set("f", "1");
                 const src = source();
                 if (src !== "direct") u.searchParams.set("src", src);
                 return u.toString();
@@ -322,12 +362,15 @@ function PlanCard({
   desc,
   pins,
   missing,
+  changes,
   swapping,
   onSwap,
   onChoose,
   children,
 }: {
   pins: Pins;
+  /** "예산에 맞게 나머지 조정하기"로 바뀐 품목 */
+  changes: Change[];
   /** 모든 모델이 품절이라 담지 못한 품목 */
   missing: CategoryKey[];
   swapping: CategoryKey | null;
@@ -364,6 +407,20 @@ function PlanCard({
       </div>
 
       {children}
+      {changes.length > 0 && (
+        <div className="bp-changes">
+          <p>🔄 예산에 맞추느라 바꾼 품목</p>
+          <ul>
+            {changes.map(({ category, from, to }) => (
+              <li key={category}>
+                {categories[category].label}: {from.product.name}
+                {from.qty > 1 && ` ${from.qty}개`} → <strong>{to.product.name}{to.qty > 1 && ` ${to.qty}개`}</strong>
+                <span className="muted"> ({won(to.cost - from.cost)})</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className="bp-bar" aria-label={`예산 ${budgetLabel} 중 ${used}% 사용`}>
         <div style={{ width: `${used}%` }} />
       </div>

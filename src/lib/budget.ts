@@ -139,7 +139,9 @@ function fillToLimit(cats: CategoryKey[], months: number, limit: number, withQty
  * 나머지 품목은 그대로 두므로, 더 비싼 모델을 고르면 합계·본인부담금도 그만큼 올라갑니다.
  * 품절 상품은 후보에서 빠지며, 품절로 담을 모델이 없는 품목은 missing으로 알려 줍니다.
  */
-export function buildPlans(categories: CategoryKey[], months: number, budget: number, withQty = true, pins: Pins = {}) {
+export type Change = { category: CategoryKey; from: Line; to: Line };
+
+export function buildPlans(categories: CategoryKey[], months: number, budget: number, withQty = true, pins: Pins = {}, fit = false) {
   const avail = categories.filter((c) => options(c, months).length > 0);
   const missing = categories.filter((c) => !avail.includes(c));
   const basicLines = avail.map((c) => options(c, months)[0]);
@@ -151,7 +153,30 @@ export function buildPlans(categories: CategoryKey[], months: number, budget: nu
   const standard = fillToLimit(avail, months, Math.max(mid, basic.total), false, "standard", {});
   const premium = fillToLimit(avail, months, Math.max(cap, basic.total), withQty, "premium", {});
   const plans = [basic, standard, premium].map((p) => applyPins(p, months, pins));
-  return { plans, missing, stretch };
+  const changes: Record<Tier, Change[]> = { basic: [], standard: [], premium: [] };
+  // 고른 모델 + 나머지는 가장 싼 모델: 이것도 예산을 넘으면 나머지를 바꿔도 예산 안으로 못 맞춤
+  const pBasicLines = avail.map((c) => options(c, months, pins)[0]);
+  const pBasic: Plan = { tier: "basic", lines: pBasicLines, total: sum(pBasicLines) };
+  const fittable = !stretch && pBasic.total <= budget;
+  if (!fit || !fittable) return { plans, missing, stretch, changes, fittable };
+
+  // "예산에 맞게 나머지 조정하기": 고른 모델은 그대로 두고, 예산을 넘는 세트만 나머지 품목을 다시 골라 예산 안으로
+  const pMid = pBasic.total + Math.max(0, cap - pBasic.total) / 2;
+  const fitted: Plan[] = [
+    pBasic,
+    fillToLimit(avail, months, Math.max(pMid, pBasic.total), false, "standard", pins),
+    fillToLimit(avail, months, Math.max(cap, pBasic.total), withQty, "premium", pins),
+  ];
+  const out = plans.map((p, i) => {
+    if (p.total <= budget) return p;
+    const f = fitted[i];
+    changes[p.tier] = f.lines.flatMap((to) => {
+      const from = p.lines.find((l) => l.category === to.category)!;
+      return from.product.id !== to.product.id || from.qty !== to.qty ? [{ category: to.category, from, to }] : [];
+    });
+    return f;
+  });
+  return { plans: out, missing, stretch, changes, fittable };
 }
 
 /** 세트에서 고른 품목만 고른 모델로 교체 (수량은 원래 세트의 수량 유지, 대여는 1개) */
