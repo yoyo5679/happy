@@ -363,3 +363,38 @@ body:has(.result-bar) { padding-bottom: 96px; }
 .pick-list li:first-child button { border-top: 0; }
 .pick-list small { color: var(--muted); }
 .link-box { word-break: break-all; padding: 10px 12px; background: var(--brand-weak); border-radius: 10px; font-size: 0.875rem; }
+
+/* 동의 */
+.consent-all { display: flex !important; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 12px; background: var(--brand-weak); font-weight: 700 !important; }
+.consent-list { list-style: none; margin: 0; padding: 0; }
+.consent-list li { border-top: 1px solid var(--line); padding: 4px 0; }
+.consent-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.consent-row label { display: flex !important; align-items: center; gap: 10px; font-weight: 400 !important; }
+.consent-row .link { padding: 8px 0; white-space: nowrap; }
+.consent-form input[type="checkbox"] { width: 22px; height: 22px; min-height: 22px; flex: none; accent-color: var(--brand-solid); }
+.consent-row em, .consent-all em { font-style: normal; font-size: 0.8rem; font-weight: 700; padding: 1px 6px; border-radius: 6px; }
+em.req { background: #fdecea; color: #8e2a1f; }
+em.opt { background: #eef1f0; color: var(--muted); }
+.consent-table { width: 100%; border-collapse: collapse; margin: 6px 0 10px; font-size: 0.875rem; }
+.consent-table th, .consent-table td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+.consent-table th { background: #f3f6f5; white-space: nowrap; font-weight: 600; }
+.consent-notice { margin: 0; padding-left: 18px; color: var(--muted); font-size: 0.875rem; }
+.consent-foot { margin: 20px 0; text-align: center; color: var(--muted); font-size: 0.875rem; }
+.consent-foot p { margin: 0; }
+.consent-foot .link { padding: 6px 0; font-size: 0.875rem; }
+.policy h2 { font-size: 1.1rem; margin-top: 28px; }
+.policy p, .policy li { font-size: 0.95rem; }
+.consent-print h1 { font-size: 1.3rem; text-align: center; }
+.consent-print h2 { font-size: 1rem; margin: 18px 0 4px; }
+.consent-print .sign td { height: 34px; min-width: 90px; }
+.consent-print .check-line { margin: 0 0 4px; text-align: right; font-weight: 600; word-spacing: 0.4em; }
+.consent-print .sign-line { text-align: right; margin: 18px 0 0; }
+.small { font-size: 0.8rem; }
+@media print {
+  .site-header, .site-footer, .float-contact, .no-print { display: none !important; }
+  body { background: #fff; font-size: 11pt; }
+  main { max-width: none; padding: 0; }
+  .consent-table { font-size: 9.5pt; }
+  .consent-print h2 { break-after: avoid; }
+  .consent-print section { break-inside: avoid; }
+}

@@ -27,7 +27,36 @@ const SCHEMA = [
     date TEXT NOT NULL, end_date TEXT, status TEXT NOT NULL DEFAULT 'active', note TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL)`,
   `CREATE INDEX IF NOT EXISTS items_recipient ON items(recipient_id)`,
+  // 동의 기록 (동의·광고수신 변경·철회). 철회로 장부가 지워져도 기록은 남깁니다.
+  `CREATE TABLE IF NOT EXISTS consents (
+    id TEXT PRIMARY KEY, recipient_id TEXT NOT NULL, action TEXT NOT NULL, method TEXT NOT NULL,
+    version TEXT NOT NULL, signer TEXT NOT NULL DEFAULT '', relation TEXT NOT NULL DEFAULT '',
+    marketing INTEGER NOT NULL DEFAULT 0, ua TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL)`,
+  `CREATE INDEX IF NOT EXISTS consents_recipient ON consents(recipient_id)`,
 ];
+
+// src/data/consent.ts 의 CONSENT_VERSION 과 같게 유지 (문구가 바뀌면 다시 동의를 받습니다)
+const CONSENT_VERSION = "2026-11-v1";
+
+type Consent = { at: string; method: string; signer: string; relation: string; version: string; marketing: boolean; current: boolean };
+
+function consentFrom(rows: Row[]): Consent | null {
+  // rows: 최신순
+  const agree = rows.find((r) => r.action === "agree");
+  if (!agree) return null;
+  const mk = rows.find((r) => r.action === "agree" || r.action === "marketing")!;
+  return {
+    at: String(agree.created_at), method: String(agree.method), signer: String(agree.signer), relation: String(agree.relation),
+    version: String(agree.version), marketing: mk.marketing === 1, current: agree.version === CONSENT_VERSION,
+  };
+}
+const consentRows = (db: D1, rid: unknown) =>
+  db.prepare("SELECT * FROM consents WHERE recipient_id = ? ORDER BY created_at DESC").bind(rid).all().then((r) => r.results);
+const logConsent = (db: D1, rid: unknown, c: { action: string; method: string; version?: string; signer?: string; relation?: string; marketing?: boolean; ua?: string }) =>
+  db
+    .prepare("INSERT INTO consents (id, recipient_id, action, method, version, signer, relation, marketing, ua, created_at) VALUES (?,?,?,?,?,?,?,?,?,?)")
+    .bind(crypto.randomUUID(), rid, c.action, c.method, c.version ?? CONSENT_VERSION, c.signer ?? "", c.relation ?? "", c.marketing ? 1 : 0, (c.ua ?? "").slice(0, 200), now())
+    .run();
 
 let ready: Promise<unknown> | null = null;
 const init = (db: D1) => (ready ??= db.batch(SCHEMA.map((s) => db.prepare(s))).catch((e) => { ready = null; throw e; }));
@@ -115,23 +144,54 @@ export async function onRequest({ request, env, params }: Ctx): Promise<Response
   const method = request.method;
   const url = new URL(request.url);
 
-  // 보호자용 (읽기 전용)
-  if (path[0] === "my" && path.length === 1 && method === "GET") {
-    const k = url.searchParams.get("k") ?? "";
+  // 보호자용: 동의 전에는 장부를 보여주지 않습니다
+  if (path[0] === "my" && path.length <= 2) {
+    const b = method === "POST" ? await body(request) : {};
+    const k = method === "GET" ? url.searchParams.get("k") ?? "" : str(b.k, 64);
     if (k.length < 16) return fail(404, "링크를 다시 확인해 주세요");
     const r = await db.prepare("SELECT * FROM recipients WHERE token = ?").bind(k).first();
     if (!r) return fail(404, "링크가 만료되었거나 올바르지 않아요");
-    const { results } = await db
-      .prepare("SELECT id, kind, product_id, category, name, price, qty, date, end_date, status FROM items WHERE recipient_id = ? AND status = 'active' ORDER BY date DESC")
-      .bind(r.id)
-      .all();
-    return json({
-      recipient: {
-        name: maskName(String(r.name)), grade: r.grade, rate: r.rate, period_start: r.period_start,
-        base_remaining: r.base_remaining, base_date: r.base_date, updated_at: r.updated_at,
-      },
-      items: results,
-    });
+    const consent = consentFrom(await consentRows(db, r.id));
+    const ua = request.headers.get("user-agent") ?? "";
+    const action = path[1];
+
+    if (method === "GET" && !action) {
+      const name = maskName(String(r.name));
+      if (!consent?.current) return json({ needConsent: true, version: CONSENT_VERSION, recipient: { name } });
+      const { results } = await db
+        .prepare("SELECT id, kind, product_id, category, name, price, qty, date, end_date, status FROM items WHERE recipient_id = ? AND status = 'active' ORDER BY date DESC")
+        .bind(r.id)
+        .all();
+      return json({
+        consent: { at: consent.at, marketing: consent.marketing },
+        recipient: {
+          name, grade: r.grade, rate: r.rate, period_start: r.period_start,
+          base_remaining: r.base_remaining, base_date: r.base_date, updated_at: r.updated_at,
+        },
+        items: results,
+      });
+    }
+    if (method === "POST" && action === "consent") {
+      const signer = str(b.signer, 40);
+      const relation = str(b.relation, 20);
+      if (!signer || !relation) return fail(400, "동의하시는 분의 성함과 관계를 입력해 주세요");
+      if (!(b.collect === true && b.sensitive === true && b.guardian === true && b.overseas === true)) return fail(400, "필수 항목에 모두 동의해 주세요");
+      if (b.version !== CONSENT_VERSION) return fail(409, "동의서 내용이 바뀌었어요. 화면을 새로 고쳐 주세요");
+      await logConsent(db, r.id, { action: "agree", method: "web", signer, relation, marketing: b.marketing === true, ua });
+      return json({ ok: true });
+    }
+    if (method === "POST" && action === "marketing") {
+      if (!consent) return fail(400, "먼저 이용 동의가 필요해요");
+      await logConsent(db, r.id, { action: "marketing", method: "web", signer: consent.signer, relation: consent.relation, marketing: b.marketing === true, ua });
+      return json({ ok: true });
+    }
+    // 동의 철회: 웹 장부 정보를 바로 지웁니다 (동의·철회 기록만 남김)
+    if (method === "POST" && action === "withdraw") {
+      await logConsent(db, r.id, { action: "withdraw", method: "web", signer: consent?.signer, relation: consent?.relation, ua });
+      await db.batch([db.prepare("DELETE FROM items WHERE recipient_id = ?").bind(r.id), db.prepare("DELETE FROM recipients WHERE id = ?").bind(r.id)]);
+      return json({ ok: true });
+    }
+    return fail(404, "없는 주소예요");
   }
 
   if (path[0] !== "staff") return fail(404, "없는 주소예요");
@@ -149,7 +209,10 @@ export async function onRequest({ request, env, params }: Ctx): Promise<Response
     if (!id && method === "GET") {
       const { results } = await db.prepare("SELECT * FROM recipients ORDER BY updated_at DESC").all();
       const { results: items } = await db.prepare("SELECT * FROM items WHERE status = 'active'").all();
-      return json({ recipients: results, items });
+      const { results: cs } = await db.prepare("SELECT * FROM consents ORDER BY created_at DESC").all();
+      const consents: Record<string, Consent | null> = {};
+      for (const rec of results) consents[String(rec.id)] = consentFrom(cs.filter((c) => c.recipient_id === rec.id));
+      return json({ recipients: results, items, consents });
     }
     // 등록
     if (!id && method === "POST") {
@@ -170,7 +233,7 @@ export async function onRequest({ request, env, params }: Ctx): Promise<Response
     if (!sub) {
       if (method === "GET") {
         const { results } = await db.prepare("SELECT * FROM items WHERE recipient_id = ? ORDER BY date DESC, created_at DESC").bind(id).all();
-        return json({ recipient: r, items: results });
+        return json({ recipient: r, items: results, consent: consentFrom(await consentRows(db, id)) });
       }
       if (method === "PUT") {
         const f = recipientFields(await body(request));
@@ -185,6 +248,15 @@ export async function onRequest({ request, env, params }: Ctx): Promise<Response
         await db.batch([db.prepare("DELETE FROM items WHERE recipient_id = ?").bind(id), db.prepare("DELETE FROM recipients WHERE id = ?").bind(id)]);
         return json({ ok: true });
       }
+    }
+    // 종이 동의서로 받은 경우 직원이 기록
+    if (sub === "consent" && method === "POST") {
+      const b = await body(request);
+      const signer = str(b.signer, 40);
+      const relation = str(b.relation, 20);
+      if (!signer || !relation) return fail(400, "동의하신 분의 성함과 관계를 입력해 주세요");
+      await logConsent(db, id, { action: "agree", method: "paper", signer, relation, marketing: b.marketing === true });
+      return json({ ok: true });
     }
     // 보호자 링크 새로 만들기 (예전 링크는 더 이상 열리지 않음)
     if (sub === "token" && method === "POST") {

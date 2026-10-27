@@ -105,3 +105,10 @@ npm run dev     # http://localhost:3000
 4. 배포 → 최근 배포 "다시 시도"(재배포) 해야 설정이 적용됩니다.
 
 로컬 테스트: `npx next build` 후 `wrangler pages dev out --d1 DB` (`.dev.vars`에 `STAFF_PASSWORD=...`)
+
+### 개인정보 동의
+- 보호자 링크는 **동의 전에는 장부 내용을 보내지 않습니다.** 처음 열면 동의 화면(필수 4 · 선택 1)이 나오고, 동의 기록(일시·동의자·관계·버전)이 `consents` 표에 남습니다.
+- 종이로 받은 경우 직원 화면에서 "종이 동의서로 받았어요"로 기록. 인쇄용 동의서: `/consent`
+- 보호자가 '동의 철회'를 누르면 장부가 바로 삭제됩니다 (동의·철회 기록만 남음).
+- 문구는 `src/data/consent.ts`, 사업자 정보는 `src/config/site.ts`의 `business` (대표자·주소·보호책임자 채우기). 문구를 바꾸면 `CONSENT_VERSION`을 올리고 `functions/api/[[path]].ts`의 같은 상수도 맞춰 주세요 → 모두 다시 동의받습니다.
+- 개인정보처리방침: `/privacy` (푸터에 링크)

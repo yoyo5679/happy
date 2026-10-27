@@ -49,7 +49,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             본 서비스의 결과는 참고용이며, 실제 장기요양등급은 국민건강보험공단(☎ 1577-1000)의 방문조사와
             등급판정위원회 심의로 결정됩니다.
           </p>
-          <p>© {site.name}</p>
+          <p>
+            © {site.name} · <Link href="/privacy">개인정보처리방침</Link>
+          </p>
         </footer>
         <FloatingContact />
       </body>

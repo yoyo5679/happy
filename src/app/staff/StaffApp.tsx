@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { site } from "@/config/site";
 import { LedgerView } from "@/components/LedgerView";
-import { calcLedger, today, type Item, type Recipient } from "@/lib/ledger";
+import { calcLedger, dot, today, ymd, type Item, type Recipient } from "@/lib/ledger";
+import { relations } from "@/data/consent";
 import { categories, products, RATES, won, type CategoryKey } from "@/data/products";
 
 const KEY = "hc_staff";
@@ -103,7 +104,8 @@ function Login({ onLogin }: { onLogin: (pw: string) => void }) {
   );
 }
 
-type ListData = { recipients: Recipient[]; items: Item[] };
+type Consent = { at: string; method: string; signer: string; relation: string; version: string; marketing: boolean; current: boolean };
+type ListData = { recipients: Recipient[]; items: Item[]; consents: Record<string, Consent | null> };
 
 function useSelected(): [string | null, (id: string | null) => void] {
   const [id, setId] = useState<string | null>(null);
@@ -184,7 +186,7 @@ function List({ api, onOpen, onCreate, onLogout }: { api: Api; onOpen: (id: stri
                 <span>
                   <strong>{r.name}</strong>
                   <small>
-                    {[r.grade, r.guardian, L.alerts.length ? `🔔 ${L.alerts.length}` : ""].filter(Boolean).join(" · ")}
+                    {[data!.consents[r.id!]?.current ? "" : "⏳ 동의 대기", r.grade, r.guardian, L.alerts.length ? `🔔 ${L.alerts.length}` : ""].filter(Boolean).join(" · ")}
                   </small>
                 </span>
                 <b>{won(L.remaining)}</b>
@@ -300,7 +302,7 @@ function RecipientForm({ api, initial, onDone }: { api: Api; initial?: Recipient
   );
 }
 
-type DetailData = { recipient: Recipient; items: Item[] };
+type DetailData = { recipient: Recipient; items: Item[]; consent: Consent | null };
 
 function Detail({ id, api, onBack }: { id: string; api: Api; onBack: () => void }) {
   const [data, setData] = useState<DetailData | null>(null);
@@ -412,16 +414,90 @@ function Detail({ id, api, onBack }: { id: string; api: Api; onBack: () => void 
           {r.memo && <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{r.memo}</p>}
         </section>
       )}
+      <ConsentCard api={api} recipient={r} consent={data.consent} onChange={load} />
       <GuardianLink api={api} recipient={r} onChange={load} />
       <DeleteRecipient api={api} recipient={r} onDeleted={onBack} />
     </>
   );
 }
 
+function ConsentCard({ api, recipient: r, consent: c, onChange }: { api: Api; recipient: Recipient; consent: Consent | null; onChange: () => void }) {
+  const [paper, setPaper] = useState(false);
+  const [signer, setSigner] = useState("");
+  const [relation, setRelation] = useState("");
+  const [marketing, setMarketing] = useState(false);
+  const [err, setErr] = useState("");
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setErr("");
+    try {
+      await api("POST", `recipients/${r.id}/consent`, { signer, relation, marketing });
+      setPaper(false);
+      onChange();
+    } catch (e) {
+      setErr((e as Error).message);
+    }
+  }
+
+  return (
+    <section className="card">
+      <h2 className="ledger-h2">개인정보 동의</h2>
+      {c?.current ? (
+        <p style={{ margin: 0 }}>
+          ✅ {dot(ymd(new Date(c.at)))} {c.method === "paper" ? "종이 동의서" : "웹"} 동의 · {c.signer}({c.relation}) · 광고성 안내 {c.marketing ? "동의" : "미동의"}
+        </p>
+      ) : (
+        <p style={{ margin: 0 }}>
+          ⏳ {c ? "동의서 문구가 바뀌어 다시 동의가 필요해요." : "아직 동의 전이에요."} 아래 링크를 보내면 보호자가 휴대폰에서 동의할 수 있어요. 동의 전에는 장부 내용이 보이지 않아요.
+        </p>
+      )}
+      {!paper ? (
+        <p style={{ margin: "8px 0 0" }}>
+          <button className="link" onClick={() => setPaper(true)}>
+            종이 동의서로 받았어요 (기록하기)
+          </button>{" "}
+          · <a href="/consent" target="_blank" className="link">인쇄용 동의서</a>
+        </p>
+      ) : (
+        <form className="form" onSubmit={save} style={{ marginTop: 12 }}>
+          <div className="form-row">
+            <label>
+              동의하신 분
+              <input value={signer} onChange={(e) => setSigner(e.target.value)} required maxLength={40} />
+            </label>
+            <label>
+              관계
+              <select value={relation} onChange={(e) => setRelation(e.target.value)} required>
+                <option value="">선택</option>
+                {relations.map((x) => (
+                  <option key={x}>{x}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <label style={{ display: "flex", gap: 8, alignItems: "center", fontWeight: 400 }}>
+            <input type="checkbox" checked={marketing} onChange={(e) => setMarketing(e.target.checked)} style={{ width: 20, minHeight: 20 }} />
+            광고성 안내 수신에도 동의함 (선택 항목에 체크한 경우만)
+          </label>
+          <p className="ledger-note" style={{ margin: 0 }}>필수 항목 4개에 모두 서명받은 동의서만 기록해 주세요. 종이 원본은 보관해 주세요.</p>
+          {err && <p className="form-err">{err}</p>}
+          <div className="btn-row">
+            <button type="button" className="btn" onClick={() => setPaper(false)}>
+              취소
+            </button>
+            <button className="btn primary">기록</button>
+          </div>
+        </form>
+      )}
+    </section>
+  );
+}
+
 function GuardianLink({ api, recipient: r, onChange }: { api: Api; recipient: Recipient; onChange: () => void }) {
   const [msg, setMsg] = useState("");
   const link = `${location.origin}/my?k=${r.token}`;
-  const text = `[${site.name}] ${r.name} 어르신 복지용구 현황\n올해 남은 금액과 이용 중인 품목을 아래 링크에서 언제든 확인하실 수 있어요.\n${link}\n\n문의 ${site.phone}`;
+  const text = `[${site.name}] ${r.name} 어르신 복지용구 현황\n올해 남은 금액과 이용 중인 품목을 아래 링크에서 언제든 확인하실 수 있어요. (처음 한 번 이용 동의가 필요해요)\n${link}\n\n문의 ${site.phone}`;
 
   async function copy(s: string, done: string) {
     try {
