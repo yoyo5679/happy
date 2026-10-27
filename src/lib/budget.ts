@@ -144,12 +144,14 @@ export function buildPlans(categories: CategoryKey[], months: number, budget: nu
   const missing = categories.filter((c) => !avail.includes(c));
   const basicLines = avail.map((c) => options(c, months)[0]);
   const basic: Plan = { tier: "basic", lines: basicLines, total: sum(basicLines) };
-  const cap = Math.min(budget, EQUIPMENT_LIMIT);
+  // 실속형도 예산을 넘으면 예산을 조금 넘겨서(예산의 절반만큼 더, 최대 160만원) 표준형·든든형을 짭니다
+  const stretch = basic.total > Math.min(budget, EQUIPMENT_LIMIT) ? Math.min(EQUIPMENT_LIMIT, basic.total + budget / 2) : null;
+  const cap = stretch ?? Math.min(budget, EQUIPMENT_LIMIT);
   const mid = basic.total + Math.max(0, cap - basic.total) / 2;
   const standard = fillToLimit(avail, months, Math.max(mid, basic.total), false, "standard", {});
   const premium = fillToLimit(avail, months, Math.max(cap, basic.total), withQty, "premium", {});
   const plans = [basic, standard, premium].map((p) => applyPins(p, months, pins));
-  return { plans, missing };
+  return { plans, missing, stretch };
 }
 
 /** 세트에서 고른 품목만 고른 모델로 교체 (수량은 원래 세트의 수량 유지, 대여는 1개) */

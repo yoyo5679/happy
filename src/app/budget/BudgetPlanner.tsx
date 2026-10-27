@@ -77,7 +77,7 @@ export function BudgetPlanner() {
 
   const ordered = useMemo(() => [...selected].sort((a, b) => orderOf(a) - orderOf(b)), [selected]);
   const pinned = useMemo(() => activePins(pins, months), [pins, months]);
-  const { plans, missing } = useMemo(() => buildPlans(ordered, months, budget, withQty, pinned), [ordered, months, budget, withQty, pinned]);
+  const { plans, missing, stretch } = useMemo(() => buildPlans(ordered, months, budget, withQty, pinned), [ordered, months, budget, withQty, pinned]);
   function choose(c: CategoryKey, id: string | null) {
     setPins((p) => {
       const next = { ...p };
@@ -88,8 +88,10 @@ export function BudgetPlanner() {
     setSwap(null);
   }
   // 추천: 예산 안이면 균형 잡힌 표준형, 아니면 실속형
-  const best = plans[1].total <= budget ? plans[1] : plans[0].total <= budget ? plans[0] : undefined;
-  const shown = plans[0].total >= budget ? plans.slice(0, 1) : plans;
+  const best = plans[1].total <= budget ? plans[1] : plans[0];
+  // 금액이 같은 세트는 하나만 (모델이 하나뿐인 품목만 골랐을 때 등)
+  const shown = plans.filter((p, i) => plans.slice(0, i).every((q) => q.total !== p.total));
+  const overBy = (p: Plan) => p.total - budget;
 
   return (
     <>
@@ -168,10 +170,12 @@ export function BudgetPlanner() {
       ) : (
         <>
           <h2 className="section-title">금액대별 추천 세트</h2>
-          {!best && plans[0].lines.length > 0 && (
+          {stretch && plans[0].lines.length > 0 && (
             <p className="card bp-warn">
-              체크하신 품목을 모두 담으면 가장 합리적인 실속형도 {won(plans[0].total)}이라 예산({won(budget)})보다 많아요. 그래서 실속형만
-              보여 드려요. 예산을 늘리면 표준형·든든형도 나와요. 대여 기간을 줄이거나 꼭 필요하지 않은 품목의 체크를 빼도 돼요.
+              체크하신 품목을 모두 담으면 가장 저렴한 실속형도 <strong>{won(plans[0].total)}</strong>이라 예산({won(budget)})보다{" "}
+              <strong>{won(overBy(plans[0]))}</strong> 많아요. 넘는 금액만큼 본인부담금이 더 들어요.
+              {shown.length > 1 && <> 표준형·든든형은 예산을 넘겨 최대 {won(stretch)}까지 짰어요.</>} 예산 안에 맞추려면 대여 기간을 줄이거나 꼭
+              필요하지 않은 품목의 체크를 빼 보세요.
             </p>
           )}
           {missing.length > 0 && (
@@ -184,7 +188,14 @@ export function BudgetPlanner() {
             <p className="card bp-pinned">
               📌 직접 고른 모델: <strong>{(Object.keys(pinned) as CategoryKey[]).filter((c) => ordered.includes(c)).map((c) => categories[c].label).join(", ")}</strong>
               <br />
-              <span className="muted small">세 세트 모두 이 모델로 바꿨어요. 나머지 품목은 그대로라 금액과 본인부담금이 바뀐 만큼 달라져요.</span>{" "}
+              <span className="muted small">세 세트 모두 이 모델로 바꿨어요. 나머지 품목은 그대로라 금액과 본인부담금이 바뀐 만큼 달라져요.</span>
+              {!stretch && shown.some((p) => overBy(p) > 0) && (
+                <span className="muted small">
+                  {" "}
+                  고른 모델 때문에 예산보다 {shown.filter((p) => overBy(p) > 0).map((p) => `${tiers.find((t) => t.key === p.tier)!.label} ${won(overBy(p))}`).join(" · ")}{" "}
+                  더 들어요.
+                </span>
+              )}{" "}
               <button className="link small" onClick={() => setPins({})}>
                 모두 추천 모델로 되돌리기
               </button>
@@ -193,11 +204,16 @@ export function BudgetPlanner() {
           <div className={shown.length > 1 ? "bp-plans multi" : "bp-plans"}>
           {shown.map((p) => {
             const t = tiers.find((x) => x.key === p.tier)!;
-            const desc =
-              p.tier !== "premium"
+            const desc = stretch
+              ? p.tier === "basic"
+                ? "품목마다 가장 합리적인 모델 (예산 초과)"
+                : p.tier === "standard"
+                  ? "실속형보다 한 단계 좋은 구성 (예산 초과)"
+                  : `예산을 넘겨 ${won(stretch)}까지 채운 구성`
+              : p.tier !== "premium"
                 ? t.desc
                 : p.total > budget
-                  ? "예산 안에 다 담을 수 없어 가장 합리적인 모델로 담았어요"
+                  ? "고른 모델 때문에 예산을 넘었어요"
                   : p.total < budget - 30_000
                     ? withQty
                       ? "품목별 수량 한도까지 담아도 예산보다 적게 들어요"
