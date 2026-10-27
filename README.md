@@ -64,7 +64,7 @@ python3 scripts/catalog/build_from_mall.py 상품목록.xlsx scripts/catalog/cat
 
 ## 쇼핑몰 카테고리 필터 칩 (Footer Code)
 
-쇼핑몰 카테고리 페이지의 필터 칩을 품목마다 다르게 보여 줍니다 (예: 지팡이 = 네발·가벼운 300g 이하·100cm 이상 길게, 양말 = 사계절용·겨울용·덧신·남녀공용). 전동침대는 쇼핑몰 원래 칩을 그대로 씁니다.
+쇼핑몰 카테고리 페이지의 필터 칩을 품목마다 다르게 보여 줍니다 (예: 지팡이 = 네발·가벼운 300g 이하·100cm 이상 길게, 전동침대 = 최저·최고 높이·등판 각도·최대하중·폭). 복지용구는 본인부담금이 정해져 있어 가격대 칩은 쓰지 않습니다. `PAGES`에서 메뉴를 `"KEEP"`으로 두면 그 페이지는 쇼핑몰 원래 칩을 그대로 씁니다.
 
 - 쇼핑몰 쪽 코드: **`imweb/category-filter.html`** (Footer Code 맨 끝에 붙여 넣기). 칩을 누르면 그 카테고리 상품 전체를 아임웹 목록 API로 한 번 받아 함께 거르고, 결과는 12개씩 보여 줍니다.
 - 칩 데이터: **`public/imweb/filters.json`** → `https://happycare.pages.dev/imweb/filters.json` (`public/_headers`로 쇼핑몰에서 읽기 허용)
