@@ -3,15 +3,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { RatePicker } from "@/components/RatePicker";
 import { ContactCta } from "@/components/ContactCta";
-import { categories, categoryGroups, copay, productUrl, won, type CategoryKey } from "@/data/products";
+import { categories, categoryGroups, copay, isSoldOut, productUrl, products, won, type CategoryKey } from "@/data/products";
 import { activePins, buildPlans, EQUIPMENT_LIMIT, groupKeys, groupOfCategory, groupPlan, lineCopay, modelChoices, planCopay, tiers, type Pins, type Plan } from "@/lib/budget";
 import { source, withUtm } from "@/lib/utm";
+import { cartUrl } from "@/lib/cart";
 import { ShareText } from "@/components/ShareText";
 import { ResultBar } from "@/components/ResultBar";
 
 const BUDGETS = [300_000, 500_000, 1_000_000, EQUIPMENT_LIMIT];
 
 const MONTHS = [3, 6, 12];
+/** 모든 모델이 품절인 품목 */
+const soldOutCats = new Set((Object.keys(categories) as CategoryKey[]).filter((c) => !products.some((p) => p.category === c && !isSoldOut(p))));
+const inStock = (cs: CategoryKey[]) => cs.filter((c) => !soldOutCats.has(c));
 const orderOf = (c: CategoryKey) => {
   const g = groupOfCategory(c)!;
   const p = groupPlan[g];
@@ -35,7 +39,7 @@ export function BudgetPlanner() {
     const cs = (q.get("c") ?? "").split(",").filter((c) => c in categories && groupOfCategory(c as CategoryKey)) as CategoryKey[];
     const gs = (q.get("g") ?? "").split(",").filter((g) => groupKeys.includes(g));
     if (cs.length) setSelected(cs);
-    else if (gs.length) setSelected(gs.flatMap((g) => groupPlan[g].core));
+    else if (gs.length) setSelected(gs.flatMap((g) => inStock(groupPlan[g].core)));
     const b = Number(q.get("b"));
     if (b > 0) {
       const v = Math.min(EQUIPMENT_LIMIT, b);
@@ -60,7 +64,7 @@ export function BudgetPlanner() {
 
   function toggleGroup(g: string) {
     const inGroup = (c: CategoryKey) => groupOfCategory(c) === g;
-    setSelected((s) => (s.some(inGroup) ? s.filter((c) => !inGroup(c)) : [...s, ...groupPlan[g].core]));
+    setSelected((s) => (s.some(inGroup) ? s.filter((c) => !inGroup(c)) : [...s, ...inStock(groupPlan[g].core)]));
   }
   function toggleItem(c: CategoryKey) {
     setSelected((s) => (s.includes(c) ? s.filter((x) => x !== c) : [...s, c]));
@@ -85,6 +89,7 @@ export function BudgetPlanner() {
   }
   // 추천: 예산 안이면 균형 잡힌 표준형, 아니면 실속형
   const best = plans[1].total <= budget ? plans[1] : plans[0].total <= budget ? plans[0] : undefined;
+  const shown = plans[0].total >= budget ? plans.slice(0, 1) : plans;
 
   return (
     <>
@@ -127,12 +132,17 @@ export function BudgetPlanner() {
             <p className="muted small">담을 품목 (눌러서 빼거나 더할 수 있어요)</p>
             {activeGroups.map((g) => (
               <div key={g} className="bp-chips">
-                {[...groupPlan[g].core, ...groupPlan[g].extra].map((c) => (
-                  <button key={c} aria-pressed={selected.includes(c)} className={selected.includes(c) ? "chip on" : "chip"} onClick={() => toggleItem(c)}>
-                    {selected.includes(c) ? "✓ " : "+ "}
-                    {categories[c].label}
-                  </button>
-                ))}
+                {[...groupPlan[g].core, ...groupPlan[g].extra].map((c) => {
+                  const on = selected.includes(c);
+                  const out = soldOutCats.has(c);
+                  return (
+                    <button key={c} aria-pressed={on} disabled={out && !on} className={on ? "chip on" : "chip"} onClick={() => toggleItem(c)}>
+                      {on ? "✓ " : out ? "" : "+ "}
+                      {categories[c].label}
+                      {out && <span className="chip-out"> 품절</span>}
+                    </button>
+                  );
+                })}
               </div>
             ))}
           </div>
@@ -180,7 +190,8 @@ export function BudgetPlanner() {
               </button>
             </p>
           )}
-          {(plans[0].total >= budget ? plans.slice(0, 1) : plans).map((p) => {
+          <div className={shown.length > 1 ? "bp-plans multi" : "bp-plans"}>
+          {shown.map((p) => {
             const t = tiers.find((x) => x.key === p.tier)!;
             const desc =
               p.tier !== "premium"
@@ -203,6 +214,7 @@ export function BudgetPlanner() {
                 label={t.label}
                 desc={desc}
                 pins={pinned}
+                missing={missing}
                 swapping={swap?.tier === p.tier ? swap.category : null}
                 onSwap={(c) => setSwap(swap?.tier === p.tier && swap.category === c ? null : { tier: p.tier, category: c })}
                 onChoose={choose}
@@ -217,6 +229,7 @@ export function BudgetPlanner() {
               </PlanCard>
             );
           })}
+          </div>
           <div className="actions">
             <ShareText
               heading={`복지용구 예산 세트 (160만원 중 ${won(budget)})`}
@@ -292,12 +305,15 @@ function PlanCard({
   label,
   desc,
   pins,
+  missing,
   swapping,
   onSwap,
   onChoose,
   children,
 }: {
   pins: Pins;
+  /** 모든 모델이 품절이라 담지 못한 품목 */
+  missing: CategoryKey[];
   swapping: CategoryKey | null;
   onSwap: (c: CategoryKey) => void;
   onChoose: (c: CategoryKey, id: string | null) => void;
@@ -378,12 +394,32 @@ function PlanCard({
             )}
           </li>
         ))}
+        {missing.map((c) => (
+          <li key={c} className="bp-out" aria-disabled="true">
+            <span className="bp-name">
+              <span className="muted small">{categories[c].label}</span>
+              <strong>모든 모델이 품절이에요</strong>
+            </span>
+            <span className="badge out">품절</span>
+          </li>
+        ))}
       </ul>
       {monthlyAfter > 0 && (
         <p className="small muted">
           대여 품목을 {months}개월 넘게 쓰시면 매달 {won(monthlyAfter)}
           {rate > 0 ? `(본인부담 ${won(copay(monthlyAfter, rate))})` : ""}씩 더 들어요.
         </p>
+      )}
+      {plan.lines.length > 0 && (
+        <div className="bp-cart">
+          <a className="btn primary wide" href={cartUrl(plan, rate, months, "budget")} target="_blank" rel="noopener">
+            🛒 {label} 세트 장바구니에 담기
+          </a>
+          <p className="bp-cart-note small muted">
+            해피케어몰 장바구니에 {plan.lines.length}개 상품이 본인부담 {pct}%{monthlyAfter > 0 ? ` · 대여 ${months}개월` : ""}로 담겨요. 색상은
+            장바구니에서 바꿀 수 있어요.
+          </p>
+        </div>
       )}
     </section>
   );
@@ -405,10 +441,11 @@ function ModelPicker({
   onChoose: (c: CategoryKey, id: string | null) => void;
 }) {
   const models = modelChoices(category, months);
+  const soldOut = products.filter((p) => p.category === category && isSoldOut(p));
   return (
     <div className="bp-picker">
       <p className="small muted">
-        {categories[category].label} {models.length}개 모델 (품절 제외) · 고른 모델은 실속·표준·든든 세트 모두에 들어가요.
+        {categories[category].label} {models.length}개 모델{soldOut.length > 0 && ` (품절 ${soldOut.length}개는 맨 뒤)`} · 고른 모델은 실속·표준·든든 세트 모두에 들어가요.
       </p>
       {pinned && (
         <button className="link small" onClick={() => onChoose(category, null)}>
@@ -428,6 +465,20 @@ function ModelPicker({
                 <span className="small muted">{m.rental ? "월 본인부담" : "본인부담"}</span>
                 <span className="bp-copay">{rate === 0 ? "없음" : won(copay(m.rental ? m.monthly! : m.unit, rate))}</span>
                 {m.product.id === current && <span className="small bp-cur">담긴 모델</span>}
+              </span>
+            </button>
+          </li>
+        ))}
+        {soldOut.map((p) => (
+          <li key={p.id}>
+            <button className="out" disabled aria-disabled="true">
+              <img src={p.img} alt="" loading="lazy" />
+              <span className="bp-name">
+                <strong>{p.name}</strong>
+                <span className="small muted">{p.rent ? `대여 월 ${won(p.rent.price)}` : p.buy ? `구입 정상가 ${won(p.buy.price)}` : ""}</span>
+              </span>
+              <span className="bp-price">
+                <span className="badge out">품절</span>
               </span>
             </button>
           </li>

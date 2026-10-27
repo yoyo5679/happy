@@ -7,7 +7,7 @@ usage: python build_from_mall.py <mall.xlsx> <catalog.json> <out.json>
 - 같은 모델의 대여/구입 상품을 하나로 묶고 각각의 URL을 보관
 - 카탈로그와 모델명이 일치하면 급여코드·추출 이미지를 붙이고 가격을 교차 검증
 """
-import io, json, re, sys, unicodedata, urllib.request
+import io, json, os, re, sys, unicodedata, urllib.request
 import openpyxl
 from PIL import Image
 
@@ -44,7 +44,8 @@ catalog = json.load(open(catalog_path, encoding="utf-8"))
 listings = []
 for r in rows[1:]:
     raw = r[ix["상품명"]] or ""
-    if r[ix["진열상태"]] != "Y" or SKIP.search(raw):
+    # 숨김 상품은 쇼핑몰에서 안 보이고 장바구니에도 담기지 않으므로 뺌
+    if r[ix["진열상태"]] != "Y" or r[ix["판매상태"]] == "숨김" or SKIP.search(raw):
         continue
     m = re.match(r"\s*\|([^|]*)\|", raw)
     path = re.sub(r"https://[^/]+/([^/]*)/.*", r"\1", r[ix["상품URL"]] or "")
@@ -75,6 +76,11 @@ def find_catalog(l):
     return hit
 
 
+def has_catalog_img(cp):
+    """카탈로그에서 추출한 사진이 public/products/ 에 있을 때만 사용 (없으면 쇼핑몰 대표 이미지를 받음)"""
+    return bool(cp and cp.get("img") and os.path.exists(f"public/products/{cp['code']}.webp"))
+
+
 products, report = {}, {"matched": 0, "mallOnly": 0, "priceMismatch": []}
 for l in listings:
     hits = find_catalog(l)
@@ -92,7 +98,7 @@ for l in listings:
         kind = "rent" if l["monthly"] or l["cat"] in RENT_ONLY or (l["cat"] == "pressureMattress" and l["full"] < 100000) else "buy"
         key = f"{l['cat']}:{norm(l['name'], True)}"
     p = products.setdefault(key, dict(id=key if cp else None, code=cp["code"] if cp else None, name=cp["name"] if cp else l["name"],
-                                      category=cp["category"] if cp else l["cat"], img=f"/products/{cp['code']}.webp" if cp and cp.get("img") else l["thumb"]))
+                                      category=cp["category"] if cp else l["cat"], img=f"/products/{cp['code']}.webp" if has_catalog_img(cp) else l["thumb"]))
     if not p["id"]:
         p["id"] = "m" + re.sub(r"\D", "", l["url"].split("idx=")[-1])
     slot = p.setdefault(kind, None)

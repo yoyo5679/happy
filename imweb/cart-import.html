@@ -1,0 +1,194 @@
+<!-- 해피케어 도우미 세트 → 장바구니 담기 (원본: happycare-web/imweb/cart-import.html)
+     /shop_cart?hc_cart=1223x2,1331r&hc_r=15&hc_m=3 로 들어오면 상품마다 부담률·대여기간 옵션을 골라 장바구니에 담습니다.
+     hc_cart: 상품번호(idx) + r(대여) + x수량 · hc_r: 본인부담률(%) · hc_m: 대여 개월
+     주의: 이 코드에는 HTML 기호(앰퍼샌드+이름+세미콜론)를 쓰지 않습니다. Footer Code 편집기가 풀어서 저장해 JS가 깨집니다. -->
+<script>
+(function () {
+  var KEY = 'hcCartImportV1';
+  var PHONE = '070-8657-2141';
+  if (location.pathname.indexOf('/shop_cart') !== 0) return;
+  var $ = window.jQuery;
+  var q = new URLSearchParams(location.search);
+  var raw = q.get('hc_cart');
+  if (!raw || !$) return showResult();
+
+  var rate = q.has('hc_r') ? Number(q.get('hc_r')) : 15;
+  var months = Number(q.get('hc_m')) || 3;
+  // 새로고침해도 두 번 담기지 않게 주소에서 먼저 지움
+  ['hc_cart', 'hc_r', 'hc_m'].forEach(function (k) { q.delete(k); });
+  var rest = q.toString();
+  history.replaceState(null, '', location.pathname + (rest ? '?' + rest : ''));
+
+  var items = raw.split(',').map(function (t) {
+    var m = /^(\d+)(r?)(?:x(\d+))?$/.exec(t.trim());
+    return m ? { idx: Number(m[1]), rental: m[2] === 'r', qty: Math.min(Number(m[3] || 1), 20) } : null;
+  }).filter(Boolean).slice(0, 30);
+  if (!items.length) return;
+
+  var res = { added: [], skipped: [], failed: [], defaults: [], rate: rate, months: months, rental: false };
+  var panel = progress();
+  inCart().then(function (have) {
+    return items.reduce(function (p, it, i) {
+      return p.then(function () {
+        panel.textContent = '해피케어 추천 세트를 장바구니에 담고 있어요 (' + (i + 1) + ' / ' + items.length + ')';
+        return addItem(it, have).catch(function (e) {
+          if (window.console) console.warn('[hc-cart]', it.idx, e && e.message);
+          res.failed.push(it.name || ('상품 ' + it.idx));
+        });
+      });
+    }, Promise.resolve());
+  }).then(finish, finish);
+
+  function finish() {
+    try { sessionStorage.setItem(KEY, JSON.stringify(res)); } catch (e) {}
+    location.reload();
+  }
+
+  function wait(ms) { return new Promise(function (ok) { setTimeout(ok, ms); }); }
+  function post(url, data) {
+    return wait(250).then(function () {
+      return new Promise(function (ok, fail) {
+        $.ajax({ type: 'POST', url: url, data: data, dataType: 'json', cache: false, success: ok, error: function () { fail(new Error(url)); } });
+      });
+    });
+  }
+
+  // 이미 장바구니에 담긴 옵션값 코드 (같은 세트를 두 번 눌러도 수량이 늘지 않게, 상품마다 옵션값 코드가 다름)
+  function inCart() {
+    return post('/shop/oms/OMS_get_cart_list_make.cm', { current_full_url: location.href, type: 'normal' }).then(function (r) {
+      var have = {};
+      ((r && r.cart) || []).forEach(function (c) {
+        ((c.options && c.options.list) || []).forEach(function (o) {
+          (o.value_code_list || []).forEach(function (v) { have[v] = 1; });
+        });
+      });
+      return have;
+    }, function () { return {}; });
+  }
+
+  // 필수옵션 묶음별 고를 수 있는 값 (PC·모바일 화면 구조가 달라 옵션 코드로 묶음)
+  function groups(html) {
+    var codes = [];
+    html.replace(/_form_select_wrap_(O\w+)/g, function (_, c) { if (codes.indexOf(c) < 0) codes.push(c); });
+    var doc = new DOMParser().parseFromString(html, 'text/html');
+    var vals = [];
+    // 상품에 따라 클릭 코드가 a 또는 div에 붙음
+    [].forEach.call(doc.querySelectorAll('[onclick*="selectRequireOption"]'), function (a) {
+      var m = /selectRequireOption\(\s*'[a-z]+',\s*\d+,\s*'([^']+)',\s*'([^']+)',\s*'((?:[^'\\]|\\.)*)'/.exec(a.getAttribute('onclick'));
+      if (m) vals.push({ value_type: 'SELECT', option_code: m[1], value_code: m[2], value_name: m[3].replace(/\\(.)/g, '$1') });
+    });
+    return codes.map(function (c) { return vals.filter(function (v) { return v.option_code === c; }); });
+  }
+
+  function addItem(it, have) {
+    var sel = [];
+    var extra = null;
+    var monthly = false;
+    var picked = [];
+    function step() {
+      return post('/shop/load_option.cm', { type: 'prod', prod_idx: it.idx, selected_require_options: sel }).then(function (r) {
+        if (!r || r.msg !== 'SUCCESS') throw new Error('option');
+        it.name = String(r.prod_name || '').replace(/^\|[^|]*\|\s*/, '');
+        var gs = groups(r.option_html || '');
+        if (!sel.length && gs[0] && gs[0].some(function (v) { return have[v.value_code]; })) return 'skip';
+        if (sel.length >= gs.length) return 'ready';
+        var vals = gs[sel.length];
+        if (!vals.length) throw new Error('soldout');
+        var names = vals.map(function (v) { return v.value_name; });
+        var v;
+        if (names.some(function (n) { return /%/.test(n); })) {
+          v = vals.filter(function (x) { return new RegExp('(^|[^0-9])' + rate + '%').test(x.value_name); })[0];
+          if (!v) throw new Error('rate');
+          // 기간 옵션 없이 월 단위로 등록된 대여 상품인지: 옵션명에 '월'이 있거나 정상가가 월 대여가 수준(10만원 미만)
+          var full = /정상가\)?\s*\(([\d,]+)\)/.exec(names.join(' '));
+          monthly = /월/.test(v.value_name) || (full ? Number(full[1].replace(/,/g, '')) < 100000 : false);
+        } else if (names.some(function (n) { return /개월/.test(n); })) {
+          // 기간 상품: 고른 개월 이하에서 가장 긴 기간 + 모자란 달은 '1개월 연장'
+          var periods = vals.filter(function (x) { return /^\s*\d+\s*개월\s*$/.test(x.value_name); });
+          var ext = vals.filter(function (x) { return /연장/.test(x.value_name); })[0];
+          periods.sort(function (a, b) { return parseInt(a.value_name, 10) - parseInt(b.value_name, 10); });
+          var fit = periods.filter(function (x) { return parseInt(x.value_name, 10) <= months; });
+          v = fit[fit.length - 1] || periods[0] || ext;
+          var left = months - (v === ext ? 1 : parseInt(v.value_name, 10));
+          if (left > 0 && ext && v !== ext) extra = { base: v, option: ext, count: left };
+          res.rental = true;
+        } else {
+          // 색상·사이즈 등은 첫 번째 값으로 담고 결과 창에 알려 줌
+          v = vals[0];
+          picked.push(v.value_name);
+        }
+        sel.push(v);
+        return sel.length >= gs.length ? 'ready' : step();
+      });
+    }
+    return step().then(function (state) {
+      if (state === 'skip') { res.skipped.push(it.name); return; }
+      // 기간 옵션 없이 월 단위로 등록된 대여 상품은 개월 수만큼 담음
+      var period = sel.some(function (o) { return /개월/.test(o.value_name); });
+      var count = it.rental && monthly && !period ? months * it.qty : it.qty;
+      if (it.rental && (monthly || period)) res.rental = true;
+      // 옵션 없는 상품은 수량(orderCount)만, 옵션 상품은 옵션 줄마다 수량을 담음
+      var rows = sel.length ? [{ options: sel, count: count }] : [];
+      if (extra) rows.push({ options: sel.map(function (o) { return o === extra.base ? extra.option : o; }), count: extra.count * it.qty });
+      return rows.reduce(function (p, row) {
+        return p.then(function (list) {
+          return post('/shop/select_option.cm', { prod_idx: it.idx, options: row.options, require: 'Y', count: row.count, idx: list.length }).then(function (r) {
+            if (!r || r.msg !== 'SUCCESS') throw new Error('select');
+            return list.concat([r.selected_option]);
+          });
+        });
+      }, Promise.resolve([])).then(function (list) {
+        return post('/shop/add_cart.cm', {
+          prodIdx: it.idx, options: list, orderCount: list.length ? 1 : it.qty, deliv_type: '', deliv_pay_type: '',
+          cart_type: 'normal', prod_additional_list: [], prod_additional_option_list: [], shipping_template_code: ''
+        });
+      }).then(function (r) {
+        if (!r || r.msg !== 'SUCCESS') throw new Error('cart');
+        res.added.push(it.name);
+        if (picked.length) res.defaults.push(it.name + ' ' + picked.join('/'));
+      });
+    });
+  }
+
+  function progress() {
+    var bg = document.createElement('div');
+    bg.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px';
+    var box = document.createElement('div');
+    box.style.cssText = 'max-width:420px;width:100%;padding:24px 20px;border-radius:16px;background:#fff;color:#222;font-size:16px;font-weight:700;line-height:1.5;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.2)';
+    box.textContent = '해피케어 추천 세트를 장바구니에 담고 있어요';
+    bg.appendChild(box);
+    document.body.appendChild(bg);
+    return box;
+  }
+
+  function showResult() {
+    var r;
+    try { r = JSON.parse(sessionStorage.getItem(KEY) || 'null'); sessionStorage.removeItem(KEY); } catch (e) {}
+    if (!r) return;
+    var bg = document.createElement('div');
+    bg.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px';
+    var box = document.createElement('div');
+    box.style.cssText = 'max-width:420px;width:100%;max-height:85vh;overflow:auto;padding:22px 20px 18px;border-radius:16px;background:#fff;color:#222;font-size:15px;line-height:1.55;box-shadow:0 10px 30px rgba(0,0,0,.2)';
+    function line(text, css) {
+      var p = document.createElement('p');
+      p.style.cssText = 'margin:0 0 10px;' + (css || '');
+      p.textContent = text;
+      box.appendChild(p);
+    }
+    line(r.added.length ? '🛒 추천 세트 ' + r.added.length + '개 상품을 장바구니에 담았어요' : '장바구니에 새로 담은 상품이 없어요', 'font-size:17px;font-weight:800');
+    if (r.added.length) line('본인부담 ' + r.rate + '%' + (r.rental ? ' · 대여 ' + r.months + '개월' : '') + '로 담았어요.');
+    if (r.defaults.length) line('색상·사이즈는 첫 번째 값으로 담았어요: ' + r.defaults.join(', ') + '. 옵션 줄의 연필 버튼(모바일은 ‘옵션/수량 변경’)으로 바꿀 수 있어요.', 'color:#555');
+    if (r.skipped.length) line('이미 장바구니에 있어서 건너뛴 상품: ' + r.skipped.join(', '), 'color:#555');
+    if (r.failed.length) line('⚠️ 품절 등으로 담지 못한 상품: ' + r.failed.join(', ') + ' · 상담 ' + PHONE + '으로 문의해 주세요.', 'color:#b3261e;font-weight:700');
+    var ok = document.createElement('button');
+    ok.type = 'button';
+    ok.textContent = '확인';
+    ok.style.cssText = 'display:block;width:100%;min-height:48px;margin-top:6px;border:0;border-radius:12px;background:#068291;color:#fff;font-size:16px;font-weight:800;cursor:pointer';
+    ok.onclick = function () { bg.remove(); };
+    box.appendChild(ok);
+    bg.appendChild(box);
+    bg.onclick = function (e) { if (e.target === bg) bg.remove(); };
+    document.body.appendChild(bg);
+  }
+})();
+</script>
