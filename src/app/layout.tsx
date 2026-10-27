@@ -18,6 +18,9 @@ export const metadata: Metadata = {
     siteName: site.name,
   },
   twitter: { card: "summary_large_image" },
+  // 홈 화면에 추가 (PWA)
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, title: "해피케어", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = { themeColor: "#068291", colorScheme: "only light" };

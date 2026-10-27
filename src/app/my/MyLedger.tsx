@@ -6,6 +6,16 @@ import { site } from "@/config/site";
 import { LedgerView } from "@/components/LedgerView";
 import { dot, ymd, type Item, type Recipient } from "@/lib/ledger";
 import { ConsentForm } from "./ConsentForm";
+import { InstallApp } from "@/components/InstallApp";
+
+// 홈 화면 바로가기(/my)로 열 때 쓰려고 이 기기에만 링크 키를 기억합니다
+const SAVED = "hc_my_k";
+const saveKey = (k: string | null) => {
+  try {
+    if (k) localStorage.setItem(SAVED, k);
+    else localStorage.removeItem(SAVED);
+  } catch {}
+};
 
 type Data =
   | { needConsent: true; version: string; recipient: { name: string } }
@@ -19,7 +29,9 @@ export function MyLedger() {
     fetch(`/api/my?k=${encodeURIComponent(k)}`)
       .then(async (r) => {
         const j = await r.json().catch(() => ({}));
+        if (r.status === 404) saveKey(null);
         if (!r.ok) throw new Error(typeof j.error === "string" && !j.error.startsWith("setup:") ? j.error : "잠시 후 다시 열어 주세요.");
+        saveKey(k);
         setState({ loading: false, data: j as Data });
         window.scrollTo(0, 0);
       })
@@ -27,7 +39,12 @@ export function MyLedger() {
   }, []);
 
   useEffect(() => {
-    const k = new URLSearchParams(location.search).get("k") ?? "";
+    let k = new URLSearchParams(location.search).get("k") ?? "";
+    if (!k) {
+      try {
+        k = localStorage.getItem(SAVED) ?? "";
+      } catch {}
+    }
     setToken(k);
     if (!k) setState({ loading: false, error: "해피케어에서 보내드린 링크로 들어와 주세요." });
     else load(k);
@@ -49,6 +66,7 @@ export function MyLedger() {
     if (!confirm("동의를 철회하면 이 화면의 정보가 바로 지워지고 링크도 더 이상 열리지 않아요. 복지용구 이용과 공단 청구는 그대로예요. 철회할까요?")) return;
     try {
       await post("withdraw");
+      saveKey(null);
       setState({ loading: false, gone: true });
     } catch (e) {
       alert((e as Error).message);
@@ -102,9 +120,8 @@ export function MyLedger() {
               )}
             </div>
           </section>
-          <p className="ledger-note">
-            📱 이 화면을 휴대폰 홈 화면에 추가해 두시면 언제든 바로 확인할 수 있어요. (공유 버튼 → &lsquo;홈 화면에 추가&rsquo;)
-          </p>
+          <InstallApp label="이 화면을 홈 화면에 추가" />
+          <p className="ledger-note">홈 화면에 추가해 두시면 링크를 찾지 않아도 아이콘으로 바로 확인할 수 있어요.</p>
           <section className="consent-foot">
             <p>
               {dot(ymd(new Date(d.consent.at)))} 이용 동의 · 광고성 안내 {d.consent.marketing ? "받음" : "안 받음"}{" "}

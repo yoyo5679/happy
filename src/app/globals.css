@@ -454,3 +454,9 @@ em.opt { background: #eef1f0; color: var(--muted); }
 .bp-changes { margin: 10px 0; padding: 10px 12px; border-radius: 10px; background: #fff7e6; font-size: 0.875rem; }
 .bp-changes p { margin: 0 0 4px; font-weight: 700; }
 .bp-changes ul { margin: 0; padding-left: 18px; }
+
+/* 홈 화면에 추가 */
+.install-app { margin: 12px 0; }
+.install-app .btn { margin: 0; background: var(--brand-weak); border-color: transparent; color: var(--brand); }
+.install-app.done { padding: 12px 14px; border-radius: 12px; background: var(--brand-weak); font-size: 0.95rem; }
+.install-steps { margin: 8px 0 0; padding: 12px 14px 12px 34px; border-radius: 12px; background: #fff; border: 1px solid var(--line); font-size: 0.95rem; line-height: 1.8; }

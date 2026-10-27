@@ -96,7 +96,10 @@ export function BudgetPlanner() {
   }
   // 추천: 예산 안이면 균형 잡힌 표준형, 아니면 실속형
   // 금액이 같은 세트는 하나만 (모델이 하나뿐인 품목만 골랐을 때 등)
-  const shown = plans.filter((p, i) => plans.slice(0, i).every((q) => q.total !== p.total));
+  // 보여주는 순서: 표준형 → 든든형 → 실속형
+  const ORDER: Plan["tier"][] = ["standard", "premium", "basic"];
+  const byOrder = (a: Plan, b: Plan) => ORDER.indexOf(a.tier) - ORDER.indexOf(b.tier);
+  const shown = plans.filter((p, i) => plans.slice(0, i).every((q) => q.total !== p.total)).sort(byOrder);
   const best = shown.includes(plans[1]) && plans[1].total <= budget ? plans[1] : plans[0];
   const overBy = (p: Plan) => p.total - budget;
 
@@ -290,7 +293,7 @@ export function BudgetPlanner() {
               lines={[
                 `담은 품목: ${ordered.filter((c) => !missing.includes(c)).map((c) => categories[c].label).join(", ")}`,
                 "",
-                ...plans.map((p) => {
+                ...[...plans].sort(byOrder).map((p) => {
                   const t = tiers.find((x) => x.key === p.tier)!;
                   const pay = rate === 0 ? "본인부담 없음" : `본인부담 ${won(planCopay(p, rate, months))}`;
                   return `${p === best ? "⭐ " : "• "}${t.label}: ${won(p.total)}어치 (${pay})`;
@@ -326,7 +329,7 @@ export function BudgetPlanner() {
               lines={[
                 `담은 품목: ${ordered.filter((c) => !missing.includes(c)).map((c) => categories[c].label).join(", ")}`,
                 "",
-                ...plans.map((p) => {
+                ...[...plans].sort(byOrder).map((p) => {
                   const t = tiers.find((x) => x.key === p.tier)!;
                   const pay = rate === 0 ? "본인부담 없음" : `본인부담 ${won(planCopay(p, rate, months))}`;
                   return `${p === best ? "⭐ " : "• "}${t.label}: ${won(p.total)}어치 (${pay})`;
