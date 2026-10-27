@@ -1,0 +1,28 @@
+<!-- 해피케어: 전동침대 배송 방법을 '방문설치'로 표시 (원본: happycare-web/imweb/install-label.html, 2026-10-27)
+     아임웹은 배송방법(택배·직접배송)이 다른 상품을 한 주문으로 결제하지 못해서, 전동침대 배송 템플릿도 택배로 바꾸고
+     상품 상세·장바구니에 보이는 '택배'(예전 '직접배송') 글자만 '방문설치'로 바꿔 보여 줍니다.
+     주의: 이 코드에는 HTML 기호(앰퍼샌드+이름+세미콜론)를 쓰지 않습니다. -->
+<script>
+(function () {
+  var LABEL = '방문설치';
+  // 상품 상세: 배송 안내에 '방문설치'가 있는 상품
+  document.querySelectorAll('.prod-detail-section--delivery-guide').forEach(function (g) {
+    if (!/방문설치/.test(g.textContent)) return;
+    var item = g.parentElement && g.parentElement.querySelector('.prod-detail-section--delivery .prod-detail-section__item');
+    if (item && item.firstChild && item.firstChild.nodeType === 3) item.firstChild.nodeValue = item.firstChild.nodeValue.replace(/택배|직접배송/, LABEL);
+  });
+
+  // 장바구니: 전동침대 줄의 배송 방식 (수량·옵션을 바꿀 때마다 다시 그려져서 계속 지켜봄)
+  if (location.pathname.indexOf('/shop_cart') !== 0) return;
+  function relabel() {
+    document.querySelectorAll('[part="cart-item"]').forEach(function (row) {
+      if (row.textContent.indexOf('|전동침대|') < 0) return;
+      row.querySelectorAll('span').forEach(function (s) {
+        if (!s.children.length && /^(택배|직접배송)$/.test(s.textContent.trim())) s.textContent = LABEL;
+      });
+    });
+  }
+  relabel();
+  new MutationObserver(relabel).observe(document.body, { childList: true, subtree: true });
+})();
+</script>
