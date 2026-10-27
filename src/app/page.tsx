@@ -2,6 +2,7 @@ import Link from "next/link";
 import { tools } from "@/config/tools";
 import { ProductPicks } from "@/components/ProductPicks";
 import { AudienceTabs } from "@/components/AudienceTabs";
+import { ContactCta } from "@/components/ContactCta";
 
 export default function Home() {
   return (
@@ -40,6 +41,7 @@ export default function Home() {
         </Link>
       </div>
       <ProductPicks campaign="home" />
+      <ContactCta campaign="home" />
     </>
   );
 }
