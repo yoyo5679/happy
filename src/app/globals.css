@@ -266,6 +266,21 @@ body { padding-bottom: 150px; }
 .bp-toggle { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: var(--brand-weak); font-size: 0.9rem; font-weight: 700; cursor: pointer; }
 .bp-toggle input { width: 20px; height: 20px; accent-color: var(--brand-solid); }
 .bp-qty { color: var(--accent); font-weight: 900; }
+.bp-cart { padding-top: 4px; }
+.bp-cart-note { margin: 6px 0 0; text-align: center; }
+.bp-out { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); opacity: 0.55; }
+.chip:disabled { cursor: not-allowed; opacity: 0.55; }
+.chip-out { color: #b42318; font-weight: 700; }
+.chip.on .chip-out { color: #ffd7d2; }
+.bp-picker li button.out { cursor: not-allowed; opacity: 0.55; background: #f4f5f5; }
+/* 금액대별 세트: PC에서는 세 세트를 한 줄에 */
+.bp-plans { display: grid; gap: 16px; margin: 16px 0; }
+.bp-plans > .bp-plan { margin: 0; }
+@media (min-width: 1024px) {
+  .bp-plans.multi { --w: min(1200px, calc(100vw - 48px)); width: var(--w); margin-left: calc(50% - var(--w) / 2); grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .bp-plans.multi .bp-plan { display: flex; flex-direction: column; }
+  .bp-plans.multi .bp-cart { margin-top: auto; }
+}
 
 /* 큰 글씨 모드: 모든 rem 기준이 커짐 (17px → 약 20px) */
 html.big { font-size: 118.75%; }
