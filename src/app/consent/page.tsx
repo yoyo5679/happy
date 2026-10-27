@@ -48,7 +48,7 @@ export default function Page() {
           </h2>
           <ConsentTable section={s} />
           <p className="check-line">
-            위 내용에 동의하십니까? □ 동의함 □ 동의하지 않음
+            위 내용에 동의하십니까?&emsp;□ 동의함&emsp;□ 동의하지 않음
           </p>
         </section>
       ))}
