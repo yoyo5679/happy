@@ -91,3 +91,17 @@ npm run dev     # http://localhost:3000
 ## 주의
 
 등급 예상은 공단 인정조사(52개 항목)를 단순화한 **참고용 모의 계산**입니다. 화면 하단과 결과에 실제 판정은 국민건강보험공단이 한다는 안내가 들어가 있습니다. 점수 기준은 `src/lib/grade.ts`, 추천 규칙은 `src/lib/person.ts`(어르신)·`src/lib/check.ts`(안전 점검)·`src/data/rooms.ts`(장소별)에서 조정할 수 있습니다.
+
+## 고객 장부 (/staff · /my)
+
+- `/staff`: 직원용. 어르신 등록 → 공단 조회 잔액 입력 → 해피케어 구입·대여 품목 추가하면 남은 한도가 자동 계산됩니다.
+- `/my?k=…`: 보호자용 읽기 전용 화면 (직원 화면에서 링크를 카톡으로 보냄, 이름은 가려서 표시).
+- 서버: `functions/api/[[path]].ts` (Cloudflare Pages Functions) + D1 데이터베이스. 표는 첫 요청 때 자동 생성됩니다.
+
+### Cloudflare 설정 (한 번만)
+1. Cloudflare 대시보드 → 스토리지 및 데이터베이스 → D1 → 데이터베이스 생성 (이름 예: `happycare-db`)
+2. Workers 및 Pages → `happycare` → 설정 → 바인딩 → 추가 → D1 데이터베이스 → 변수 이름 `DB`, 방금 만든 DB 선택
+3. 같은 설정 → 변수 및 암호 → 추가 → 유형 "암호(Secret)", 이름 `STAFF_PASSWORD`, 값은 직원 비밀번호
+4. 배포 → 최근 배포 "다시 시도"(재배포) 해야 설정이 적용됩니다.
+
+로컬 테스트: `npx next build` 후 `wrangler pages dev out --d1 DB` (`.dev.vars`에 `STAFF_PASSWORD=...`)
