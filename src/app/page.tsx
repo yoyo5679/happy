@@ -35,9 +35,6 @@ export default function Home() {
         ))}
       </div>
       <div className="home-links">
-        <Link href="/budget" className="btn">
-          💰 예산으로 세트 짜기
-        </Link>
         <Link href="/catalog" className="btn">
           🛒 전체 모델 보기
         </Link>

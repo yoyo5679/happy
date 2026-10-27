@@ -15,6 +15,13 @@ export const tools = [
     desc: "걷기·일어서기·피부·소변 상태에 꼭 맞는 용품을 골라 드려요.",
   },
   {
+    href: "/budget",
+    emoji: "💰",
+    title: "예산으로 세트 짜기",
+    short: "예산으로 세트 짜기",
+    desc: "쓸 금액과 필요한 것을 고르면 실속·표준·든든 세트를 짜 드려요.",
+  },
+  {
     href: "/grade",
     emoji: "📋",
     title: "등급·혜택 확인",
