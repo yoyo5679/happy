@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
-import { site } from "@/config/site";
+import { business, site } from "@/config/site";
 import { SourceTracker } from "@/components/SourceTracker";
 import { FloatingContact } from "@/components/FloatingContact";
 import { FontToggle } from "@/components/FontToggle";
@@ -48,6 +48,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <p>
             본 서비스의 결과는 참고용이며, 실제 장기요양등급은 국민건강보험공단(☎ 1577-1000)의 방문조사와
             등급판정위원회 심의로 결정됩니다.
+          </p>
+          <p className="biz-info">
+            상호 {business.company} · 대표 {business.ceo} · 사업자등록번호 {business.bizNo}
+            <br />
+            의료기기판매(임대)업 신고 {business.medicalNo} · 통신판매업 신고 {business.mailOrderNo}
+            <br />
+            {business.address} · ☎ {site.phone} · {business.email}
           </p>
           <p>
             © {site.name} · <Link href="/privacy">개인정보처리방침</Link>

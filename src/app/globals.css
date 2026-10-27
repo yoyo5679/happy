@@ -398,3 +398,4 @@ em.opt { background: #eef1f0; color: var(--muted); }
   .consent-print h2 { break-after: avoid; }
   .consent-print section { break-inside: avoid; }
 }
+.biz-info { font-size: 0.8rem; line-height: 1.7; }

@@ -1,6 +1,6 @@
 // 웹 장부(/my) 이용 동의서 문구 — 웹 동의 화면 · 인쇄용 동의서(/consent) · 처리방침(/privacy)이 같이 씁니다.
 // 문구를 바꾸면 CONSENT_VERSION도 올려 주세요 (누가 어느 문구에 동의했는지 기록됩니다).
-import { business, site } from "@/config/site";
+import { site } from "@/config/site";
 
 export const CONSENT_VERSION = "2026-11-v1";
 
@@ -78,4 +78,3 @@ export const consentNotice = [
 
 export const relations = ["본인", "배우자", "아들", "딸", "며느리", "사위", "손자녀", "기타 가족", "법정대리인"];
 
-export const companyLine = () => [business.company, business.ceo && `대표 ${business.ceo}`].filter(Boolean).join(" · ");

@@ -16,7 +16,7 @@ export default function Page() {
     <article className="policy">
       <h1 className="page-title">개인정보처리방침</h1>
       <p>
-        {business.company}(이하 &lsquo;회사&rsquo;)는 「개인정보 보호법」에 따라 이용자의 개인정보를 보호하고 관련 고충을 신속하게
+        {business.company}({site.name}, 이하 &lsquo;회사&rsquo;)는 「개인정보 보호법」에 따라 이용자의 개인정보를 보호하고 관련 고충을 신속하게
         처리하기 위해 다음과 같이 개인정보처리방침을 둡니다. 이 방침은 회사가 운영하는 웹 서비스({site.siteUrl})에 적용됩니다.
       </p>
 
@@ -109,9 +109,9 @@ export default function Page() {
           <tr>
             <th>사업자</th>
             <td>
-              {business.company}
-              {business.ceo && ` (대표 ${business.ceo})`}
-              {business.address ? ` · ${business.address}` : ` · 주소 ${blank}`}
+              {business.company} (대표 {business.ceo}, 사업자등록번호 {business.bizNo})
+              <br />
+              {business.address}
             </td>
           </tr>
         </tbody>
