@@ -142,6 +142,57 @@ function normOrder(o: Row) {
   };
 }
 
+// ── 주문서에 적힌 어르신(수급자) 성함 찾기 ──
+// 주문서 추가 항목이 {title, value} 꼴이거나, 키 이름·옵션 글자에 "수급자/어르신/대상자" 등이 들어 있는 경우를 찾습니다.
+const ELDER_LABEL = /(어르신|수급자|대상자|이용자|사용자|recipient|elder|patient)/i;
+const NOT_ELDER = /(주문자|받는|수령|배송|입금|예금주|보호자|orderer|delivery|receiver|depositor)/i;
+const cleanName = (v: unknown) => {
+  const m = String(v ?? "").replace(/님/g, " ").match(/[가-힣]{2,5}/);
+  return m ? m[0] : "";
+};
+function findElder(...sources: unknown[]): { name: string; from: string } | null {
+  const seen = new Set<unknown>();
+  const walk = (v: unknown, key: string, depth: number): { name: string; from: string } | null => {
+    if (depth > 7 || v == null || seen.has(v)) return null;
+    if (typeof v === "string") {
+      if (ELDER_LABEL.test(key) && !NOT_ELDER.test(key) && cleanName(v)) return { name: cleanName(v), from: key };
+      // 옵션 글자 안: "수급자 성함: 김순자"
+      const m = v.match(/(어르신|수급자|대상자|이용자)\s*(성함|이름|명)?\s*[:：]\s*([가-힣]{2,5})/);
+      return m ? { name: m[3], from: `${m[1]}${m[2] ?? ""}` } : null;
+    }
+    if (typeof v !== "object") return null;
+    seen.add(v);
+    const o = v as Row;
+    // {title|name|label: "수급자 성함", value|answer: "김순자"}
+    const label = String(o.title ?? o.label ?? o.question ?? o.name ?? o.key ?? "");
+    const val = o.value ?? o.answer ?? o.content ?? o.text;
+    if (label && ELDER_LABEL.test(label) && !NOT_ELDER.test(label) && typeof val === "string" && cleanName(val)) return { name: cleanName(val), from: label };
+    for (const [k, x] of Object.entries(o)) {
+      const hit = walk(x, k, depth + 1);
+      if (hit) return hit;
+    }
+    return null;
+  };
+  for (const src of sources) {
+    const hit = walk(src, "", 0);
+    if (hit) return hit;
+  }
+  return null;
+}
+
+// 연결 확인용: 응답 구조(경로 = 값)를 개인정보는 가려서 보여 줌
+function describe(v: unknown, path = "", out: string[] = [], depth = 0): string[] {
+  if (out.length > 120 || depth > 7) return out;
+  if (v && typeof v === "object") {
+    for (const [k, x] of Object.entries(v as Row)) describe(x, path ? `${path}.${k}` : k, out, depth + 1);
+    return out;
+  }
+  const str = String(v ?? "");
+  const keep = /(title|label|question|status|type|code|key|_no|time|date|price|count|prod_name|option_name)$/i.test(path) || /^\d{1,6}$/.test(str);
+  out.push(`${path} = ${keep ? str.slice(0, 40) : str ? str[0] + "○".repeat(Math.min(str.length - 1, 6)) : ""}`);
+  return out;
+}
+
 function normItems(prodOrders: unknown) {
   const out: { prod_no: string; name: string; count: number; price: number; status: string }[] = [];
   for (const po of asList(prodOrders)) {
@@ -335,11 +386,13 @@ export async function onRequest({ request, env, params }: Ctx): Promise<Response
         const to = Math.floor(Date.now() / 1000);
         const j = await imwebGet(env, db, `/shop/orders?order_date_from=${to - 30 * 86400}&order_date_to=${to}&offset=1&limit=1`);
         const first = asList(pick(j, "data", "list"))[0];
+        const no = first ? normOrder(first).order_no : "";
+        const po = no ? await imwebGet(env, db, `/shop/orders/${encodeURIComponent(no)}/prod-orders`).catch(() => null) : null;
         return json({
           ok: true,
           count: Number(pick(j, "data", "pagenation", "data_count") ?? pick(j, "data", "pagination", "data_count") ?? 0) || null,
-          sample: first ? normOrder(first) : null,
-          keys: first ? Object.keys(first) : [],
+          sample: first ? { ...normOrder(first), elder: findElder(first, po?.data) } : null,
+          keys: first ? [...describe(first, "order"), ...describe(po?.data, "prod_orders")] : [],
         });
       }
       if (id === "orders" && method === "GET") {
@@ -359,7 +412,8 @@ export async function onRequest({ request, env, params }: Ctx): Promise<Response
           if (!n.order_no || doneSet.has(n.order_no)) continue;
           try {
             const po = await imwebGet(env, db, `/shop/orders/${encodeURIComponent(n.order_no)}/prod-orders`);
-            orders.push({ ...n, items: normItems(po.data) });
+            const raw = list.find((x) => x.n.order_no === n.order_no)!.raw;
+            orders.push({ ...n, items: normItems(po.data), elder: findElder(raw, po.data) });
           } catch (e) {
             if (!orders.length) throw e;
             partial = true;
