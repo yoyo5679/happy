@@ -25,9 +25,7 @@ export default function Page() {
         <tbody>
           <tr>
             <th>어르신 성함</th>
-            <td></td>
-            <th>장기요양 등급</th>
-            <td></td>
+            <td colSpan={3}></td>
           </tr>
           <tr>
             <th>보호자 성함</th>

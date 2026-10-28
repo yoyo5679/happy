@@ -1,16 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { categories, products, won, type CategoryKey, type Product } from "@/data/products";
 import type { Recipient } from "@/lib/ledger";
 
 type Api = <T = Record<string, unknown>>(method: string, path: string, body?: unknown) => Promise<T>;
 type ImItem = { prod_no: string; name: string; count: number; price: number; status: string };
 type Elder = { name: string; from: string } | null;
-type ImOrder = { order_no: string; date: string; name: string; phones: string[]; total: number; items: ImItem[]; elder?: Elder };
+// 주문자 이름·번호 원문은 받지 않음: 번호 끝 4자리, 대조값, 번호로 찾은 어르신만
+type ImOrder = { order_no: string; date: string; total: number; phone_tail: string; phone_hash: string; phone_rid: string; items: ImItem[]; elder?: Elder };
 type Check = { ok: boolean; count: number | null; sample: (Omit<ImOrder, "items"> & { elder: Elder }) | null; keys: string[] };
 const NEW = "__new";
-const fmtPhone = (d: string) => (d.length === 11 ? `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}` : d);
 
 // 쇼핑몰 상품번호(idx) → 상품·구입/대여
 const byIdx = new Map<string, { p: Product; kind: "buy" | "rent" }>();
@@ -38,7 +38,6 @@ const STATUS: [RegExp, string][] = [
 const statusLabel = (s: string) => STATUS.find(([re]) => re.test(s))?.[1] ?? (s || "상태 모름");
 /** 넣을 품목이 모두 배송 시작 이후인지 */
 const shipped = (o: ImOrder) => defaultPicks(o).every((l) => shippedStatus(l.it.status));
-const mask = (ph: string) => (ph.length >= 8 ? `${ph.slice(0, 3)}-****-${ph.slice(-4)}` : ph);
 
 type Line = { i: number; it: ImItem; m?: { p: Product; kind: "buy" | "rent" }; off: boolean };
 const linesOf = (o: ImOrder): Line[] => o.items.map((it, i) => ({ i, it, m: byIdx.get(it.prod_no), off: cancelled(it.status) }));
@@ -50,13 +49,12 @@ const defaultPicks = (o: ImOrder) => linesOf(o).filter((l) => l.m && !l.off);
 function newRecipientFrom(o: ImOrder, start = o.date): Recipient {
   return {
     name: o.elder!.name,
-    grade: "",
     rate: 0.15,
     period_start: start,
     base_remaining: 1_600_000,
     base_date: start,
-    guardian: [o.name, o.phones[0] && fmtPhone(o.phones[0])].filter(Boolean).join(" "),
-    memo: `아임웹 주문 ${o.order_no}으로 자동 등록 · 등급·본인부담률·공단 잔액·적용기간 확인 필요`,
+    guardian_hash: o.phone_hash,
+    needs_check: true,
   };
 }
 
@@ -133,17 +131,15 @@ export function ImwebImport({ api, recipients: initialRecipients, onBack }: { ap
     if (check?.ok) loadAll();
   }, [check, loadAll]);
 
-  const phoneOf = useMemo(() => recipients.map((r) => ({ r, d: (r.guardian ?? "").replace(/\D/g, "") })), [recipients]);
-  // 1순위: 주문서의 어르신 성함 (같은 이름이 여럿이면 번호까지 맞는 분) → 2순위: 주문자 번호 → 없으면 새로 등록
+  // 1순위: 주문서의 어르신 성함 (같은 이름이 여럿이면 번호까지 맞는 분) → 2순위: 주문자 번호(서버에서 대조) → 없으면 새로 등록
   const matchRecipient = (o: ImOrder): { id: string; by: string } => {
-    const phoneHit = (d: string) => d.length >= 8 && o.phones.some((ph) => d.includes(ph.slice(-8)));
     if (o.elder) {
-      const same = phoneOf.filter(({ r }) => r.name === o.elder!.name);
-      const hit = same.find(({ d }) => phoneHit(d)) ?? (same.length === 1 ? same[0] : undefined);
-      if (hit) return { id: hit.r.id!, by: "주문서의 어르신 성함으로 찾았어요." };
+      const same = recipients.filter((r) => r.name === o.elder!.name);
+      const hit = same.find((r) => r.id === o.phone_rid) ?? (same.length === 1 ? same[0] : undefined);
+      if (hit) return { id: hit.id!, by: "주문서의 어르신 성함으로 찾았어요." };
     }
-    const byPhone = phoneOf.find(({ d }) => phoneHit(d));
-    if (byPhone && (!o.elder || byPhone.r.name === o.elder.name)) return { id: byPhone.r.id!, by: "주문자 번호로 찾았어요." };
+    const byPhone = o.phone_rid ? recipients.find((r) => r.id === o.phone_rid) : undefined;
+    if (byPhone && (!o.elder || byPhone.name === o.elder.name)) return { id: byPhone.id!, by: "주문자 번호로 찾았어요." };
     if (o.elder) return { id: NEW, by: "" };
     return { id: "", by: "" };
   };
@@ -203,7 +199,7 @@ export function ImwebImport({ api, recipients: initialRecipients, onBack }: { ap
             <p style={{ margin: 0 }}>✅ 아임웹 연결됨{check.count != null && ` · 최근 30일 주문 ${check.count}건`}</p>
             {check.sample && (
               <p className="ledger-note">
-                가장 최근 주문: {check.sample.date} · {check.sample.name || "이름 없음"} · {won(check.sample.total)}
+                가장 최근 주문: {check.sample.date} · {won(check.sample.total)}
                 <br />
                 {check.sample.elder
                   ? `주문서에서 어르신 성함을 찾았어요: ${check.sample.elder.name} ('${check.sample.elder.from}' 항목)`
@@ -341,7 +337,7 @@ function OrderCard({
   return (
     <section className="card form">
       <p style={{ margin: 0 }}>
-        <strong>{o.date}</strong> · {o.name || "주문자"} {o.phones[0] && <span className="muted">({mask(o.phones[0])})</span>}
+        <strong>{o.date}</strong> {o.phone_tail && <span className="muted">· 주문자 번호 끝 {o.phone_tail}</span>}
         <br />
         <span className="muted small">
           주문번호 {o.order_no} · 결제 {won(o.total)}
@@ -388,7 +384,7 @@ function OrderCard({
           {recipients.map((r) => (
             <option key={r.id} value={r.id}>
               {r.name}
-              {r.guardian ? ` · ${r.guardian}` : ""}
+              {r.has_phone ? " · 📱" : ""}
             </option>
           ))}
         </select>

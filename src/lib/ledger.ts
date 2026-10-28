@@ -7,15 +7,22 @@ export type Recipient = {
   id?: string;
   token?: string;
   name: string;
-  grade: string;
+  /** 예전 데이터 호환용 (지금은 저장하지 않음) */
+  grade?: string;
   rate: number;
   /** 연 한도 적용기간 시작일 (공단 조회 화면 기준) */
   period_start: string;
   /** 조회일 기준 남은 한도 */
   base_remaining: number;
   base_date: string;
-  guardian?: string;
-  memo?: string;
+  /** 보호자 휴대폰: 입력할 때만 보내고 서버는 대조값으로만 저장 */
+  guardian_phone?: string;
+  /** 주문에서 등록할 때 서버가 만든 대조값 */
+  guardian_hash?: string;
+  clear_phone?: boolean;
+  has_phone?: boolean;
+  /** 등급·잔액 등 확인 필요 */
+  needs_check?: boolean;
   updated_at?: string;
 };
 

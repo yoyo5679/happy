@@ -143,11 +143,25 @@ function normOrder(o: Row) {
   return {
     order_no: String(o.order_no ?? o.order_code ?? ""),
     date: time ? new Date(time + 9 * 3600_000).toISOString().slice(0, 10) : "",
-    name: String(pick(o, "orderer", "name") ?? pick(o, "delivery", "address", "name") ?? ""),
+    // 주문자 번호는 서버 안에서 대조에만 쓰고 화면에는 끝 4자리만 보냄
     phones: [pick(o, "orderer", "call"), pick(o, "orderer", "call2"), pick(o, "delivery", "address", "phone"), pick(o, "delivery", "address", "phone2")]
       .map(digits)
       .filter((x) => x.length >= 8),
     total: Number(pick(o, "payment", "total_price") ?? pick(o, "payment", "price") ?? 0),
+  };
+}
+
+/** 직원 화면용 주문: 번호 원문 대신 끝 4자리 + 대조값 + 번호로 찾은 어르신 */
+async function forStaff(db: D1, n: ReturnType<typeof normOrder>, recHashes: Row[]) {
+  const hashes = await Promise.all(n.phones.map((p) => phoneHash(db, p)));
+  const hit = recHashes.find((r) => hashes.includes(String(r.guardian_hash)));
+  return {
+    order_no: n.order_no,
+    date: n.date,
+    total: n.total,
+    phone_tail: n.phones[0]?.slice(-4) ?? "",
+    phone_hash: hashes[0] ?? "",
+    phone_rid: hit ? String(hit.id) : "",
   };
 }
 
@@ -220,7 +234,7 @@ function normItems(prodOrders: unknown) {
 }
 
 // src/data/consent.ts 의 CONSENT_VERSION 과 같게 유지 (문구가 바뀌면 다시 동의를 받습니다)
-const CONSENT_VERSION = "2026-11-v1";
+const CONSENT_VERSION = "2026-11-v2";
 
 type Consent = { at: string; method: string; signer: string; relation: string; version: string; marketing: boolean; current: boolean };
 
@@ -242,8 +256,67 @@ const logConsent = (db: D1, rid: unknown, c: { action: string; method: string; v
     .bind(crypto.randomUUID(), rid, c.action, c.method, c.version ?? CONSENT_VERSION, c.signer ?? "", c.relation ?? "", c.marketing ? 1 : 0, (c.ua ?? "").slice(0, 200), now())
     .run();
 
+// 최소 수집으로 바꾸면서 추가한 칸 (예전 DB에도 붙임 · 이미 있으면 오류 → 무시)
+const MIGRATIONS = [
+  `ALTER TABLE recipients ADD COLUMN guardian_hash TEXT NOT NULL DEFAULT ''`,
+  `ALTER TABLE recipients ADD COLUMN needs_check INTEGER NOT NULL DEFAULT 0`,
+];
+
 let ready: Promise<unknown> | null = null;
-const init = (db: D1) => (ready ??= db.batch(SCHEMA.map((s) => db.prepare(s))).catch((e) => { ready = null; throw e; }));
+const init = (db: D1) =>
+  (ready ??= (async () => {
+    await db.batch(SCHEMA.map((s) => db.prepare(s)));
+    for (const m of MIGRATIONS) await db.prepare(m).run().catch(() => {});
+    await minimizeOldData(db);
+  })().catch((e) => {
+    ready = null;
+    throw e;
+  }));
+
+// ───────── 최소 수집 ─────────
+// 보호자 휴대폰은 원래 번호로 되돌릴 수 없는 값(HMAC)으로만 저장 → 주문자 번호와 같은지 대조만 가능
+async function phoneSalt(db: D1) {
+  const row = await db.prepare("SELECT value FROM kv WHERE key = 'phone_salt'").first();
+  if (row) return String(row.value);
+  const salt = [...crypto.getRandomValues(new Uint8Array(32))].map((b) => b.toString(16).padStart(2, "0")).join("");
+  await db.prepare("INSERT OR IGNORE INTO kv (key, value, at) VALUES ('phone_salt', ?, ?)").bind(salt, Date.now()).run();
+  return String((await db.prepare("SELECT value FROM kv WHERE key = 'phone_salt'").first())!.value);
+}
+async function phoneHash(db: D1, phone: unknown) {
+  const d = String(phone ?? "").replace(/\D/g, "");
+  if (d.length < 8) return "";
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey("raw", enc.encode(await phoneSalt(db)), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = new Uint8Array(await crypto.subtle.sign("HMAC", key, enc.encode(d.slice(-8))));
+  return [...sig].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** 예전에 저장한 등급·보호자 이름/번호·메모·브라우저 정보를 지우고, 번호는 대조용 값으로만 남김 */
+async function minimizeOldData(db: D1) {
+  const { results } = await db.prepare("SELECT id, guardian, guardian_hash FROM recipients WHERE guardian != '' OR grade != '' OR memo != ''").all();
+  for (const r of results) {
+    const h = r.guardian_hash ? String(r.guardian_hash) : await phoneHash(db, r.guardian);
+    await db.prepare("UPDATE recipients SET guardian = '', grade = '', memo = '', guardian_hash = ? WHERE id = ?").bind(h, r.id).run();
+  }
+  await db.prepare("UPDATE consents SET ua = '' WHERE ua != ''").run();
+}
+
+/** 보유기간 지난 정보 파기: 3년 넘게 변동 없는 장부, 장부가 없어진 동의 기록, 오래된 주문 처리 기록 */
+async function purgeExpired(db: D1) {
+  const cut = new Date(Date.now() - 3 * 365 * 86400_000).toISOString();
+  const { results } = await db.prepare("SELECT id FROM recipients WHERE updated_at < ?").bind(cut).all();
+  for (const r of results) {
+    await db.batch([db.prepare("DELETE FROM items WHERE recipient_id = ?").bind(r.id), db.prepare("DELETE FROM recipients WHERE id = ?").bind(r.id)]);
+  }
+  await db.prepare("DELETE FROM consents WHERE created_at < ? AND recipient_id NOT IN (SELECT id FROM recipients)").bind(cut).run();
+  await db.prepare("DELETE FROM imweb_orders WHERE created_at < ?").bind(cut).run();
+}
+
+/** 직원 화면에 보내는 어르신 정보 (대조용 번호값은 보내지 않음) */
+const pub = (r: Row) => ({
+  id: r.id, token: r.token, name: r.name, rate: r.rate, period_start: r.period_start, base_remaining: r.base_remaining,
+  base_date: r.base_date, needs_check: r.needs_check === 1, has_phone: !!r.guardian_hash, created_at: r.created_at, updated_at: r.updated_at,
+});
 
 const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), {
@@ -285,10 +358,7 @@ function recipientFields(b: Row) {
   if (!isDate(b.period_start)) return "적용기간 시작일을 입력해 주세요";
   if (!isDate(b.base_date)) return "조회일을 입력해 주세요";
   if (!(base >= 0 && base <= 10_000_000)) return "조회 잔액을 확인해 주세요";
-  return {
-    name, grade: str(b.grade, 20), rate, period_start: b.period_start, base_remaining: base, base_date: b.base_date,
-    guardian: str(b.guardian, 100), memo: str(b.memo, 1000),
-  };
+  return { name, rate, period_start: b.period_start, base_remaining: base, base_date: b.base_date, needs_check: b.needs_check === true ? 1 : 0 };
 }
 
 function itemFields(b: Row) {
@@ -336,7 +406,7 @@ export async function onRequest({ request, env, params }: Ctx): Promise<Response
     const r = await db.prepare("SELECT * FROM recipients WHERE token = ?").bind(k).first();
     if (!r) return fail(404, "링크가 만료되었거나 올바르지 않아요");
     const consent = consentFrom(await consentRows(db, r.id));
-    const ua = request.headers.get("user-agent") ?? "";
+    const ua = ""; // 브라우저 정보는 수집하지 않음
     const action = path[1];
 
     if (method === "GET" && !action) {
@@ -349,7 +419,7 @@ export async function onRequest({ request, env, params }: Ctx): Promise<Response
       return json({
         consent: { at: consent.at, marketing: consent.marketing },
         recipient: {
-          name, grade: r.grade, rate: r.rate, period_start: r.period_start,
+          name, rate: r.rate, period_start: r.period_start,
           base_remaining: r.base_remaining, base_date: r.base_date, updated_at: r.updated_at,
         },
         items: results,
@@ -400,7 +470,7 @@ export async function onRequest({ request, env, params }: Ctx): Promise<Response
         return json({
           ok: true,
           count: Number(pick(j, "data", "pagenation", "data_count") ?? pick(j, "data", "pagination", "data_count") ?? 0) || null,
-          sample: first ? { ...normOrder(first), elder: findElder(first, po?.data) } : null,
+          sample: first ? { ...(await forStaff(db, normOrder(first), [])), elder: findElder(first, po?.data) } : null,
           keys: first ? [...describe(first, "order"), ...describe(po?.data, "prod_orders")] : [],
         });
       }
@@ -419,6 +489,7 @@ export async function onRequest({ request, env, params }: Ctx): Promise<Response
         const list = asList(pick(j, "data", "list")).map((o) => ({ raw: o, n: normOrder(o) }));
         const totalPage = Number(pick(j, "data", "pagenation", "total_page") ?? pick(j, "data", "pagination", "total_page") ?? 1) || 1;
         const { results: done } = await db.prepare("SELECT order_no, action FROM imweb_orders").all();
+        const { results: recHashes } = await db.prepare("SELECT id, guardian_hash FROM recipients WHERE guardian_hash != ''").all();
         const doneSet = new Set(done.map((d) => String(d.order_no)));
         const orders = [];
         // 품목 조회가 중간에 막히면 그때까지 불러온 것만 돌려주고 partial로 알림
@@ -428,7 +499,7 @@ export async function onRequest({ request, env, params }: Ctx): Promise<Response
           try {
             const po = await imwebGet(env, db, `/shop/orders/${encodeURIComponent(n.order_no)}/prod-orders`);
             const raw = list.find((x) => x.n.order_no === n.order_no)!.raw;
-            orders.push({ ...n, items: normItems(po.data), elder: findElder(raw, po.data) });
+            orders.push({ ...(await forStaff(db, n, recHashes)), items: normItems(po.data), elder: findElder(raw, po.data) });
           } catch (e) {
             if (!orders.length) throw e;
             partial = true;
@@ -457,22 +528,26 @@ export async function onRequest({ request, env, params }: Ctx): Promise<Response
   if (res === "recipients") {
     // 목록
     if (!id && method === "GET") {
+      await purgeExpired(db);
       const { results } = await db.prepare("SELECT * FROM recipients ORDER BY updated_at DESC").all();
       const { results: items } = await db.prepare("SELECT * FROM items WHERE status = 'active'").all();
       const { results: cs } = await db.prepare("SELECT * FROM consents ORDER BY created_at DESC").all();
       const consents: Record<string, Consent | null> = {};
       for (const rec of results) consents[String(rec.id)] = consentFrom(cs.filter((c) => c.recipient_id === rec.id));
-      return json({ recipients: results, items, consents });
+      return json({ recipients: results.map(pub), items, consents });
     }
     // 등록
     if (!id && method === "POST") {
-      const f = recipientFields(await body(request));
+      const b = await body(request);
+      const f = recipientFields(b);
       if (typeof f === "string") return fail(400, f);
+      // 주문에서 등록할 때는 서버가 만든 대조값(guardian_hash)을 그대로, 직원이 입력하면 번호를 대조값으로 바꿔 저장
+      const hash = /^[0-9a-f]{64}$/.test(String(b.guardian_hash ?? "")) ? String(b.guardian_hash) : await phoneHash(db, b.guardian_phone);
       const rid = crypto.randomUUID();
       const t = now();
       await db
-        .prepare("INSERT INTO recipients (id, token, name, grade, rate, period_start, base_remaining, base_date, guardian, memo, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)")
-        .bind(rid, newToken(), f.name, f.grade, f.rate, f.period_start, f.base_remaining, f.base_date, f.guardian, f.memo, t, t)
+        .prepare("INSERT INTO recipients (id, token, name, rate, period_start, base_remaining, base_date, guardian_hash, needs_check, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)")
+        .bind(rid, newToken(), f.name, f.rate, f.period_start, f.base_remaining, f.base_date, hash, f.needs_check, t, t)
         .run();
       return json({ id: rid }, 201);
     }
@@ -483,14 +558,17 @@ export async function onRequest({ request, env, params }: Ctx): Promise<Response
     if (!sub) {
       if (method === "GET") {
         const { results } = await db.prepare("SELECT * FROM items WHERE recipient_id = ? ORDER BY date DESC, created_at DESC").bind(id).all();
-        return json({ recipient: r, items: results, consent: consentFrom(await consentRows(db, id)) });
+        return json({ recipient: pub(r), items: results, consent: consentFrom(await consentRows(db, id)) });
       }
       if (method === "PUT") {
-        const f = recipientFields(await body(request));
+        const b = await body(request);
+        const f = recipientFields(b);
         if (typeof f === "string") return fail(400, f);
+        // 새 번호를 넣으면 대조값을 바꾸고, '번호 지우기'면 비움, 아니면 그대로
+        const hash = b.clear_phone === true ? "" : str(b.guardian_phone, 30) ? await phoneHash(db, b.guardian_phone) : String(r.guardian_hash ?? "");
         await db
-          .prepare("UPDATE recipients SET name=?, grade=?, rate=?, period_start=?, base_remaining=?, base_date=?, guardian=?, memo=?, updated_at=? WHERE id=?")
-          .bind(f.name, f.grade, f.rate, f.period_start, f.base_remaining, f.base_date, f.guardian, f.memo, now(), id)
+          .prepare("UPDATE recipients SET name=?, rate=?, period_start=?, base_remaining=?, base_date=?, guardian_hash=?, needs_check=?, updated_at=? WHERE id=?")
+          .bind(f.name, f.rate, f.period_start, f.base_remaining, f.base_date, hash, f.needs_check, now(), id)
           .run();
         return json({ ok: true });
       }

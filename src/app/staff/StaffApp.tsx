@@ -174,7 +174,7 @@ function List({
   const rows = useMemo(() => {
     if (!data) return [];
     return data.recipients
-      .filter((r) => !q || r.name.includes(q.trim()) || (r.guardian ?? "").includes(q.trim()))
+      .filter((r) => !q || r.name.includes(q.trim()))
       .map((r) => ({ r, L: calcLedger(r, data.items.filter((i) => i.recipient_id === r.id)) }));
   }, [data, q]);
 
@@ -206,7 +206,7 @@ function List({
                 <span>
                   <strong>{r.name}</strong>
                   <small>
-                    {[data!.consents[r.id!]?.current ? "" : "⏳ 동의 대기", r.grade, r.guardian, L.alerts.length ? `🔔 ${L.alerts.length}` : ""].filter(Boolean).join(" · ")}
+                    {[data!.consents[r.id!]?.current ? "" : "⏳ 동의 대기", r.needs_check ? "⚠️ 확인 필요" : "", r.has_phone ? "📱 번호 등록" : "", L.alerts.length ? `🔔 ${L.alerts.length}` : ""].filter(Boolean).join(" · ")}
                   </small>
                 </span>
                 <b>{won(L.remaining)}</b>
@@ -219,11 +219,9 @@ function List({
   );
 }
 
-const GRADES = ["1등급", "2등급", "3등급", "4등급", "5등급", "인지지원등급"];
-
 function RecipientForm({ api, initial, onDone }: { api: Api; initial?: Recipient; onDone: (id?: string) => void }) {
   const [f, setF] = useState<Recipient>(
-    initial ?? { name: "", grade: "", rate: 0.15, period_start: "", base_remaining: 1_600_000, base_date: today(), guardian: "", memo: "" },
+    initial ? { ...initial, guardian_phone: "", clear_phone: false } : { name: "", rate: 0.15, period_start: "", base_remaining: 1_600_000, base_date: today(), guardian_phone: "" },
   );
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -256,15 +254,6 @@ function RecipientForm({ api, initial, onDone }: { api: Api; initial?: Recipient
       </label>
       <div className="form-row">
         <label>
-          등급
-          <select value={f.grade} onChange={(e) => set("grade", e.target.value)}>
-            <option value="">선택</option>
-            {GRADES.map((g) => (
-              <option key={g}>{g}</option>
-            ))}
-          </select>
-        </label>
-        <label>
           본인부담률
           <select value={f.rate} onChange={(e) => set("rate", Number(e.target.value))}>
             {RATES.map((r) => (
@@ -274,6 +263,7 @@ function RecipientForm({ api, initial, onDone }: { api: Api; initial?: Recipient
             ))}
           </select>
         </label>
+        <span />
       </div>
       <label>
         연 한도 적용기간 시작일
@@ -302,13 +292,29 @@ function RecipientForm({ api, initial, onDone }: { api: Api; initial?: Recipient
         조회일 이후의 해피케어 구입·대여분만 자동으로 빠져요. 다시 조회하면 금액과 조회일을 고쳐 주세요.
       </p>
       <label>
-        보호자 (이름·연락처)
-        <input value={f.guardian} onChange={(e) => set("guardian", e.target.value)} maxLength={100} placeholder="예: 아드님 010-0000-0000" />
+        보호자 휴대폰 <small>선택 · 아임웹 주문 자동 연결용. 번호는 저장되지 않고 대조값으로만 남아 다시 볼 수 없어요</small>
+        <input
+          type="tel"
+          inputMode="numeric"
+          value={f.guardian_phone ?? ""}
+          onChange={(e) => set("guardian_phone", e.target.value)}
+          maxLength={20}
+          placeholder={f.has_phone ? "등록됨 · 바꾸려면 새 번호 입력" : "010-0000-0000"}
+        />
       </label>
-      <label>
-        메모 <small>직원만 보여요</small>
-        <textarea value={f.memo} onChange={(e) => set("memo", e.target.value)} maxLength={1000} />
+      {f.has_phone && (
+        <label style={{ display: "flex", gap: 8, alignItems: "center", fontWeight: 400 }}>
+          <input type="checkbox" checked={!!f.clear_phone} onChange={(e) => set("clear_phone", e.target.checked)} style={{ width: 20, minHeight: 20 }} />
+          등록된 번호 지우기
+        </label>
+      )}
+      <label style={{ display: "flex", gap: 8, alignItems: "center", fontWeight: 400 }}>
+        <input type="checkbox" checked={!!f.needs_check} onChange={(e) => set("needs_check", e.target.checked)} style={{ width: 20, minHeight: 20 }} />
+        ⚠️ 확인 필요 (본인부담률·공단 잔액·적용기간을 아직 확인 못 함)
       </label>
+      <p className="ledger-note" style={{ margin: 0 }}>
+        개인정보 최소 수집을 위해 등급·주소·연락처 원문·메모는 저장하지 않아요.
+      </p>
       {err && <p className="form-err">{err}</p>}
       <div className="btn-row">
         <button type="button" className="btn" onClick={() => onDone()}>
@@ -427,12 +433,8 @@ function Detail({ id, api, onBack }: { id: string; api: Api; onBack: () => void 
           </ul>
         </section>
       )}
-      {(r.guardian || r.memo) && (
-        <section className="card">
-          <h2 className="ledger-h2">직원 메모</h2>
-          {r.guardian && <p style={{ margin: "0 0 6px" }}>보호자: {r.guardian}</p>}
-          {r.memo && <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{r.memo}</p>}
-        </section>
+      {r.needs_check && (
+        <p className="ledger-alert warn">⚠️ 본인부담률·공단 잔액·적용기간 확인이 필요한 장부예요. 확인 후 &lsquo;정보·잔액 수정&rsquo;에서 체크를 풀어 주세요.</p>
       )}
       <ConsentCard api={api} recipient={r} consent={data.consent} onChange={load} />
       <GuardianLink api={api} recipient={r} onChange={load} />
@@ -729,10 +731,7 @@ function ItemForm({ api, recipientId, initial, onDone }: { api: Api; recipientId
           <option value="cancelled">취소·반품 (차감 안 함)</option>
         </select>
       </label>
-      <label>
-        메모
-        <input value={f.note ?? ""} onChange={(e) => set("note", e.target.value)} maxLength={300} />
-      </label>
+
       {err && <p className="form-err">{err}</p>}
       <div className="btn-row">
         <button type="button" className="btn" onClick={onDone}>
