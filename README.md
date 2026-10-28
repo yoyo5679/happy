@@ -76,6 +76,11 @@ python3 scripts/catalog/build_filters.py 상품정보수정용.xlsx public/imweb
 
 칩 이름·기준은 `scripts/catalog/build_filters.py`의 `RULES`, 메뉴 주소와 품목 연결은 `PAGES`에서 바꿉니다. 판별은 상품명 앞 `|분류|`와 요약설명의 '제품 주요규격' 표(중량·규격·재질·계절·흡수량 등)를 씁니다.
 
+## 쇼핑몰 메뉴 링크 보정 (Footer Code)
+
+- **`imweb/category-tab-fix.html`**: 카테고리 페이지 가운데 탭에서 하위 분류가 있는 탭(성인용보행기·안전손잡이·양말·요실금팬티)을 누르면 그 분류의 '전체'로 이동
+- **`imweb/home-icon-fix.html`**: 메인 아이콘 메뉴의 '성인용 보행기'(/walker 워커만) → /walker-all, '안전손잡이'(/grab-bar-pole 기둥형만) → /grab-bar. 디자인 모드에서 위젯 링크를 직접 고치면 필요 없음
+
 ## 결과 보내기
 
 모든 결과 화면의 "📩 결과 보내기"는 답변을 링크(`?a=…&r=…`)에 담아 보냅니다. 받은 사람은 같은 결과 화면을 보고, `src`(채널·영업사원·기관 코드)도 함께 전달되어 쇼핑몰 통계에 잡힙니다.
