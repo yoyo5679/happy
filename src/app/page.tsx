@@ -3,7 +3,6 @@ import { tools } from "@/config/tools";
 import { ProductPicks } from "@/components/ProductPicks";
 import { AudienceTabs } from "@/components/AudienceTabs";
 import { ContactCta } from "@/components/ContactCta";
-import { InstallApp } from "@/components/InstallApp";
 
 export default function Home() {
   return (
@@ -41,7 +40,6 @@ export default function Home() {
           🛒 전체 모델 보기
         </Link>
       </div>
-      <InstallApp />
       <ProductPicks campaign="home" />
       <ContactCta campaign="home" />
     </>

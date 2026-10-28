@@ -4,6 +4,7 @@ import { business, site } from "@/config/site";
 import { SourceTracker } from "@/components/SourceTracker";
 import { FloatingContact } from "@/components/FloatingContact";
 import { FontToggle } from "@/components/FontToggle";
+import { InstallApp } from "@/components/InstallApp";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -40,10 +41,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <SourceTracker />
         <header className="site-header">
           <div className="hdr">
-          <Link href="/" className="logo" aria-label={`${site.name} 홈`}>
-            <img src="/logo.png" alt={site.name} width={140} height={36} />
-          </Link>
-          <FontToggle />
+            <div className="hdr-left">
+              <InstallApp compact />
+            </div>
+            <Link href="/" className="logo" aria-label={`${site.name} 홈`}>
+              <img src="/logo.png" alt={site.name} width={140} height={36} />
+            </Link>
+            <div className="hdr-right">
+              <FontToggle />
+            </div>
           </div>
         </header>
         <main>{children}</main>

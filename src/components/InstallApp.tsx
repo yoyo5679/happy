@@ -6,7 +6,7 @@ type PromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ 
 type Kind = "prompt" | "ios" | "inapp" | null;
 
 /** 홈 화면에 바로가기 추가: 안드로이드 크롬은 설치 창, 아이폰·카톡 브라우저는 방법 안내 */
-export function InstallApp({ label = "홈 화면에 바로가기 추가" }: { label?: string }) {
+export function InstallApp({ label = "홈 화면에 바로가기 추가", compact = false }: { label?: string; compact?: boolean }) {
   const [kind, setKind] = useState<Kind>(null);
   const [evt, setEvt] = useState<PromptEvent | null>(null);
   const [open, setOpen] = useState(false);
@@ -32,6 +32,7 @@ export function InstallApp({ label = "홈 화면에 바로가기 추가" }: { la
     };
   }, []);
 
+  if (done && compact) return null;
   if (done) return <p className="install-app done">✅ 홈 화면에 추가했어요. 다음부터는 아이콘을 눌러 바로 여세요.</p>;
   if (!kind) return null;
 
@@ -47,10 +48,21 @@ export function InstallApp({ label = "홈 화면에 바로가기 추가" }: { la
   }
 
   return (
-    <div className="install-app">
-      <button className="btn wide" onClick={click} aria-expanded={kind !== "prompt" ? open : undefined}>
-        📲 {label}
-      </button>
+    <div className={compact ? "install-app compact" : "install-app"}>
+      {compact ? (
+        <button className="hdr-install" onClick={click} aria-expanded={kind !== "prompt" ? open : undefined} aria-label="홈 화면에 바로가기 추가">
+          <span aria-hidden>📲</span>
+          <span>
+            홈 화면에
+            <br />
+            바로가기
+          </span>
+        </button>
+      ) : (
+        <button className="btn wide" onClick={click} aria-expanded={kind !== "prompt" ? open : undefined}>
+          📲 {label}
+        </button>
+      )}
       {open && kind === "ios" && (
         <ol className="install-steps">
           <li>
