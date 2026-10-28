@@ -21,6 +21,23 @@ for (const p of products) {
   }
 }
 const cancelled = (s: string) => /CANCEL|RETURN|REFUND|취소|반품|환불/i.test(s);
+// 배송이 시작된(배송중·배송완료·구매확정) 주문만 한꺼번에 넣기에 포함
+const shippedStatus = (s: string) => /DELIVERING|DELIVERY|SHIPP|^COMPLETE$|PURCHASE|CONFIRM|배송중|배송완료|구매확정/i.test(s);
+const STATUS: [RegExp, string][] = [
+  [/CANCEL|취소/i, "취소"],
+  [/RETURN|반품/i, "반품"],
+  [/EXCHANGE|교환/i, "교환"],
+  [/REFUND|환불/i, "환불"],
+  [/PURCHASE|CONFIRM|구매확정/i, "구매확정"],
+  [/DELIVERY_COMPLETE|^COMPLETE$|배송완료/i, "배송완료"],
+  [/DELIVERING|SHIPP|배송중/i, "배송중"],
+  [/STANDBY|PREPAR|READY|배송준비|발송대기/i, "배송준비"],
+  [/PAY_COMPLETE|결제완료/i, "결제완료"],
+  [/PAY_WAIT|입금대기/i, "입금대기"],
+];
+const statusLabel = (s: string) => STATUS.find(([re]) => re.test(s))?.[1] ?? (s || "상태 모름");
+/** 넣을 품목이 모두 배송 시작 이후인지 */
+const shipped = (o: ImOrder) => defaultPicks(o).every((l) => shippedStatus(l.it.status));
 const mask = (ph: string) => (ph.length >= 8 ? `${ph.slice(0, 3)}-****-${ph.slice(-4)}` : ph);
 
 type Line = { i: number; it: ImItem; m?: { p: Product; kind: "buy" | "rent" }; off: boolean };
@@ -132,7 +149,10 @@ export function ImwebImport({ api, recipients: initialRecipients, onBack }: { ap
   };
 
   // 자동으로 어르신을 찾았고 넣을 품목이 있는 주문 (오래된 주문부터)
-  const auto = (orders ?? []).filter((o) => matchRecipient(o).id && defaultPicks(o).length > 0).sort((a, b) => a.date.localeCompare(b.date));
+  const auto = (orders ?? [])
+    .filter((o) => matchRecipient(o).id && defaultPicks(o).length > 0 && shipped(o))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const waiting = (orders ?? []).filter((o) => defaultPicks(o).length > 0 && !shipped(o)).length;
   // 불러온 주문 중 그 어르신의 가장 이른 주문일
   const earliestFor = (name: string) =>
     (orders ?? []).filter((o) => o.elder?.name === name).reduce((m, o) => (o.date && o.date < m ? o.date : m), "9999-12-31");
@@ -228,6 +248,9 @@ export function ImwebImport({ api, recipients: initialRecipients, onBack }: { ap
             <button className="btn primary wide" onClick={importAll} disabled={!!bulk && bulk.done < bulk.total}>
               ✅ 어르신을 자동으로 찾은 주문 {auto.length}건 한꺼번에 장부에 넣기
             </button>
+          )}
+          {!loading && waiting > 0 && (
+            <p className="ledger-note">🚚 아직 배송 전인 주문 {waiting}건은 한꺼번에 넣기에서 빠져요. 배송이 시작되면 다음에 불러올 때 함께 들어가요.</p>
           )}
           {bulk && (
             <p className="ledger-note">
@@ -350,7 +373,7 @@ function OrderCard({
                   {m
                     ? `${m.kind === "rent" ? "대여 월" : "구입"} 급여가 ${won((m.kind === "rent" ? m.p.rent : m.p.buy)!.price)}`
                     : "해피케어 상품 목록에 없는 상품이라 직접 추가해 주세요"}
-                  {off && " · 취소·반품된 품목"}
+                  {` · ${statusLabel(it.status)}`}
                 </small>
               </span>
             </label>
@@ -370,6 +393,11 @@ function OrderCard({
           ))}
         </select>
       </label>
+      {defaultPicks(o).length > 0 && !shipped(o) && (
+        <p className="ledger-note" style={{ margin: 0 }}>
+          🚚 아직 배송 전이에요. 지금 넣지 말고 두시면, 배송이 시작된 뒤 다시 불러올 때 한꺼번에 넣기에 들어가요.
+        </p>
+      )}
       {rid === NEW ? (
         <p className="ledger-note" style={{ margin: 0 }}>
           장부에 없는 어르신이라 새로 등록해요. 넣은 뒤 장부에서 등급·본인부담률·공단 잔액·적용기간을 꼭 확인해 주세요. (그 전까지는 160만원·15%로 계산돼요)

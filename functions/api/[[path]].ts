@@ -119,6 +119,15 @@ async function imwebGet(env: Env, db: D1, path: string, retry = true): Promise<R
   return j;
 }
 
+// 장부에서 아임웹 주문 품목을 지우면, 그 주문의 품목이 하나도 안 남았을 때 '처리함' 표시를 풀어 다시 가져올 수 있게
+async function releaseImwebOrders(db: D1, notes: unknown[]) {
+  const nos = new Set(notes.map((n) => String(n ?? "").match(/아임웹 주문 (\S+)/)?.[1]).filter(Boolean) as string[]);
+  for (const no of nos) {
+    const left = await db.prepare("SELECT 1 FROM items WHERE note LIKE ? LIMIT 1").bind(`%아임웹 주문 ${no}%`).first();
+    if (!left) await db.prepare("DELETE FROM imweb_orders WHERE order_no = ? AND action = 'added'").bind(no).run();
+  }
+}
+
 const digits = (v: unknown) => String(v ?? "").replace(/\D/g, "");
 const pick = (o: unknown, ...keys: string[]): unknown => {
   let cur: unknown = o;
@@ -486,7 +495,9 @@ export async function onRequest({ request, env, params }: Ctx): Promise<Response
         return json({ ok: true });
       }
       if (method === "DELETE") {
+        const { results: gone } = await db.prepare("SELECT note FROM items WHERE recipient_id = ?").bind(id).all();
         await db.batch([db.prepare("DELETE FROM items WHERE recipient_id = ?").bind(id), db.prepare("DELETE FROM recipients WHERE id = ?").bind(id)]);
+        await releaseImwebOrders(db, gone.map((g) => g.note));
         return json({ ok: true });
       }
     }
@@ -528,7 +539,9 @@ export async function onRequest({ request, env, params }: Ctx): Promise<Response
         return json({ ok: true });
       }
       if (subId && method === "DELETE") {
+        const gone = await db.prepare("SELECT note FROM items WHERE id = ? AND recipient_id = ?").bind(subId, id).first();
         await db.prepare("DELETE FROM items WHERE id = ? AND recipient_id = ?").bind(subId, id).run();
+        if (gone) await releaseImwebOrders(db, [gone.note]);
         await touch();
         return json({ ok: true });
       }
