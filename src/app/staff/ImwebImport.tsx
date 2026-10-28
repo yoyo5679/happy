@@ -23,12 +23,55 @@ for (const p of products) {
 const cancelled = (s: string) => /CANCEL|RETURN|REFUND|취소|반품|환불/i.test(s);
 const mask = (ph: string) => (ph.length >= 8 ? `${ph.slice(0, 3)}-****-${ph.slice(-4)}` : ph);
 
+type Line = { i: number; it: ImItem; m?: { p: Product; kind: "buy" | "rent" }; off: boolean };
+const linesOf = (o: ImOrder): Line[] => o.items.map((it, i) => ({ i, it, m: byIdx.get(it.prod_no), off: cancelled(it.status) }));
+/** 기본으로 넣을 품목: 해피케어 상품과 맞고 취소되지 않은 것 */
+const defaultPicks = (o: ImOrder) => linesOf(o).filter((l) => l.m && !l.off);
+
+/** 주문서의 어르신 성함으로 새 장부 (등급·잔액·적용기간은 직원이 나중에 확인) */
+/** start: 그 어르신의 가장 이른 주문일 → 그 뒤 주문이 모두 한도에서 빠지게 */
+function newRecipientFrom(o: ImOrder, start = o.date): Recipient {
+  return {
+    name: o.elder!.name,
+    grade: "",
+    rate: 0.15,
+    period_start: start,
+    base_remaining: 1_600_000,
+    base_date: start,
+    guardian: [o.name, o.phones[0] && fmtPhone(o.phones[0])].filter(Boolean).join(" "),
+    memo: `아임웹 주문 ${o.order_no}으로 자동 등록 · 등급·본인부담률·공단 잔액·적용기간 확인 필요`,
+  };
+}
+
+/** 주문 품목을 장부에 넣고, 처리한 주문으로 기록 */
+async function importOrder(api: Api, o: ImOrder, target: string, picked: Line[]) {
+  for (const { it, m } of picked) {
+    const { p, kind } = m!;
+    await api("POST", `recipients/${target}/items`, {
+      kind,
+      product_id: p.id,
+      category: p.category,
+      name: p.name,
+      price: (kind === "rent" ? p.rent : p.buy)!.price,
+      qty: kind === "rent" ? 1 : it.count,
+      date: o.date,
+      end_date: null,
+      status: "active",
+      note: `아임웹 주문 ${o.order_no}`,
+    });
+  }
+  await api("POST", "imweb/mark", { order_no: o.order_no, action: "added", recipient_id: target });
+}
+
+const ymdKst = (d: Date) => new Date(d.getTime() + 9 * 3600_000).toISOString().slice(0, 10);
+
 export function ImwebImport({ api, recipients: initialRecipients, onBack }: { api: Api; recipients: Recipient[]; onBack: () => void }) {
   // 가져오는 중에 새로 등록한 어르신도 다음 주문에서 바로 찾을 수 있게
   const [recipients, setRecipients] = useState(initialRecipients);
   const [check, setCheck] = useState<Check | null>(null);
   const [err, setErr] = useState("");
-  const [days, setDays] = useState(30);
+  const [from, setFrom] = useState(() => ymdKst(new Date(Date.now() - 30 * 86400_000)));
+  const [bulk, setBulk] = useState<{ done: number; total: number; errors: string[] } | null>(null);
   const [orders, setOrders] = useState<ImOrder[] | null>(null);
   const [page, setPage] = useState({ page: 0, total: 1, partial: false });
   const [loading, setLoading] = useState(false);
@@ -40,29 +83,38 @@ export function ImwebImport({ api, recipients: initialRecipients, onBack }: { ap
     );
   }, [api]);
 
-  const load = useCallback(
-    async (next: number, reset: boolean) => {
-      setLoading(true);
-      setErr("");
-      try {
-        const j = await api<{ orders: ImOrder[]; page: number; totalPage: number; partial?: boolean }>("GET", `imweb/orders?days=${days}&page=${next}`);
+  // 시작일부터 모든 페이지를 차례로 불러옴 (호출 제한에 걸리면 잠깐 쉬었다가 이어서)
+  const loadAll = useCallback(async () => {
+    setLoading(true);
+    setErr("");
+    setOrders([]);
+    let pageNo = 1;
+    let guard = 0;
+    try {
+      while (guard++ < 200) {
+        const j = await api<{ orders: ImOrder[]; page: number; totalPage: number; partial?: boolean }>("GET", `imweb/orders?from=${from}&page=${pageNo}`);
         setOrders((o) => {
-          const prev = reset || !o ? [] : o;
+          const prev = o ?? [];
           return [...prev, ...j.orders.filter((x) => !prev.some((y) => y.order_no === x.order_no))];
         });
         setPage({ page: j.page, total: j.totalPage, partial: !!j.partial });
-      } catch (e) {
-        setErr((e as Error).message);
-      } finally {
-        setLoading(false);
+        if (j.partial) {
+          await new Promise((r) => setTimeout(r, 3000));
+          continue;
+        }
+        if (j.page >= j.totalPage) break;
+        pageNo = j.page + 1;
       }
-    },
-    [api, days],
-  );
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }, [api, from]);
 
   useEffect(() => {
-    if (check?.ok) load(1, true);
-  }, [check, load]);
+    if (check?.ok) loadAll();
+  }, [check, loadAll]);
 
   const phoneOf = useMemo(() => recipients.map((r) => ({ r, d: (r.guardian ?? "").replace(/\D/g, "") })), [recipients]);
   // 1순위: 주문서의 어르신 성함 (같은 이름이 여럿이면 번호까지 맞는 분) → 2순위: 주문자 번호 → 없으면 새로 등록
@@ -78,6 +130,40 @@ export function ImwebImport({ api, recipients: initialRecipients, onBack }: { ap
     if (o.elder) return { id: NEW, by: "" };
     return { id: "", by: "" };
   };
+
+  // 자동으로 어르신을 찾았고 넣을 품목이 있는 주문 (오래된 주문부터)
+  const auto = (orders ?? []).filter((o) => matchRecipient(o).id && defaultPicks(o).length > 0).sort((a, b) => a.date.localeCompare(b.date));
+  // 불러온 주문 중 그 어르신의 가장 이른 주문일
+  const earliestFor = (name: string) =>
+    (orders ?? []).filter((o) => o.elder?.name === name).reduce((m, o) => (o.date && o.date < m ? o.date : m), "9999-12-31");
+
+  async function importAll() {
+    if (!auto.length) return;
+    if (!confirm(`자동으로 어르신을 찾은 주문 ${auto.length}건을 장부에 넣을까요?\n(장부에 없는 어르신은 새로 등록돼요. 나머지 주문은 직접 골라 주세요)`)) return;
+    const created = new Map<string, string>(); // 새로 등록한 어르신 성함 → id
+    const errors: string[] = [];
+    setBulk({ done: 0, total: auto.length, errors });
+    for (const [n, o] of auto.entries()) {
+      try {
+        let target = matchRecipient(o).id;
+        if (target === NEW) {
+          const name = o.elder!.name;
+          if (!created.has(name)) {
+            const r = newRecipientFrom(o, earliestFor(name));
+            const j = await api<{ id: string }>("POST", "recipients", r);
+            created.set(name, j.id);
+            setRecipients((list) => [{ ...r, id: j.id }, ...list]);
+          }
+          target = created.get(name)!;
+        }
+        await importOrder(api, o, target, defaultPicks(o));
+        setOrders((list) => list!.filter((x) => x.order_no !== o.order_no));
+      } catch (e) {
+        errors.push(`${o.order_no}: ${(e as Error).message}`);
+      }
+      setBulk({ done: n + 1, total: auto.length, errors: [...errors] });
+    }
+  }
 
   return (
     <>
@@ -118,13 +204,37 @@ export function ImwebImport({ api, recipients: initialRecipients, onBack }: { ap
 
       {check?.ok && (
         <>
-          <div className="bp-chips" style={{ margin: "8px 0" }}>
-            {[30, 60, 90].map((d) => (
-              <button key={d} className={days === d ? "chip on" : "chip"} onClick={() => setDays(d)}>
-                최근 {d}일
+          <div className="bp-chips" style={{ margin: "8px 0", alignItems: "center" }}>
+            {[
+              ["최근 30일", ymdKst(new Date(Date.now() - 30 * 86400_000))],
+              ["9월 1일부터", `${new Date().getFullYear()}-09-01`],
+              ["올해 1월부터", `${new Date().getFullYear()}-01-01`],
+            ].map(([label, d]) => (
+              <button key={label} className={from === d ? "chip on" : "chip"} onClick={() => setFrom(d)} disabled={loading}>
+                {label}
               </button>
             ))}
+            <label className="small" style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+              시작일
+              <input type="date" value={from} max={ymdKst(new Date())} onChange={(e) => e.target.value && setFrom(e.target.value)} disabled={loading} />
+            </label>
           </div>
+          {loading && (
+            <p className="muted">
+              {from}부터 주문 불러오는 중… {page.total > 1 && `(${page.page}/${page.total})`} {orders && `${orders.length}건`}
+            </p>
+          )}
+          {!loading && auto.length > 0 && (
+            <button className="btn primary wide" onClick={importAll} disabled={!!bulk && bulk.done < bulk.total}>
+              ✅ 어르신을 자동으로 찾은 주문 {auto.length}건 한꺼번에 장부에 넣기
+            </button>
+          )}
+          {bulk && (
+            <p className="ledger-note">
+              {bulk.done < bulk.total ? `넣는 중… ${bulk.done}/${bulk.total}` : `${bulk.total - bulk.errors.length}건을 장부에 넣었어요.`}
+              {bulk.errors.length > 0 && ` 실패 ${bulk.errors.length}건: ${bulk.errors.join(" / ")}`}
+            </p>
+          )}
           <p className="ledger-note">이미 장부에 넣었거나 숨긴 주문은 다시 나오지 않아요. 주문자 휴대폰 번호가 어르신의 보호자 연락처와 같으면 자동으로 골라져요.</p>
           {orders?.length === 0 && !loading && <p className="card muted">새로 가져올 주문이 없어요.</p>}
           {orders?.map((o) => {
@@ -137,22 +247,12 @@ export function ImwebImport({ api, recipients: initialRecipients, onBack }: { ap
                 recipients={recipients}
                 initial={m.id}
                 matchedBy={m.by}
+                start={o.elder ? earliestFor(o.elder.name) : o.date}
                 onCreated={(r) => setRecipients((list) => [r, ...list])}
                 onDone={() => setOrders((list) => list!.filter((x) => x.order_no !== o.order_no))}
               />
             );
           })}
-          {loading && <p className="muted">주문 불러오는 중…</p>}
-          {!loading && page.partial && (
-            <button className="btn wide" onClick={() => load(page.page, false)}>
-              아임웹 호출 제한 때문에 일부만 불러왔어요 · 이어서 불러오기
-            </button>
-          )}
-          {!loading && !page.partial && page.page < page.total && (
-            <button className="btn wide" onClick={() => load(page.page + 1, false)}>
-              더 불러오기 ({page.page}/{page.total})
-            </button>
-          )}
         </>
       )}
     </>
@@ -165,9 +265,11 @@ function OrderCard({
   recipients,
   initial,
   matchedBy,
+  start,
   onCreated,
   onDone,
 }: {
+  start: string;
   api: Api;
   order: ImOrder;
   recipients: Recipient[];
@@ -176,7 +278,7 @@ function OrderCard({
   onCreated: (r: Recipient) => void;
   onDone: () => void;
 }) {
-  const lines = o.items.map((it, i) => ({ i, it, m: byIdx.get(it.prod_no), off: cancelled(it.status) }));
+  const lines = linesOf(o);
   const [rid, setRid] = useState(initial);
   const [on, setOn] = useState<boolean[]>(lines.map((l) => !!l.m && !l.off));
   const [busy, setBusy] = useState(false);
@@ -191,37 +293,12 @@ function OrderCard({
     try {
       let target = rid;
       if (rid === NEW) {
-        // 주문서의 어르신 성함으로 새 장부 만들기 (공단 잔액·적용기간·등급은 직원이 나중에 확인)
-        const r: Recipient = {
-          name: o.elder!.name,
-          grade: "",
-          rate: 0.15,
-          period_start: o.date,
-          base_remaining: 1_600_000,
-          base_date: o.date,
-          guardian: [o.name, o.phones[0] && fmtPhone(o.phones[0])].filter(Boolean).join(" "),
-          memo: `아임웹 주문 ${o.order_no}으로 자동 등록 · 등급·본인부담률·공단 잔액·적용기간 확인 필요`,
-        };
+        const r = newRecipientFrom(o, start);
         const j = await api<{ id: string }>("POST", "recipients", r);
         target = j.id;
         onCreated({ ...r, id: j.id });
       }
-      for (const { it, m } of picked) {
-        const { p, kind } = m!;
-        await api("POST", `recipients/${target}/items`, {
-          kind,
-          product_id: p.id,
-          category: p.category,
-          name: p.name,
-          price: (kind === "rent" ? p.rent : p.buy)!.price,
-          qty: kind === "rent" ? 1 : it.count,
-          date: o.date,
-          end_date: null,
-          status: "active",
-          note: `아임웹 주문 ${o.order_no}`,
-        });
-      }
-      await api("POST", "imweb/mark", { order_no: o.order_no, action: "added", recipient_id: target });
+      await importOrder(api, o, target, picked);
       onDone();
     } catch (e) {
       setErr((e as Error).message);

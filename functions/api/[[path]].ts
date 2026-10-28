@@ -396,11 +396,17 @@ export async function onRequest({ request, env, params }: Ctx): Promise<Response
         });
       }
       if (id === "orders" && method === "GET") {
-        const days = Math.min(90, Math.max(1, Number(url.searchParams.get("days")) || 30));
+        // from=YYYY-MM-DD(한국 날짜)부터, 없으면 days일 전부터 (최대 1년)
+        const fromQ = url.searchParams.get("from") ?? "";
+        const fromTs = isDate(fromQ) ? Math.floor(Date.parse(`${fromQ}T00:00:00+09:00`) / 1000) : NaN;
+        const days = Number.isFinite(fromTs)
+          ? Math.min(366, Math.max(1, Math.ceil((Date.now() / 1000 - fromTs) / 86400)))
+          : Math.min(366, Math.max(1, Number(url.searchParams.get("days")) || 30));
         const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
         const to = Math.floor(Date.now() / 1000);
         // 무료 요금제 외부 호출 50개 제한 + 아임웹 초당 5건 제한 → 한 번에 20건씩 (약 6초)
-        const j = await imwebGet(env, db, `/shop/orders?order_date_from=${to - days * 86400}&order_date_to=${to}&offset=${page}&limit=20`);
+        const from = Number.isFinite(fromTs) ? fromTs : to - days * 86400;
+        const j = await imwebGet(env, db, `/shop/orders?order_date_from=${from}&order_date_to=${to}&offset=${page}&limit=20`);
         const list = asList(pick(j, "data", "list")).map((o) => ({ raw: o, n: normOrder(o) }));
         const totalPage = Number(pick(j, "data", "pagenation", "total_page") ?? pick(j, "data", "pagination", "total_page") ?? 1) || 1;
         const { results: done } = await db.prepare("SELECT order_no, action FROM imweb_orders").all();
