@@ -51,12 +51,12 @@ export function InstallApp({ label = "홈 화면에 바로가기 추가", compac
     <div className={compact ? "install-app compact" : "install-app"}>
       {compact ? (
         <button className="hdr-install" onClick={click} aria-expanded={kind !== "prompt" ? open : undefined} aria-label="홈 화면에 바로가기 추가">
-          <span aria-hidden>📲</span>
-          <span>
-            홈 화면에
-            <br />
-            바로가기
-          </span>
+          <svg className="ico" viewBox="0 0 24 24" aria-hidden>
+            <rect x="6" y="2.5" width="12" height="19" rx="2.5" fill="none" stroke="currentColor" strokeWidth="2" />
+            <path d="M12 8v6M9 11h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+          <span className="lbl">바로가기</span>
+          <span className="lbl-long">홈 화면에 추가</span>
         </button>
       ) : (
         <button className="btn wide" onClick={click} aria-expanded={kind !== "prompt" ? open : undefined}>
