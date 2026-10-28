@@ -53,10 +53,12 @@ async function imwebAuth(env: Env, fresh = false) {
   if (!fresh && imwebToken && Date.now() - imwebToken.at < 30 * 60_000) return imwebToken.token;
   const q = new URLSearchParams({ key: env.IMWEB_API_KEY, secret: env.IMWEB_SECRET_KEY });
   const tokenOf = (j: Row) => (j.access_token ?? (j.data as Row | undefined)?.access_token) as string | undefined;
+  await throttle();
   let r = await fetch(`${IMWEB}/auth?${q}`);
   let j = (await r.json().catch(() => ({}))) as Row;
   // 문서 버전에 따라 POST(JSON)만 받는 경우도 있어 한 번 더 시도
   if (!tokenOf(j)) {
+    await throttle();
     r = await fetch(`${IMWEB}/auth`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key: env.IMWEB_API_KEY, secret: env.IMWEB_SECRET_KEY }) });
     j = (await r.json().catch(() => ({}))) as Row;
   }
@@ -66,11 +68,24 @@ async function imwebAuth(env: Env, fresh = false) {
   return token;
 }
 
+// 아임웹 호출 제한(초당 5건) → 호출 사이에 최소 260ms 간격
+let lastCall = 0;
+async function throttle() {
+  const wait = lastCall + 260 - Date.now();
+  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+  lastCall = Date.now();
+}
+
 async function imwebGet(env: Env, path: string, retry = true): Promise<Row> {
   const token = await imwebAuth(env);
+  await throttle();
   const r = await fetch(`${IMWEB}${path}`, { headers: { "access-token": token } });
   const j = (await r.json().catch(() => ({}))) as Row;
   // 토큰 만료 등 → 한 번만 새 토큰으로 다시
+  if (retry && r.status === 429) {
+    await new Promise((res) => setTimeout(res, 1100));
+    return imwebGet(env, path, false);
+  }
   if (retry && (r.status === 401 || j.code === -5 || j.code === 401)) {
     imwebToken = null;
     return imwebGet(env, path, false);
@@ -307,8 +322,8 @@ export async function onRequest({ request, env, params }: Ctx): Promise<Response
         const days = Math.min(90, Math.max(1, Number(url.searchParams.get("days")) || 30));
         const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
         const to = Math.floor(Date.now() / 1000);
-        // 무료 요금제는 요청 1번에 외부 호출 50개 제한 → 한 번에 30건씩
-        const j = await imwebGet(env, `/shop/orders?order_date_from=${to - days * 86400}&order_date_to=${to}&offset=${page}&limit=30`);
+        // 무료 요금제 외부 호출 50개 제한 + 아임웹 초당 5건 제한 → 한 번에 20건씩 (약 6초)
+        const j = await imwebGet(env, `/shop/orders?order_date_from=${to - days * 86400}&order_date_to=${to}&offset=${page}&limit=20`);
         const list = asList(pick(j, "data", "list")).map((o) => ({ raw: o, n: normOrder(o) }));
         const totalPage = Number(pick(j, "data", "pagenation", "total_page") ?? pick(j, "data", "pagination", "total_page") ?? 1) || 1;
         const { results: done } = await db.prepare("SELECT order_no, action FROM imweb_orders").all();
