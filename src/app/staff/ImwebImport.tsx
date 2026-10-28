@@ -25,7 +25,7 @@ export function ImwebImport({ api, recipients, onBack }: { api: Api; recipients:
   const [err, setErr] = useState("");
   const [days, setDays] = useState(30);
   const [orders, setOrders] = useState<ImOrder[] | null>(null);
-  const [page, setPage] = useState({ page: 0, total: 1 });
+  const [page, setPage] = useState({ page: 0, total: 1, partial: false });
   const [loading, setLoading] = useState(false);
   const [showRaw, setShowRaw] = useState(false);
 
@@ -40,9 +40,12 @@ export function ImwebImport({ api, recipients, onBack }: { api: Api; recipients:
       setLoading(true);
       setErr("");
       try {
-        const j = await api<{ orders: ImOrder[]; page: number; totalPage: number }>("GET", `imweb/orders?days=${days}&page=${next}`);
-        setOrders((o) => [...(reset || !o ? [] : o), ...j.orders]);
-        setPage({ page: j.page, total: j.totalPage });
+        const j = await api<{ orders: ImOrder[]; page: number; totalPage: number; partial?: boolean }>("GET", `imweb/orders?days=${days}&page=${next}`);
+        setOrders((o) => {
+          const prev = reset || !o ? [] : o;
+          return [...prev, ...j.orders.filter((x) => !prev.some((y) => y.order_no === x.order_no))];
+        });
+        setPage({ page: j.page, total: j.totalPage, partial: !!j.partial });
       } catch (e) {
         setErr((e as Error).message);
       } finally {
@@ -110,7 +113,12 @@ export function ImwebImport({ api, recipients, onBack }: { api: Api; recipients:
             />
           ))}
           {loading && <p className="muted">주문 불러오는 중…</p>}
-          {!loading && page.page < page.total && (
+          {!loading && page.partial && (
+            <button className="btn wide" onClick={() => load(page.page, false)}>
+              아임웹 호출 제한 때문에 일부만 불러왔어요 · 이어서 불러오기
+            </button>
+          )}
+          {!loading && !page.partial && page.page < page.total && (
             <button className="btn wide" onClick={() => load(page.page + 1, false)}>
               더 불러오기 ({page.page}/{page.total})
             </button>

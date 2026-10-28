@@ -34,6 +34,7 @@ const SCHEMA = [
     marketing INTEGER NOT NULL DEFAULT 0, ua TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL)`,
   `CREATE INDEX IF NOT EXISTS consents_recipient ON consents(recipient_id)`,
   // 아임웹 주문 가져오기: 이미 장부에 넣었거나 숨긴 주문
+  `CREATE TABLE IF NOT EXISTS kv (key TEXT PRIMARY KEY, value TEXT NOT NULL, at INTEGER NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS imweb_orders (
     order_no TEXT PRIMARY KEY, action TEXT NOT NULL, recipient_id TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL)`,
 ];
@@ -44,52 +45,76 @@ const IMWEB_DEFAULT = "https://api.imweb.me/v2";
 // 로컬 테스트용으로만 IMWEB_BASE를 바꿉니다
 let IMWEB = IMWEB_DEFAULT;
 let imwebToken: { token: string; at: number } | null = null;
+const TOKEN_TTL = 30 * 60_000;
 
 class ImwebError extends Error {}
 
-async function imwebAuth(env: Env, fresh = false) {
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+// 아임웹 호출 제한(초당 5건): 호출 사이 최소 350ms, 제한에 걸리면 기다렸다가 최대 3번 다시
+let lastCall = 0;
+async function throttle() {
+  const wait = lastCall + 350 - Date.now();
+  if (wait > 0) await sleep(wait);
+  lastCall = Date.now();
+}
+const tooMany = (r: Response, j: Row) => r.status === 429 || /TOO\s*MANY/i.test(String(j.msg ?? j.message ?? ""));
+
+async function imwebFetch(url: string, init?: RequestInit): Promise<{ r: Response; j: Row }> {
+  for (let attempt = 0; ; attempt++) {
+    await throttle();
+    const r = await fetch(url, init);
+    const j = (await r.json().catch(() => ({}))) as Row;
+    if (tooMany(r, j) && attempt < 3) {
+      await sleep(1200 * (attempt + 1));
+      continue;
+    }
+    return { r, j };
+  }
+}
+
+// 토큰은 D1에 저장해 여러 서버(인스턴스)가 같이 씀 → 인증 호출을 줄여 제한에 덜 걸리게
+async function imwebAuth(env: Env, db: D1, fresh = false) {
   if (!env.IMWEB_API_KEY || !env.IMWEB_SECRET_KEY) throw new ImwebError("setup:IMWEB");
   IMWEB = env.IMWEB_BASE || IMWEB_DEFAULT;
-  if (!fresh && imwebToken && Date.now() - imwebToken.at < 30 * 60_000) return imwebToken.token;
+  if (!fresh && imwebToken && Date.now() - imwebToken.at < TOKEN_TTL) return imwebToken.token;
+  if (!fresh) {
+    const saved = await db.prepare("SELECT value, at FROM kv WHERE key = 'imweb_token'").first();
+    if (saved && Date.now() - Number(saved.at) < TOKEN_TTL) {
+      imwebToken = { token: String(saved.value), at: Number(saved.at) };
+      return imwebToken.token;
+    }
+  }
   const q = new URLSearchParams({ key: env.IMWEB_API_KEY, secret: env.IMWEB_SECRET_KEY });
   const tokenOf = (j: Row) => (j.access_token ?? (j.data as Row | undefined)?.access_token) as string | undefined;
-  await throttle();
-  let r = await fetch(`${IMWEB}/auth?${q}`);
-  let j = (await r.json().catch(() => ({}))) as Row;
+  let { r, j } = await imwebFetch(`${IMWEB}/auth?${q}`);
   // 문서 버전에 따라 POST(JSON)만 받는 경우도 있어 한 번 더 시도
-  if (!tokenOf(j)) {
-    await throttle();
-    r = await fetch(`${IMWEB}/auth`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key: env.IMWEB_API_KEY, secret: env.IMWEB_SECRET_KEY }) });
-    j = (await r.json().catch(() => ({}))) as Row;
+  if (!tokenOf(j) && !tooMany(r, j)) {
+    ({ r, j } = await imwebFetch(`${IMWEB}/auth`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ key: env.IMWEB_API_KEY, secret: env.IMWEB_SECRET_KEY }),
+    }));
   }
   const token = tokenOf(j);
-  if (!token) throw new ImwebError(`아임웹 인증 실패: ${String(j.msg ?? j.message ?? r.status)} (키·시크릿을 확인해 주세요)`);
+  if (!token) {
+    if (tooMany(r, j)) throw new ImwebError("아임웹 호출이 잠시 많아요. 10초쯤 뒤에 다시 눌러 주세요.");
+    throw new ImwebError(`아임웹 인증 실패: ${String(j.msg ?? j.message ?? r.status)} (키·시크릿을 확인해 주세요)`);
+  }
   imwebToken = { token, at: Date.now() };
+  await db.prepare("INSERT OR REPLACE INTO kv (key, value, at) VALUES ('imweb_token', ?, ?)").bind(token, imwebToken.at).run();
   return token;
 }
 
-// 아임웹 호출 제한(초당 5건) → 호출 사이에 최소 260ms 간격
-let lastCall = 0;
-async function throttle() {
-  const wait = lastCall + 260 - Date.now();
-  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
-  lastCall = Date.now();
-}
-
-async function imwebGet(env: Env, path: string, retry = true): Promise<Row> {
-  const token = await imwebAuth(env);
-  await throttle();
-  const r = await fetch(`${IMWEB}${path}`, { headers: { "access-token": token } });
-  const j = (await r.json().catch(() => ({}))) as Row;
-  // 토큰 만료 등 → 한 번만 새 토큰으로 다시
-  if (retry && r.status === 429) {
-    await new Promise((res) => setTimeout(res, 1100));
-    return imwebGet(env, path, false);
-  }
+async function imwebGet(env: Env, db: D1, path: string, retry = true): Promise<Row> {
+  const token = await imwebAuth(env, db);
+  const { r, j } = await imwebFetch(`${IMWEB}${path}`, { headers: { "access-token": token } });
+  // 토큰 만료 → 한 번만 새 토큰으로 다시
   if (retry && (r.status === 401 || j.code === -5 || j.code === 401)) {
     imwebToken = null;
-    return imwebGet(env, path, false);
+    await imwebAuth(env, db, true);
+    return imwebGet(env, db, path, false);
   }
+  if (tooMany(r, j)) throw new ImwebError("아임웹 호출이 잠시 많아요. 10초쯤 뒤에 다시 눌러 주세요.");
   if (!r.ok || (typeof j.code === "number" && j.code !== 200)) throw new ImwebError(`아임웹 응답 오류: ${String(j.msg ?? j.message ?? r.status)}`);
   return j;
 }
@@ -307,9 +332,8 @@ export async function onRequest({ request, env, params }: Ctx): Promise<Response
   if (res === "imweb") {
     try {
       if (id === "check" && method === "GET") {
-        await imwebAuth(env, true);
         const to = Math.floor(Date.now() / 1000);
-        const j = await imwebGet(env, `/shop/orders?order_date_from=${to - 30 * 86400}&order_date_to=${to}&offset=1&limit=1`);
+        const j = await imwebGet(env, db, `/shop/orders?order_date_from=${to - 30 * 86400}&order_date_to=${to}&offset=1&limit=1`);
         const first = asList(pick(j, "data", "list"))[0];
         return json({
           ok: true,
@@ -323,18 +347,26 @@ export async function onRequest({ request, env, params }: Ctx): Promise<Response
         const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
         const to = Math.floor(Date.now() / 1000);
         // 무료 요금제 외부 호출 50개 제한 + 아임웹 초당 5건 제한 → 한 번에 20건씩 (약 6초)
-        const j = await imwebGet(env, `/shop/orders?order_date_from=${to - days * 86400}&order_date_to=${to}&offset=${page}&limit=20`);
+        const j = await imwebGet(env, db, `/shop/orders?order_date_from=${to - days * 86400}&order_date_to=${to}&offset=${page}&limit=20`);
         const list = asList(pick(j, "data", "list")).map((o) => ({ raw: o, n: normOrder(o) }));
         const totalPage = Number(pick(j, "data", "pagenation", "total_page") ?? pick(j, "data", "pagination", "total_page") ?? 1) || 1;
         const { results: done } = await db.prepare("SELECT order_no, action FROM imweb_orders").all();
         const doneSet = new Set(done.map((d) => String(d.order_no)));
         const orders = [];
+        // 품목 조회가 중간에 막히면 그때까지 불러온 것만 돌려주고 partial로 알림
+        let partial = false;
         for (const { n } of list) {
           if (!n.order_no || doneSet.has(n.order_no)) continue;
-          const po = await imwebGet(env, `/shop/orders/${encodeURIComponent(n.order_no)}/prod-orders`);
-          orders.push({ ...n, items: normItems(po.data) });
+          try {
+            const po = await imwebGet(env, db, `/shop/orders/${encodeURIComponent(n.order_no)}/prod-orders`);
+            orders.push({ ...n, items: normItems(po.data) });
+          } catch (e) {
+            if (!orders.length) throw e;
+            partial = true;
+            break;
+          }
         }
-        return json({ orders, page, totalPage });
+        return json({ orders, page, totalPage, partial });
       }
       if (id === "mark" && method === "POST") {
         const b = await body(request);
