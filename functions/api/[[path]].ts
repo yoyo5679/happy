@@ -11,7 +11,7 @@ type D1Stmt = {
   run(): Promise<unknown>;
 };
 type D1 = { prepare(sql: string): D1Stmt; batch(s: D1Stmt[]): Promise<unknown> };
-type Env = { DB?: D1; STAFF_PASSWORD?: string };
+type Env = { DB?: D1; STAFF_PASSWORD?: string; IMWEB_API_KEY?: string; IMWEB_SECRET_KEY?: string; IMWEB_BASE?: string };
 type Ctx = { request: Request; env: Env; params: { path?: string[] } };
 type Row = Record<string, unknown>;
 
@@ -33,7 +33,91 @@ const SCHEMA = [
     version TEXT NOT NULL, signer TEXT NOT NULL DEFAULT '', relation TEXT NOT NULL DEFAULT '',
     marketing INTEGER NOT NULL DEFAULT 0, ua TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL)`,
   `CREATE INDEX IF NOT EXISTS consents_recipient ON consents(recipient_id)`,
+  // 아임웹 주문 가져오기: 이미 장부에 넣었거나 숨긴 주문
+  `CREATE TABLE IF NOT EXISTS imweb_orders (
+    order_no TEXT PRIMARY KEY, action TEXT NOT NULL, recipient_id TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL)`,
 ];
+
+// ───────── 아임웹 API (v2) ─────────
+// 관리자 → 환경설정 → 외부 서비스 연동(API)에서 발급한 키. Cloudflare 암호 IMWEB_API_KEY / IMWEB_SECRET_KEY
+const IMWEB_DEFAULT = "https://api.imweb.me/v2";
+// 로컬 테스트용으로만 IMWEB_BASE를 바꿉니다
+let IMWEB = IMWEB_DEFAULT;
+let imwebToken: { token: string; at: number } | null = null;
+
+class ImwebError extends Error {}
+
+async function imwebAuth(env: Env, fresh = false) {
+  if (!env.IMWEB_API_KEY || !env.IMWEB_SECRET_KEY) throw new ImwebError("setup:IMWEB");
+  IMWEB = env.IMWEB_BASE || IMWEB_DEFAULT;
+  if (!fresh && imwebToken && Date.now() - imwebToken.at < 30 * 60_000) return imwebToken.token;
+  const q = new URLSearchParams({ key: env.IMWEB_API_KEY, secret: env.IMWEB_SECRET_KEY });
+  const tokenOf = (j: Row) => (j.access_token ?? (j.data as Row | undefined)?.access_token) as string | undefined;
+  let r = await fetch(`${IMWEB}/auth?${q}`);
+  let j = (await r.json().catch(() => ({}))) as Row;
+  // 문서 버전에 따라 POST(JSON)만 받는 경우도 있어 한 번 더 시도
+  if (!tokenOf(j)) {
+    r = await fetch(`${IMWEB}/auth`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key: env.IMWEB_API_KEY, secret: env.IMWEB_SECRET_KEY }) });
+    j = (await r.json().catch(() => ({}))) as Row;
+  }
+  const token = tokenOf(j);
+  if (!token) throw new ImwebError(`아임웹 인증 실패: ${String(j.msg ?? j.message ?? r.status)} (키·시크릿을 확인해 주세요)`);
+  imwebToken = { token, at: Date.now() };
+  return token;
+}
+
+async function imwebGet(env: Env, path: string, retry = true): Promise<Row> {
+  const token = await imwebAuth(env);
+  const r = await fetch(`${IMWEB}${path}`, { headers: { "access-token": token } });
+  const j = (await r.json().catch(() => ({}))) as Row;
+  // 토큰 만료 등 → 한 번만 새 토큰으로 다시
+  if (retry && (r.status === 401 || j.code === -5 || j.code === 401)) {
+    imwebToken = null;
+    return imwebGet(env, path, false);
+  }
+  if (!r.ok || (typeof j.code === "number" && j.code !== 200)) throw new ImwebError(`아임웹 응답 오류: ${String(j.msg ?? j.message ?? r.status)}`);
+  return j;
+}
+
+const digits = (v: unknown) => String(v ?? "").replace(/\D/g, "");
+const pick = (o: unknown, ...keys: string[]): unknown => {
+  let cur: unknown = o;
+  for (const k of keys) cur = cur && typeof cur === "object" ? (cur as Row)[k] : undefined;
+  return cur;
+};
+const asList = (v: unknown): Row[] => (Array.isArray(v) ? (v as Row[]) : v && typeof v === "object" ? (Object.values(v) as Row[]) : []);
+
+/** 주문 목록 응답을 필요한 값만 정리 (필드 이름이 조금 달라도 버티도록) */
+function normOrder(o: Row) {
+  const t = Number(o.order_time ?? o.order_date ?? pick(o, "payment", "pay_time") ?? 0);
+  const time = t > 1e12 ? t : t * 1000;
+  return {
+    order_no: String(o.order_no ?? o.order_code ?? ""),
+    date: time ? new Date(time + 9 * 3600_000).toISOString().slice(0, 10) : "",
+    name: String(pick(o, "orderer", "name") ?? pick(o, "delivery", "address", "name") ?? ""),
+    phones: [pick(o, "orderer", "call"), pick(o, "orderer", "call2"), pick(o, "delivery", "address", "phone"), pick(o, "delivery", "address", "phone2")]
+      .map(digits)
+      .filter((x) => x.length >= 8),
+    total: Number(pick(o, "payment", "total_price") ?? pick(o, "payment", "price") ?? 0),
+  };
+}
+
+function normItems(prodOrders: unknown) {
+  const out: { prod_no: string; name: string; count: number; price: number; status: string }[] = [];
+  for (const po of asList(prodOrders)) {
+    const status = String(po.status ?? "");
+    for (const it of asList(po.items ?? po.item ?? [])) {
+      out.push({
+        prod_no: String(it.prod_no ?? it.prod_code ?? ""),
+        name: String(it.prod_name ?? it.name ?? ""),
+        count: Number(pick(it, "payment", "count") ?? it.count ?? it.ea ?? 1) || 1,
+        price: Number(pick(it, "payment", "price") ?? it.price ?? 0),
+        status: String(it.status ?? status),
+      });
+    }
+  }
+  return out;
+}
 
 // src/data/consent.ts 의 CONSENT_VERSION 과 같게 유지 (문구가 바뀌면 다시 동의를 받습니다)
 const CONSENT_VERSION = "2026-11-v1";
@@ -203,6 +287,56 @@ export async function onRequest({ request, env, params }: Ctx): Promise<Response
   const [, res, id, sub, subId] = path;
 
   if (res === "ping") return json({ ok: true });
+
+  // 아임웹 주문 가져오기
+  if (res === "imweb") {
+    try {
+      if (id === "check" && method === "GET") {
+        await imwebAuth(env, true);
+        const to = Math.floor(Date.now() / 1000);
+        const j = await imwebGet(env, `/shop/orders?order_date_from=${to - 30 * 86400}&order_date_to=${to}&offset=1&limit=1`);
+        const first = asList(pick(j, "data", "list"))[0];
+        return json({
+          ok: true,
+          count: Number(pick(j, "data", "pagenation", "data_count") ?? pick(j, "data", "pagination", "data_count") ?? 0) || null,
+          sample: first ? normOrder(first) : null,
+          keys: first ? Object.keys(first) : [],
+        });
+      }
+      if (id === "orders" && method === "GET") {
+        const days = Math.min(90, Math.max(1, Number(url.searchParams.get("days")) || 30));
+        const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
+        const to = Math.floor(Date.now() / 1000);
+        // 무료 요금제는 요청 1번에 외부 호출 50개 제한 → 한 번에 30건씩
+        const j = await imwebGet(env, `/shop/orders?order_date_from=${to - days * 86400}&order_date_to=${to}&offset=${page}&limit=30`);
+        const list = asList(pick(j, "data", "list")).map((o) => ({ raw: o, n: normOrder(o) }));
+        const totalPage = Number(pick(j, "data", "pagenation", "total_page") ?? pick(j, "data", "pagination", "total_page") ?? 1) || 1;
+        const { results: done } = await db.prepare("SELECT order_no, action FROM imweb_orders").all();
+        const doneSet = new Set(done.map((d) => String(d.order_no)));
+        const orders = [];
+        for (const { n } of list) {
+          if (!n.order_no || doneSet.has(n.order_no)) continue;
+          const po = await imwebGet(env, `/shop/orders/${encodeURIComponent(n.order_no)}/prod-orders`);
+          orders.push({ ...n, items: normItems(po.data) });
+        }
+        return json({ orders, page, totalPage });
+      }
+      if (id === "mark" && method === "POST") {
+        const b = await body(request);
+        const orderNo = str(b.order_no, 60);
+        const action = b.action === "added" ? "added" : "ignored";
+        if (!orderNo) return fail(400, "주문번호가 없어요");
+        await db
+          .prepare("INSERT OR REPLACE INTO imweb_orders (order_no, action, recipient_id, created_at) VALUES (?,?,?,?)")
+          .bind(orderNo, action, str(b.recipient_id, 60), now())
+          .run();
+        return json({ ok: true });
+      }
+    } catch (e) {
+      if (e instanceof ImwebError) return fail(e.message.startsWith("setup:") ? 503 : 502, e.message);
+      return fail(502, `아임웹에 연결하지 못했어요: ${(e as Error).message}`);
+    }
+  }
 
   if (res === "recipients") {
     // 목록

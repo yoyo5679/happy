@@ -146,3 +146,9 @@ npm run dev     # http://localhost:3000
 - 보호자가 '동의 철회'를 누르면 장부가 바로 삭제됩니다 (동의·철회 기록만 남음).
 - 문구는 `src/data/consent.ts`, 사업자 정보는 `src/config/site.ts`의 `business` (대표자·주소·보호책임자 채우기). 문구를 바꾸면 `CONSENT_VERSION`을 올리고 `functions/api/[[path]].ts`의 같은 상수도 맞춰 주세요 → 모두 다시 동의받습니다.
 - 개인정보처리방침: `/privacy` (푸터에 링크)
+
+### 아임웹 주문 가져오기 (/staff → 🛒 아임웹 주문 가져오기)
+- Cloudflare 암호: `IMWEB_API_KEY`, `IMWEB_SECRET_KEY` (아임웹 관리자 → 외부 서비스 연동(API)). 넣은 뒤 재배포.
+- 화면에서 '연결 확인'이 먼저 실행되고, 최근 30/60/90일 주문을 불러옵니다. 주문자 휴대폰 번호가 어르신의 보호자 연락처와 같으면 자동 선택.
+- 상품은 쇼핑몰 상품번호(idx)로 `products.json`과 맞춰 급여가로 넣습니다. 목록에 없는 상품·취소된 품목은 체크가 꺼져 있습니다.
+- 장부에 넣었거나 숨긴 주문은 `imweb_orders` 표에 기록되어 다시 나오지 않습니다.

@@ -5,6 +5,7 @@ import { site } from "@/config/site";
 import { LedgerView } from "@/components/LedgerView";
 import { calcLedger, dot, today, ymd, type Item, type Recipient } from "@/lib/ledger";
 import { relations } from "@/data/consent";
+import { ImwebImport } from "./ImwebImport";
 import { categories, products, RATES, won, type CategoryKey } from "@/data/products";
 
 const KEY = "hc_staff";
@@ -129,7 +130,9 @@ function useSelected(): [string | null, (id: string | null) => void] {
 function Ledger({ api, onLogout }: { api: Api; onLogout: () => void }) {
   const [selected, select] = useSelected();
   const [creating, setCreating] = useState(false);
+  const [importing, setImporting] = useState<Recipient[] | null>(null);
 
+  if (importing) return <ImwebImport api={api} recipients={importing} onBack={() => setImporting(null)} />;
   if (creating)
     return (
       <>
@@ -144,10 +147,22 @@ function Ledger({ api, onLogout }: { api: Api; onLogout: () => void }) {
       </>
     );
   if (selected) return <Detail key={selected} id={selected} api={api} onBack={() => select(null)} />;
-  return <List api={api} onOpen={select} onCreate={() => setCreating(true)} onLogout={onLogout} />;
+  return <List api={api} onOpen={select} onCreate={() => setCreating(true)} onImport={setImporting} onLogout={onLogout} />;
 }
 
-function List({ api, onOpen, onCreate, onLogout }: { api: Api; onOpen: (id: string) => void; onCreate: () => void; onLogout: () => void }) {
+function List({
+  api,
+  onOpen,
+  onCreate,
+  onImport,
+  onLogout,
+}: {
+  api: Api;
+  onOpen: (id: string) => void;
+  onCreate: () => void;
+  onImport: (recipients: Recipient[]) => void;
+  onLogout: () => void;
+}) {
   const [data, setData] = useState<ListData | null>(null);
   const [err, setErr] = useState("");
   const [q, setQ] = useState("");
@@ -171,9 +186,14 @@ function List({ api, onOpen, onCreate, onLogout }: { api: Api; onOpen: (id: stri
           로그아웃
         </button>
       </div>
-      <button className="btn primary wide" onClick={onCreate}>
-        + 어르신 등록
-      </button>
+      <div className="btn-row">
+        <button className="btn primary" onClick={onCreate}>
+          + 어르신 등록
+        </button>
+        <button className="btn" onClick={() => data && onImport(data.recipients)} disabled={!data}>
+          🛒 아임웹 주문 가져오기
+        </button>
+      </div>
       <section className="card">
         <input className="staff-search" placeholder="이름·보호자 연락처로 찾기" value={q} onChange={(e) => setQ(e.target.value)} />
         {err && <p className="form-err">{err}</p>}
