@@ -490,3 +490,23 @@ em.opt { background: #eef1f0; color: var(--muted); }
   html.big .hdr-install .lbl, html.big .font-toggle .t { font-size: 0.6rem; }
 }
 @media (max-width: 350px) { .site-header .logo img { height: 28px; } .hdr-install, .font-toggle { width: 50px; } }
+
+/* 장기요양기관 찾기 */
+.care-place { display: flex; gap: 8px; margin-top: 10px; }
+.care-place .btn { margin: 0; min-height: 46px; padding: 8px 16px; }
+.care-sort { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 12px; padding: 4px; border-radius: 12px; background: var(--brand-weak); }
+.care-list { list-style: none; margin: 0; padding: 0; }
+.care-card { margin: 10px 0; padding: 16px; }
+.care-head { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.care-head strong { font-size: 1.05rem; }
+.care-km { flex: none; color: var(--brand); font-weight: 800; }
+.care-kinds { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.care-kind { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 8px; background: #f3f6f5; font-size: 0.85rem; }
+.care-kind.dim { opacity: 0.55; }
+.care-kind em { font-style: normal; font-size: 0.8rem; }
+.grade { padding: 0 6px; border-radius: 6px; font-size: 0.8rem; color: #fff; }
+.grade.gA { background: #0a7d4b; } .grade.gB { background: #068291; } .grade.gC { background: #6b7c86; } .grade.gD { background: #b7791f; } .grade.gE { background: #c0392b; }
+.care-addr { margin: 0 0 2px; font-size: 0.9rem; }
+.care-actions { display: flex; gap: 8px; margin-top: 10px; }
+.care-actions .btn { flex: 1; margin: 0; }
+.tools .tool:last-child:nth-child(odd) { grid-column: 1 / -1; }

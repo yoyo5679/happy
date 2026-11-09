@@ -11,7 +11,7 @@ type D1Stmt = {
   run(): Promise<unknown>;
 };
 type D1 = { prepare(sql: string): D1Stmt; batch(s: D1Stmt[]): Promise<unknown> };
-type Env = { DB?: D1; STAFF_PASSWORD?: string; IMWEB_API_KEY?: string; IMWEB_SECRET_KEY?: string; IMWEB_BASE?: string };
+type Env = { DB?: D1; STAFF_PASSWORD?: string; IMWEB_API_KEY?: string; IMWEB_SECRET_KEY?: string; IMWEB_BASE?: string; KAKAO_REST_KEY?: string; DATA_GO_KR_KEY?: string; KAKAO_BASE?: string; DATA_GO_KR_BASE?: string };
 type Ctx = { request: Request; env: Env; params: { path?: string[] } };
 type Row = Record<string, unknown>;
 
@@ -398,6 +398,9 @@ export async function onRequest({ request, env, params }: Ctx): Promise<Response
   const method = request.method;
   const url = new URL(request.url);
 
+  // 장기요양기관 찾기 (공개)
+  if (path[0] === "ltc" && path.length === 2) return ltcPublic(request, env, db, path[1]);
+
   // 보호자용: 동의 전에는 장부를 보여주지 않습니다
   if (path[0] === "my" && path.length <= 2) {
     const b = method === "POST" ? await body(request) : {};
@@ -459,6 +462,8 @@ export async function onRequest({ request, env, params }: Ctx): Promise<Response
   if (res === "ping") return json({ ok: true });
 
   // 아임웹 주문 가져오기
+  if (res === "ltc") return ltcStaff(request, env, db, String(id ?? ""));
+
   if (res === "imweb") {
     try {
       if (id === "check" && method === "GET") {
@@ -624,6 +629,190 @@ export async function onRequest({ request, env, params }: Ctx): Promise<Response
         return json({ ok: true });
       }
     }
+  }
+  return fail(404, "없는 주소예요");
+}
+
+// ───────── 장기요양기관 찾기 (공단 공개자료 + 카카오 좌표) ─────────
+// 기관 목록은 public/ltc/facilities-{시도}.json (scripts/ltc/build.py) → 직원 화면에서 D1로 옮기고 좌표를 붙임
+const LTC_SCHEMA = [
+  `CREATE TABLE IF NOT EXISTS ltc (
+    code TEXT PRIMARY KEY, name TEXT NOT NULL, addr TEXT NOT NULL, sido TEXT NOT NULL, desig TEXT NOT NULL DEFAULT '',
+    kinds TEXT NOT NULL, grades TEXT NOT NULL DEFAULT '{}', ptype TEXT NOT NULL DEFAULT '', cap INTEGER NOT NULL DEFAULT 0,
+    ver TEXT NOT NULL DEFAULT '', lat REAL, lng REAL, geo_fail INTEGER NOT NULL DEFAULT 0, phone TEXT, phone_at TEXT)`,
+  `CREATE INDEX IF NOT EXISTS ltc_lat ON ltc(lat)`,
+];
+const LTC_KINDS = ["visit", "bath", "day", "short", "home"];
+
+async function kakao(env: Env, path: string, q: Record<string, string>): Promise<Row> {
+  if (!env.KAKAO_REST_KEY) throw new ImwebError("setup:KAKAO");
+  const r = await fetch(`${env.KAKAO_BASE || "https://dapi.kakao.com"}${path}?${new URLSearchParams(q)}`, { headers: { Authorization: `KakaoAK ${env.KAKAO_REST_KEY}` } });
+  const j = (await r.json().catch(() => ({}))) as Row;
+  if (!r.ok) throw new ImwebError(`카카오 오류: ${String(j.message ?? j.msg ?? r.status)}`);
+  return j;
+}
+
+/** 주소 → 좌표 (도로명 주소 검색, 안 되면 괄호 뺀 주소로 한 번 더) */
+async function geocode(env: Env, addr: string): Promise<{ lat: number; lng: number } | null> {
+  for (const q of [addr, addr.replace(/\s*\(.*\)\s*$/, ""), addr.replace(/\s*\(.*\)\s*$/, "").replace(/\s+\d+층.*$/, "")]) {
+    const j = await kakao(env, "/v2/local/search/address.json", { query: q, size: "1" });
+    const d = asList(j.documents)[0];
+    if (d && d.x && d.y) return { lat: Number(d.y), lng: Number(d.x) };
+  }
+  return null;
+}
+
+const km = (aLat: number, aLng: number, bLat: number, bLng: number) => {
+  const R = 6371;
+  const dLat = ((bLat - aLat) * Math.PI) / 180;
+  const dLng = ((bLng - aLng) * Math.PI) / 180;
+  const x = Math.sin(dLat / 2) ** 2 + Math.cos((aLat * Math.PI) / 180) * Math.cos((bLat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(x));
+};
+
+let ltcReady: Promise<unknown> | null = null;
+const ltcInit = (db: D1) => (ltcReady ??= db.batch(LTC_SCHEMA.map((s) => db.prepare(s))).catch((e) => { ltcReady = null; throw e; }));
+
+/** 누구나 쓰는 검색 (로그인 없음) */
+async function ltcPublic(request: Request, env: Env, db: D1, action: string): Promise<Response> {
+  await ltcInit(db);
+  const url = new URL(request.url);
+  const q = url.searchParams;
+  try {
+    // 가까운 기관: ?lat&lng&r(km)&kinds=visit,day&sort=near|grade|old
+    if (action === "search") {
+      const lat = Number(q.get("lat"));
+      const lng = Number(q.get("lng"));
+      if (!(lat > 32 && lat < 39.5 && lng > 124 && lng < 132.5)) return fail(400, "위치를 확인해 주세요");
+      const r = Math.min(30, Math.max(1, Number(q.get("r")) || 5));
+      const kinds = (q.get("kinds") ?? "").split(",").filter((k) => LTC_KINDS.includes(k));
+      const sort = q.get("sort") ?? "near";
+      const dLat = r / 111;
+      const dLng = r / (111 * Math.cos((lat * Math.PI) / 180));
+      const { results } = await db
+        .prepare("SELECT code, name, addr, desig, kinds, grades, cap, lat, lng FROM ltc WHERE lat BETWEEN ? AND ? AND lng BETWEEN ? AND ?")
+        .bind(lat - dLat, lat + dLat, lng - dLng, lng + dLng)
+        .all();
+      const want = kinds.length ? kinds : LTC_KINDS;
+      const rank = (g: string) => "ABCDE".indexOf(g) + 1 || 9;
+      const list = results
+        .map((x) => {
+          const ks = JSON.parse(String(x.kinds)) as string[];
+          const gs = JSON.parse(String(x.grades)) as Record<string, [string, number]>;
+          const shown = ks.filter((k) => want.includes(k));
+          const best = Math.min(9, ...shown.map((k) => rank(gs[k]?.[0] ?? "")));
+          return { code: x.code, name: x.name, addr: x.addr, desig: x.desig, cap: x.cap, kinds: ks, grades: gs, shown, best, km: km(lat, lng, Number(x.lat), Number(x.lng)), lat: x.lat, lng: x.lng };
+        })
+        .filter((x) => x.shown.length && x.km <= r);
+      list.sort((a, b) =>
+        sort === "grade" ? a.best - b.best || a.km - b.km : sort === "old" ? String(a.desig || "9").localeCompare(String(b.desig || "9")) || a.km - b.km : a.km - b.km,
+      );
+      return json({ total: list.length, items: list.slice(0, 80).map(({ best: _b, ...x }) => ({ ...x, km: Math.round(x.km * 10) / 10 })) });
+    }
+    // 동네·주소로 위치 찾기: ?q=
+    if (action === "place") {
+      const text = (q.get("q") ?? "").trim().slice(0, 60);
+      if (text.length < 2) return fail(400, "동네 이름이나 주소를 2글자 이상 입력해 주세요");
+      const a = asList((await kakao(env, "/v2/local/search/address.json", { query: text, size: "5" })).documents);
+      const k = a.length ? [] : asList((await kakao(env, "/v2/local/search/keyword.json", { query: text, size: "5" })).documents);
+      const places = [...a.map((d) => ({ name: String(d.address_name), lat: Number(d.y), lng: Number(d.x) })), ...k.map((d) => ({ name: `${d.place_name} (${d.address_name})`, lat: Number(d.y), lng: Number(d.x) }))];
+      return json({ places });
+    }
+    // 전화번호: 공단 API(일반현황)로 조회 후 30일 저장
+    if (action === "phone") {
+      const code = str(q.get("c"), 20);
+      const row = await db.prepare("SELECT code, ptype, phone, phone_at FROM ltc WHERE code = ?").bind(code).first();
+      if (!row) return fail(404, "기관을 찾을 수 없어요");
+      if (row.phone_at && Date.now() - Date.parse(String(row.phone_at)) < 30 * 86400_000) return json({ phone: row.phone || "" });
+      if (!env.DATA_GO_KR_KEY) return fail(503, "setup:DATA_GO_KR");
+      const key = env.DATA_GO_KR_KEY.includes("%") ? env.DATA_GO_KR_KEY : encodeURIComponent(env.DATA_GO_KR_KEY);
+      const r = await fetch(
+        `${env.DATA_GO_KR_BASE || "https://apis.data.go.kr"}/B550928/getLtcInsttDetailInfoService02/getGeneralSttusDetailInfoItem02?serviceKey=${key}&longTermAdminSym=${encodeURIComponent(code)}&adminPttnCd=${encodeURIComponent(String(row.ptype))}`,
+      );
+      const xml = await r.text();
+      const tag = (t: string) => xml.match(new RegExp(`<${t}>([^<]*)</${t}>`))?.[1]?.trim() ?? "";
+      if (!xml.includes("<item>")) {
+        const msg = tag("returnAuthMsg") || tag("resultMsg") || tag("errMsg");
+        if (msg) return fail(502, `공단 API: ${msg}`);
+      }
+      const phone = [tag("locTelNo_1") || tag("locTelNo1"), tag("locTelNo_2") || tag("locTelNo2"), tag("locTelNo_3") || tag("locTelNo3")].filter(Boolean).join("-");
+      await db.prepare("UPDATE ltc SET phone = ?, phone_at = ? WHERE code = ?").bind(phone, now(), code).run();
+      return json({ phone });
+    }
+  } catch (e) {
+    if (e instanceof ImwebError) return fail(e.message.startsWith("setup:") ? 503 : 502, e.message);
+    return fail(502, (e as Error).message);
+  }
+  return fail(404, "없는 주소예요");
+}
+
+/** 직원: 기관 데이터 옮기기·좌표 붙이기 */
+async function ltcStaff(request: Request, env: Env & { ASSETS?: { fetch: (r: Request | URL) => Promise<Response> } }, db: D1, action: string): Promise<Response> {
+  await ltcInit(db);
+  try {
+    if (action === "status") {
+      const meta = await (await (env.ASSETS ? env.ASSETS.fetch(new URL("/ltc/meta.json", request.url)) : fetch(new URL("/ltc/meta.json", request.url)))).json().catch(() => null);
+      const c = await db.prepare("SELECT COUNT(*) AS n, SUM(lat IS NOT NULL) AS geo, SUM(lat IS NULL AND geo_fail >= 2) AS fail, MAX(ver) AS ver FROM ltc").first();
+      return json({ meta, count: Number(c?.n ?? 0), geocoded: Number(c?.geo ?? 0), failed: Number(c?.fail ?? 0), ver: c?.ver ?? null, kakao: !!env.KAKAO_REST_KEY, dataGoKr: !!env.DATA_GO_KR_KEY });
+    }
+    if (action === "import" && request.method === "POST") {
+      const b = await body(request);
+      const sido = str(b.sido, 4);
+      const ver = str(b.ver, 20);
+      if (!/^\d{2}$/.test(sido) || !ver) return fail(400, "시도·버전이 필요해요");
+      const u = new URL(`/ltc/facilities-${sido}.json`, request.url);
+      const res = env.ASSETS ? await env.ASSETS.fetch(u) : await fetch(u);
+      if (!res.ok) return fail(404, `facilities-${sido}.json 이 없어요`);
+      const rows = (await res.json()) as Row[];
+      const stmt = `INSERT INTO ltc (code, name, addr, sido, desig, kinds, grades, ptype, cap, ver)
+        SELECT json_extract(value,'$.c'), json_extract(value,'$.n'), json_extract(value,'$.a'), ?2, json_extract(value,'$.d'),
+               json_extract(value,'$.k'), json_extract(value,'$.g'), json_extract(value,'$.p'), json_extract(value,'$.q'), ?3
+        FROM json_each(?1) WHERE true
+        ON CONFLICT(code) DO UPDATE SET name = excluded.name, sido = excluded.sido, desig = excluded.desig, kinds = excluded.kinds,
+          grades = excluded.grades, ptype = excluded.ptype, cap = excluded.cap, ver = excluded.ver,
+          lat = CASE WHEN ltc.addr = excluded.addr THEN ltc.lat END, lng = CASE WHEN ltc.addr = excluded.addr THEN ltc.lng END,
+          geo_fail = CASE WHEN ltc.addr = excluded.addr THEN ltc.geo_fail ELSE 0 END, addr = excluded.addr`;
+      const chunks = [];
+      for (let i = 0; i < rows.length; i += 1000) chunks.push(db.prepare(stmt).bind(JSON.stringify(rows.slice(i, i + 1000)), sido, ver));
+      await db.batch(chunks);
+      return json({ sido, rows: rows.length });
+    }
+    // 이번 버전에 없는 기관(폐업 등) 지우기
+    if (action === "prune" && request.method === "POST") {
+      const ver = str((await body(request)).ver, 20);
+      if (!ver) return fail(400, "버전이 필요해요");
+      await db.prepare("DELETE FROM ltc WHERE ver != ?").bind(ver).run();
+      return json({ ok: true });
+    }
+    // 좌표 붙이기: 한 번에 40곳 (카카오 동시 8건)
+    if (action === "geocode" && request.method === "POST") {
+      const { results } = await db.prepare("SELECT code, addr, geo_fail FROM ltc WHERE lat IS NULL AND geo_fail < 2 LIMIT 40").all();
+      const out: { c: string; lat: number | null; lng: number | null; f: number }[] = [];
+      for (let i = 0; i < results.length; i += 8) {
+        await Promise.all(
+          results.slice(i, i + 8).map(async (x) => {
+            const g = await geocode(env, String(x.addr)).catch((e) => {
+              if (e instanceof ImwebError && /setup|limit|quota|초과|권한|disabled/i.test(e.message)) throw e;
+              return null;
+            });
+            out.push({ c: String(x.code), lat: g?.lat ?? null, lng: g?.lng ?? null, f: g ? 0 : Number(x.geo_fail) + 1 });
+          }),
+        );
+      }
+      if (out.length)
+        await db
+          .prepare(
+            `UPDATE ltc SET lat = json_extract(j.value,'$.lat'), lng = json_extract(j.value,'$.lng'), geo_fail = json_extract(j.value,'$.f')
+             FROM json_each(?) AS j WHERE ltc.code = json_extract(j.value,'$.c')`,
+          )
+          .bind(JSON.stringify(out))
+          .run();
+      const left = await db.prepare("SELECT COUNT(*) AS n FROM ltc WHERE lat IS NULL AND geo_fail < 2").first();
+      return json({ done: out.filter((x) => x.lat != null).length, failed: out.filter((x) => x.lat == null).length, remaining: Number(left?.n ?? 0) });
+    }
+  } catch (e) {
+    if (e instanceof ImwebError) return fail(e.message.startsWith("setup:") ? 503 : 502, e.message);
+    return fail(502, (e as Error).message);
   }
   return fail(404, "없는 주소예요");
 }

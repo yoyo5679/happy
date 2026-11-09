@@ -6,6 +6,7 @@ import { LedgerView } from "@/components/LedgerView";
 import { calcLedger, dot, today, ymd, type Item, type Recipient } from "@/lib/ledger";
 import { relations } from "@/data/consent";
 import { ImwebImport } from "./ImwebImport";
+import { LtcAdmin } from "./LtcAdmin";
 import { categories, products, RATES, won, type CategoryKey } from "@/data/products";
 
 const KEY = "hc_staff";
@@ -131,7 +132,9 @@ function Ledger({ api, onLogout }: { api: Api; onLogout: () => void }) {
   const [selected, select] = useSelected();
   const [creating, setCreating] = useState(false);
   const [importing, setImporting] = useState<Recipient[] | null>(null);
+  const [ltc, setLtc] = useState(false);
 
+  if (ltc) return <LtcAdmin api={api} onBack={() => setLtc(false)} />;
   if (importing) return <ImwebImport api={api} recipients={importing} onBack={() => setImporting(null)} />;
   if (creating)
     return (
@@ -147,7 +150,7 @@ function Ledger({ api, onLogout }: { api: Api; onLogout: () => void }) {
       </>
     );
   if (selected) return <Detail key={selected} id={selected} api={api} onBack={() => select(null)} />;
-  return <List api={api} onOpen={select} onCreate={() => setCreating(true)} onImport={setImporting} onLogout={onLogout} />;
+  return <List api={api} onOpen={select} onCreate={() => setCreating(true)} onImport={setImporting} onLtc={() => setLtc(true)} onLogout={onLogout} />;
 }
 
 function List({
@@ -155,8 +158,10 @@ function List({
   onOpen,
   onCreate,
   onImport,
+  onLtc,
   onLogout,
 }: {
+  onLtc: () => void;
   api: Api;
   onOpen: (id: string) => void;
   onCreate: () => void;
@@ -194,6 +199,9 @@ function List({
           🛒 아임웹 주문 가져오기
         </button>
       </div>
+      <button className="link small" onClick={onLtc}>
+        🏥 장기요양기관 찾기 데이터 관리
+      </button>
       <section className="card">
         <input className="staff-search" placeholder="이름·보호자 연락처로 찾기" value={q} onChange={(e) => setQ(e.target.value)} />
         {err && <p className="form-err">{err}</p>}
