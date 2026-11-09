@@ -33,7 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* 큰 글씨 설정을 화면이 그려지기 전에 적용 (깜빡임 방지) */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{if(localStorage.getItem("hc_big")==="1")document.documentElement.classList.add("big")}catch(e){}`,
+            __html: `try{localStorage.removeItem("hc_my_k");sessionStorage.removeItem("hc_staff");if(location.pathname==="/my"||location.pathname==="/staff")history.replaceState(null,"",location.pathname);if(localStorage.getItem("hc_big")==="1")document.documentElement.classList.add("big")}catch(e){}`,
           }}
         />
       </head>
