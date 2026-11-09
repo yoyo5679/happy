@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { ContactCta } from "@/components/ContactCta";
+import { AudienceTabs } from "@/components/AudienceTabs";
 
 type Kind = "visit" | "bath" | "day" | "short" | "home";
 type Item = {
@@ -101,8 +102,9 @@ export function CareFinder() {
 
   return (
     <>
+      <AudienceTabs current="find" />
       <div className="page-title">
-        <h1>🏥 가까운 장기요양기관 찾기</h1>
+        <h1>📍 가까운 장기요양기관 찾기</h1>
         <p className="muted">방문요양·방문목욕·주야간보호·단기보호·요양원을 공단 평가등급과 함께 보여 드려요.</p>
       </div>
 
