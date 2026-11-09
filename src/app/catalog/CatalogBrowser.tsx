@@ -62,6 +62,7 @@ export function CatalogBrowser() {
         ))}
       </div>
 
+      <a href="/sizelist" className="hero-banner"><span><strong>📏 구입 전 크기와 무게 비교하기</strong><br />가가온 카탈로그 제원표 · 선택 제품 비교</span><span aria-hidden>→</span></a>
       <RatePicker rate={rate} onChange={setRate} />
       <section className="card group">
         <h3>

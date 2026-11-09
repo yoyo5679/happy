@@ -36,6 +36,7 @@ export default function Home() {
         ))}
       </div>
       <div className="home-links">
+        <Link href="/sizelist" className="btn">📏 복지용구 제원표</Link>
         <Link href="/catalog" className="btn">
           🛒 전체 모델 보기
         </Link>
