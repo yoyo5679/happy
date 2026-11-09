@@ -90,6 +90,8 @@ def main(xlsx: str, evcsv: str) -> None:
                 "c": code,
                 "n": str(r[1]).strip(),
                 "a": " ".join(addr.split()),
+                # 시도 시군구 법정동명: 주소로 못 찾을 때 이름 검색 범위·동네 중심 위치로 씀
+                "b": " ".join(str(r[6] or "").split()),
                 "d": f"{d[:4]}-{d[4:6]}-{d[6:8]}" if len(d) == 8 else "",
                 "k": sorted(k),
                 "g": grades,

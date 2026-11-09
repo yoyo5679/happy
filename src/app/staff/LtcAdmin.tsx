@@ -8,6 +8,7 @@ type Status = {
   count: number;
   geocoded: number;
   failed: number;
+  approx: number;
   ver: string | null;
   kakao: boolean;
   dataGoKr: boolean;
@@ -42,6 +43,15 @@ export function LtcAdmin({ api, onBack }: { api: Api; onBack: () => void }) {
       setBusy("");
       refresh();
     }
+  }
+
+  async function retryFailed() {
+    try {
+      await api("POST", "ltc/retry");
+    } catch (e) {
+      return setMsg((e as Error).message);
+    }
+    geocodeAll();
   }
 
   async function geocodeAll() {
@@ -85,7 +95,8 @@ export function LtcAdmin({ api, onBack }: { api: Api; onBack: () => void }) {
             </p>
             <p style={{ margin: "6px 0 0" }}>
               데이터베이스: {st.count.toLocaleString("ko-KR")}곳 · 좌표 {st.geocoded.toLocaleString("ko-KR")}곳 ({pct}%)
-              {st.failed > 0 && ` · 주소를 못 찾은 곳 ${st.failed}`}
+              {st.approx > 0 && ` · 동네 중심으로 표시 ${st.approx}`}
+              {st.failed > 0 && ` · 위치를 못 찾은 곳 ${st.failed}`}
             </p>
             <div className="ledger-bar" style={{ marginTop: 8 }} aria-hidden>
               <span style={{ width: `${pct}%` }} />
@@ -110,9 +121,14 @@ export function LtcAdmin({ api, onBack }: { api: Api; onBack: () => void }) {
           </button>
         )}
       </div>
+      {!!st?.failed && !busy && (
+        <button className="btn wide" onClick={retryFailed} disabled={!st.kakao}>
+          🔁 못 찾은 곳 {st.failed}곳 다시 찾기 (주소 정리 → 기관 이름 → 동네 중심 순서로)
+        </button>
+      )}
       {msg && <p className="ledger-note">{msg}</p>}
       <p className="ledger-note">
-        처음 한 번 1 → 2 순서로 눌러 주세요. 좌표 붙이기는 전국 약 2만 8천 곳이라 30분~1시간쯤 걸려요. 중간에 멈추거나 창을 닫아도 다음에 이어서 해요. 새
+        처음 한 번 1 → 2 순서로 눌러 주세요. 좌표 붙이기는 전국 약 2만 8천 곳이라 처음에는 1시간 넘게 걸릴 수 있어요. 주소로 못 찾으면 기관 이름으로, 그래도 안 되면 동네 중심으로 표시해요. 중간에 멈추거나 창을 닫아도 다음에 이어서 해요. 새
         공단 파일로 바꾼 뒤에는 다시 1 → 2를 누르면 바뀐 주소만 새로 찾아요.
       </p>
     </>

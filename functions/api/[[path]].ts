@@ -642,6 +642,8 @@ const LTC_SCHEMA = [
     ver TEXT NOT NULL DEFAULT '', lat REAL, lng REAL, geo_fail INTEGER NOT NULL DEFAULT 0, phone TEXT, phone_at TEXT)`,
   `CREATE INDEX IF NOT EXISTS ltc_lat ON ltc(lat)`,
 ];
+// 나중에 붙인 칸: 법정동명(못 찾을 때 대체), 대략 위치 표시
+const LTC_MIGRATIONS = [`ALTER TABLE ltc ADD COLUMN dong TEXT NOT NULL DEFAULT ''`, `ALTER TABLE ltc ADD COLUMN approx INTEGER NOT NULL DEFAULT 0`];
 const LTC_KINDS = ["visit", "bath", "day", "short", "home"];
 
 async function kakao(env: Env, path: string, q: Record<string, string>): Promise<Row> {
@@ -652,12 +654,41 @@ async function kakao(env: Env, path: string, q: Record<string, string>): Promise
   return j;
 }
 
-/** 주소 → 좌표 (도로명 주소 검색, 안 되면 괄호 뺀 주소로 한 번 더) */
-async function geocode(env: Env, addr: string): Promise<{ lat: number; lng: number } | null> {
-  for (const q of [addr, addr.replace(/\s*\(.*\)\s*$/, ""), addr.replace(/\s*\(.*\)\s*$/, "").replace(/\s+\d+층.*$/, "")]) {
-    const j = await kakao(env, "/v2/local/search/address.json", { query: q, size: "1" });
-    const d = asList(j.documents)[0];
-    if (d && d.x && d.y) return { lat: Number(d.y), lng: Number(d.x) };
+/** 공단 주소를 카카오가 알아듣는 꼴로: 옛 지번(번지·호, 행정동[법정동]), 덧붙은 말, 건물·호수 정리 */
+function addrCandidates(addr: string): string[] {
+  const a0 = addr.replace(/\s+/g, " ").trim();
+  const a1 = a0
+    .replace(/\S+?\[(\S+?)\]/g, "$1") // 논현제1동[논현동] → 논현동
+    .replace(/(\d+)\s*번지\s*(\d+)\s*호/g, "$1-$2") // 94번지 17호 → 94-17
+    .replace(/(\d+)\s*번지/g, "$1")
+    .replace(/\s*외\s*\d+\s*필지.*/, "")
+    .replace(/\s*\(.*?\)\s*/g, " ")
+    .split(",")[0]
+    .trim();
+  const road = a1.match(/^(.*?(?:로|길)\s+\d+(?:-\d+)?)(?=\D|$)/)?.[1]; // "수명로2길 96" (로2 에서 끊기지 않게 띄어쓰기 필수)
+  const jibun = a1.match(/^(.*?(?:동|리|가|읍|면)\s+(?:산\s*)?\d+(?:-\d+)?)(?=\D|$)/)?.[1];
+  return [...new Set([road, jibun, a1, a0].filter((x): x is string => !!x && x.length > 6))].slice(0, 3);
+}
+
+/**
+ * 주소 → 좌표. ① 주소(정리한 꼴 포함) ② 기관 이름 + 시군구로 장소 검색 ③ 법정동 중심(대략 위치)
+ * 셋 다 실패하면 null
+ */
+async function geocode(env: Env, addr: string, name = "", dong = ""): Promise<{ lat: number; lng: number; approx: boolean } | null> {
+  for (const q of addrCandidates(addr)) {
+    const d = asList((await kakao(env, "/v2/local/search/address.json", { query: q, size: "1" })).documents)[0];
+    if (d?.x && d?.y) return { lat: Number(d.y), lng: Number(d.x), approx: false };
+  }
+  const area = dong.split(" ").slice(0, 2).join(" "); // 서울특별시 은평구
+  const gu = dong.split(" ")[1] ?? "";
+  if (name && area) {
+    const docs = asList((await kakao(env, "/v2/local/search/keyword.json", { query: `${area} ${name}`, size: "5" })).documents);
+    const hit = docs.find((d) => gu && String(d.address_name ?? "").includes(gu) && String(d.place_name ?? "").replace(/\s/g, "").includes(name.replace(/\s/g, "").slice(0, 4)));
+    if (hit?.x && hit?.y) return { lat: Number(hit.y), lng: Number(hit.x), approx: false };
+  }
+  if (dong) {
+    const d = asList((await kakao(env, "/v2/local/search/address.json", { query: dong, size: "1" })).documents)[0];
+    if (d?.x && d?.y) return { lat: Number(d.y), lng: Number(d.x), approx: true };
   }
   return null;
 }
@@ -671,7 +702,14 @@ const km = (aLat: number, aLng: number, bLat: number, bLng: number) => {
 };
 
 let ltcReady: Promise<unknown> | null = null;
-const ltcInit = (db: D1) => (ltcReady ??= db.batch(LTC_SCHEMA.map((s) => db.prepare(s))).catch((e) => { ltcReady = null; throw e; }));
+const ltcInit = (db: D1) =>
+  (ltcReady ??= (async () => {
+    await db.batch(LTC_SCHEMA.map((s) => db.prepare(s)));
+    for (const m of LTC_MIGRATIONS) await db.prepare(m).run().catch(() => {});
+  })().catch((e) => {
+    ltcReady = null;
+    throw e;
+  }));
 
 /** 누구나 쓰는 검색 (로그인 없음) */
 async function ltcPublic(request: Request, env: Env, db: D1, action: string): Promise<Response> {
@@ -690,7 +728,7 @@ async function ltcPublic(request: Request, env: Env, db: D1, action: string): Pr
       const dLat = r / 111;
       const dLng = r / (111 * Math.cos((lat * Math.PI) / 180));
       const { results } = await db
-        .prepare("SELECT code, name, addr, desig, kinds, grades, cap, lat, lng FROM ltc WHERE lat BETWEEN ? AND ? AND lng BETWEEN ? AND ?")
+        .prepare("SELECT code, name, addr, desig, kinds, grades, cap, lat, lng, approx FROM ltc WHERE lat BETWEEN ? AND ? AND lng BETWEEN ? AND ?")
         .bind(lat - dLat, lat + dLat, lng - dLng, lng + dLng)
         .all();
       const want = kinds.length ? kinds : LTC_KINDS;
@@ -701,7 +739,7 @@ async function ltcPublic(request: Request, env: Env, db: D1, action: string): Pr
           const gs = JSON.parse(String(x.grades)) as Record<string, [string, number]>;
           const shown = ks.filter((k) => want.includes(k));
           const best = Math.min(9, ...shown.map((k) => rank(gs[k]?.[0] ?? "")));
-          return { code: x.code, name: x.name, addr: x.addr, desig: x.desig, cap: x.cap, kinds: ks, grades: gs, shown, best, km: km(lat, lng, Number(x.lat), Number(x.lng)), lat: x.lat, lng: x.lng };
+          return { code: x.code, name: x.name, addr: x.addr, desig: x.desig, cap: x.cap, kinds: ks, grades: gs, shown, best, km: km(lat, lng, Number(x.lat), Number(x.lng)), lat: x.lat, lng: x.lng, approx: x.approx === 1 };
         })
         .filter((x) => x.shown.length && x.km <= r);
       list.sort((a, b) =>
@@ -752,8 +790,8 @@ async function ltcStaff(request: Request, env: Env & { ASSETS?: { fetch: (r: Req
   try {
     if (action === "status") {
       const meta = await (await (env.ASSETS ? env.ASSETS.fetch(new URL("/ltc/meta.json", request.url)) : fetch(new URL("/ltc/meta.json", request.url)))).json().catch(() => null);
-      const c = await db.prepare("SELECT COUNT(*) AS n, SUM(lat IS NOT NULL) AS geo, SUM(lat IS NULL AND geo_fail >= 2) AS fail, MAX(ver) AS ver FROM ltc").first();
-      return json({ meta, count: Number(c?.n ?? 0), geocoded: Number(c?.geo ?? 0), failed: Number(c?.fail ?? 0), ver: c?.ver ?? null, kakao: !!env.KAKAO_REST_KEY, dataGoKr: !!env.DATA_GO_KR_KEY });
+      const c = await db.prepare("SELECT COUNT(*) AS n, SUM(lat IS NOT NULL) AS geo, SUM(lat IS NULL AND geo_fail >= 2) AS fail, SUM(approx = 1) AS approx, MAX(ver) AS ver FROM ltc").first();
+      return json({ meta, count: Number(c?.n ?? 0), geocoded: Number(c?.geo ?? 0), failed: Number(c?.fail ?? 0), approx: Number(c?.approx ?? 0), ver: c?.ver ?? null, kakao: !!env.KAKAO_REST_KEY, dataGoKr: !!env.DATA_GO_KR_KEY });
     }
     if (action === "import" && request.method === "POST") {
       const b = await body(request);
@@ -764,18 +802,26 @@ async function ltcStaff(request: Request, env: Env & { ASSETS?: { fetch: (r: Req
       const res = env.ASSETS ? await env.ASSETS.fetch(u) : await fetch(u);
       if (!res.ok) return fail(404, `facilities-${sido}.json 이 없어요`);
       const rows = (await res.json()) as Row[];
-      const stmt = `INSERT INTO ltc (code, name, addr, sido, desig, kinds, grades, ptype, cap, ver)
+      // 주소가 바뀐 곳·아직 못 찾은 곳은 좌표를 다시 찾게 함
+      const stmt = `INSERT INTO ltc (code, name, addr, sido, desig, kinds, grades, ptype, cap, ver, dong)
         SELECT json_extract(value,'$.c'), json_extract(value,'$.n'), json_extract(value,'$.a'), ?2, json_extract(value,'$.d'),
-               json_extract(value,'$.k'), json_extract(value,'$.g'), json_extract(value,'$.p'), json_extract(value,'$.q'), ?3
+               json_extract(value,'$.k'), json_extract(value,'$.g'), json_extract(value,'$.p'), json_extract(value,'$.q'), ?3,
+               coalesce(json_extract(value,'$.b'), '')
         FROM json_each(?1) WHERE true
         ON CONFLICT(code) DO UPDATE SET name = excluded.name, sido = excluded.sido, desig = excluded.desig, kinds = excluded.kinds,
-          grades = excluded.grades, ptype = excluded.ptype, cap = excluded.cap, ver = excluded.ver,
+          grades = excluded.grades, ptype = excluded.ptype, cap = excluded.cap, ver = excluded.ver, dong = excluded.dong,
           lat = CASE WHEN ltc.addr = excluded.addr THEN ltc.lat END, lng = CASE WHEN ltc.addr = excluded.addr THEN ltc.lng END,
-          geo_fail = CASE WHEN ltc.addr = excluded.addr THEN ltc.geo_fail ELSE 0 END, addr = excluded.addr`;
+          approx = CASE WHEN ltc.addr = excluded.addr THEN ltc.approx ELSE 0 END,
+          geo_fail = CASE WHEN ltc.addr = excluded.addr AND ltc.lat IS NOT NULL THEN ltc.geo_fail ELSE 0 END, addr = excluded.addr`;
       const chunks = [];
       for (let i = 0; i < rows.length; i += 1000) chunks.push(db.prepare(stmt).bind(JSON.stringify(rows.slice(i, i + 1000)), sido, ver));
       await db.batch(chunks);
       return json({ sido, rows: rows.length });
+    }
+    // 못 찾은 곳 다시 찾기
+    if (action === "retry" && request.method === "POST") {
+      await db.prepare("UPDATE ltc SET geo_fail = 0 WHERE lat IS NULL").run();
+      return json({ ok: true });
     }
     // 이번 버전에 없는 기관(폐업 등) 지우기
     if (action === "prune" && request.method === "POST") {
@@ -786,23 +832,25 @@ async function ltcStaff(request: Request, env: Env & { ASSETS?: { fetch: (r: Req
     }
     // 좌표 붙이기: 한 번에 40곳 (카카오 동시 8건)
     if (action === "geocode" && request.method === "POST") {
-      const { results } = await db.prepare("SELECT code, addr, geo_fail FROM ltc WHERE lat IS NULL AND geo_fail < 2 LIMIT 40").all();
-      const out: { c: string; lat: number | null; lng: number | null; f: number }[] = [];
+      // 무료 요금제는 요청 1번에 외부 호출 50개까지 → 한 번에 8곳 (한 곳에 최대 6번 조회)
+      const { results } = await db.prepare("SELECT code, addr, name, dong, geo_fail FROM ltc WHERE lat IS NULL AND geo_fail < 2 LIMIT 8").all();
+      const out: { c: string; lat: number | null; lng: number | null; a: number; f: number }[] = [];
       for (let i = 0; i < results.length; i += 8) {
         await Promise.all(
           results.slice(i, i + 8).map(async (x) => {
-            const g = await geocode(env, String(x.addr)).catch((e) => {
+            const g = await geocode(env, String(x.addr), String(x.name), String(x.dong ?? "")).catch((e) => {
               if (e instanceof ImwebError && /setup|limit|quota|초과|권한|disabled/i.test(e.message)) throw e;
               return null;
             });
-            out.push({ c: String(x.code), lat: g?.lat ?? null, lng: g?.lng ?? null, f: g ? 0 : Number(x.geo_fail) + 1 });
+            // 동네 중심까지 못 찾으면 다시 시도할 의미가 없어 바로 실패로 둠
+            out.push({ c: String(x.code), lat: g?.lat ?? null, lng: g?.lng ?? null, a: g?.approx ? 1 : 0, f: g ? 0 : 2 });
           }),
         );
       }
       if (out.length)
         await db
           .prepare(
-            `UPDATE ltc SET lat = json_extract(j.value,'$.lat'), lng = json_extract(j.value,'$.lng'), geo_fail = json_extract(j.value,'$.f')
+            `UPDATE ltc SET lat = json_extract(j.value,'$.lat'), lng = json_extract(j.value,'$.lng'), approx = json_extract(j.value,'$.a'), geo_fail = json_extract(j.value,'$.f')
              FROM json_each(?) AS j WHERE ltc.code = json_extract(j.value,'$.c')`,
           )
           .bind(JSON.stringify(out))

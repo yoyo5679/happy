@@ -17,6 +17,8 @@ type Item = {
   km: number;
   lat: number;
   lng: number;
+  /** 주소로 못 찾아 동네 중심으로 표시 */
+  approx?: boolean;
 };
 type Sort = "near" | "grade" | "old";
 
@@ -212,7 +214,10 @@ function CareCard({ x }: { x: Item }) {
     <li className="card care-card">
       <div className="care-head">
         <strong>{x.name}</strong>
-        <span className="care-km">{x.km}km</span>
+        <span className="care-km">
+          {x.approx ? "약 " : ""}
+          {x.km}km
+        </span>
       </div>
       <div className="care-kinds">
         {x.kinds.map((k) => {
@@ -232,6 +237,7 @@ function CareCard({ x }: { x: Item }) {
         })}
       </div>
       <p className="care-addr">{x.addr}</p>
+      {x.approx && <p className="small muted" style={{ margin: 0 }}>📍 지도 위치를 동네 중심으로 잡아서 거리가 조금 다를 수 있어요.</p>}
       <p className="small muted" style={{ margin: 0 }}>
         {x.desig && `${x.desig.slice(0, 4)}년 지정${y != null ? ` (${y}년째)` : ""}`}
         {x.cap > 0 && ` · 정원 ${x.cap}명`}
