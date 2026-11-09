@@ -75,7 +75,7 @@
     "weight": 3.1,
     "load": 100,
     "material": "알루미늄",
-    "seat": ""
+    "seat": "해당 없음"
   },
   {
     "page": 16,
@@ -88,7 +88,7 @@
     "weight": 3.2,
     "load": 100,
     "material": "알루미늄",
-    "seat": ""
+    "seat": "해당 없음"
   },
   {
     "page": 16,
@@ -127,7 +127,7 @@
     "weight": 13.3,
     "load": 100,
     "material": "스틸",
-    "seat": ""
+    "seat": "해당 없음"
   },
   {
     "page": 16,
@@ -140,7 +140,7 @@
     "weight": 13,
     "load": 100,
     "material": "알루미늄, 레자외피",
-    "seat": ""
+    "seat": "해당 없음"
   },
   {
     "page": 16,
@@ -153,7 +153,7 @@
     "weight": 12,
     "load": 100,
     "material": "스틸",
-    "seat": ""
+    "seat": "해당 없음"
   },
   {
     "page": 11,
@@ -322,7 +322,7 @@
     "weight": 4,
     "load": 100,
     "material": "알루미늄, 원목",
-    "seat": ""
+    "seat": "해당 없음"
   },
   {
     "page": 19,
@@ -335,7 +335,7 @@
     "weight": 4,
     "load": 80,
     "material": "알루미늄, 원목",
-    "seat": ""
+    "seat": "해당 없음"
   },
   {
     "page": 19,
@@ -348,7 +348,7 @@
     "weight": 4,
     "load": 80,
     "material": "스테인리스 스틸",
-    "seat": ""
+    "seat": "해당 없음"
   },
   {
     "page": 19,
@@ -361,6 +361,201 @@
     "weight": 5.5,
     "load": 80,
     "material": "스테인리스 스틸",
-    "seat": ""
+    "seat": "해당 없음"
+  },
+  {
+    "page": 12,
+    "category": "bathChair",
+    "code": "B03180025013",
+    "name": "BOFEEL9",
+    "width": "54",
+    "depth": "50–56",
+    "height": "72–79",
+    "weight": 4.9,
+    "load": 95,
+    "material": "알루미늄, EVA, PE",
+    "seat": "43 × 38 / 높이 36.5–43"
+  },
+  {
+    "page": 12,
+    "category": "bathChair",
+    "code": "B03180025012",
+    "name": "BOFEEL10",
+    "width": "54",
+    "depth": "50–56",
+    "height": "72–79",
+    "weight": 5,
+    "load": 95,
+    "material": "알루미늄, EVA수지",
+    "seat": "42 × 33 / 높이 36.5–43"
+  },
+  {
+    "page": 12,
+    "category": "bathChair",
+    "code": "B03180025014",
+    "name": "BOFEEL11",
+    "width": "54",
+    "depth": "49–56",
+    "height": "71–78",
+    "weight": 5.8,
+    "load": 95,
+    "material": "알루미늄, PVC",
+    "seat": "44 × 37 / 높이 36.5–43"
+  },
+  {
+    "page": 12,
+    "category": "bathChair",
+    "code": "B03180001501",
+    "name": "라온아띠 KCS-811",
+    "width": "57.5",
+    "depth": "70–98",
+    "height": "114",
+    "weight": 17,
+    "load": 120,
+    "material": "알루미늄",
+    "seat": "48 × 42 / 높이 53"
+  },
+  {
+    "page": 12,
+    "category": "bathChair",
+    "code": "B03180043004",
+    "name": "PT-300",
+    "width": "50",
+    "depth": "87",
+    "height": "105",
+    "weight": 9.7,
+    "load": 100,
+    "material": "알루미늄, 폴리우레탄",
+    "seat": "40 × 44 / 높이 42.5"
+  },
+  {
+    "page": 58,
+    "category": "wheelchair",
+    "code": "M18031134101",
+    "name": "NA-101W",
+    "width": "61",
+    "depth": "101",
+    "height": "91",
+    "weight": 13.7,
+    "load": null,
+    "material": "알루미늄, PU타이어",
+    "seat": "원본 미기재"
+  },
+  {
+    "page": 58,
+    "category": "wheelchair",
+    "code": "M18031134102",
+    "name": "NA-101",
+    "width": "63",
+    "depth": "100",
+    "height": "87",
+    "weight": 12.6,
+    "load": null,
+    "material": "알루미늄, PU타이어",
+    "seat": "원본 미기재"
+  },
+  {
+    "page": 58,
+    "category": "wheelchair",
+    "code": "M18030043014",
+    "name": "MIRAGE7(22D)-B",
+    "width": "63.5",
+    "depth": "108",
+    "height": "89",
+    "weight": 15.5,
+    "load": null,
+    "material": "알루미늄, PU타이어",
+    "seat": "원본 미기재"
+  },
+  {
+    "page": 58,
+    "category": "wheelchair",
+    "code": "M18030043013",
+    "name": "MIRAGE22D-P",
+    "width": "67.5",
+    "depth": "99",
+    "height": "86",
+    "weight": 13.4,
+    "load": null,
+    "material": "알루미늄, PU타이어",
+    "seat": "원본 미기재"
+  },
+  {
+    "page": 58,
+    "category": "wheelchair",
+    "code": "M18030043002",
+    "name": "HAL48(22D)",
+    "width": "65",
+    "depth": "134",
+    "height": "132",
+    "weight": 17.5,
+    "load": null,
+    "material": "알루미늄, PU타이어",
+    "seat": "원본 미기재"
+  },
+  {
+    "page": 58,
+    "category": "wheelchair",
+    "code": "M18030111613",
+    "name": "MIKI-LT3",
+    "width": "57",
+    "depth": "96",
+    "height": "88",
+    "weight": 11.8,
+    "load": null,
+    "material": "알루미늄, PU타이어",
+    "seat": "원본 미기재"
+  },
+  {
+    "page": 62,
+    "category": "electricBed",
+    "code": "S03090178005",
+    "name": "천년BED ST-30",
+    "width": "93",
+    "depth": "218",
+    "height": "29–60",
+    "weight": 98,
+    "load": 200,
+    "material": "스틸, 전동3모터",
+    "seat": "해당 없음"
+  },
+  {
+    "page": 62,
+    "category": "electricBed",
+    "code": "S03090183002",
+    "name": "SE7030",
+    "width": "95",
+    "depth": "216",
+    "height": "31–68",
+    "weight": 96,
+    "load": 170,
+    "material": "스틸, 전동3모터",
+    "seat": "해당 없음"
+  },
+  {
+    "page": 62,
+    "category": "electricBed",
+    "code": "S03090200002",
+    "name": "NY(S)-II",
+    "width": "98.5",
+    "depth": "221",
+    "height": "31–70",
+    "weight": 95,
+    "load": 170,
+    "material": "스틸, 전동3모터",
+    "seat": "해당 없음"
+  },
+  {
+    "page": 62,
+    "category": "electricBed",
+    "code": "S03090200001",
+    "name": "NY(T)-2100",
+    "width": "98",
+    "depth": "222",
+    "height": "27.5–67",
+    "weight": 90,
+    "load": 150,
+    "material": "스틸, 전동3모터",
+    "seat": "해당 없음"
   }
 ]
