@@ -8,7 +8,13 @@ export type SizeRow = { id: string; name: string; category: CategoryKey; spec?: 
 const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9가-힣]/g, "");
 // The mall is the source of membership. A catalog entry alone must never create a listing.
 export const excludedSizeCategories: CategoryKey[] = ["wanderingSensor", "oralCleaner", "antiSlipSocks", "incontinence"];
-export const sizeRows: SizeRow[] = products.filter(p => !excludedSizeCategories.includes(p.category)).map(product => {
+export function availableSizeProduct(product: Product): Product {
+  return { ...product,
+    buy: product.buy && !product.buy.soldOut ? product.buy : undefined,
+    rent: product.rent && !product.rent.soldOut ? product.rent : undefined,
+  };
+}
+export const sizeRows: SizeRow[] = products.map(availableSizeProduct).filter(p => !excludedSizeCategories.includes(p.category) && (p.buy || p.rent)).map(product => {
   const spec = specs.find(s => product.code && s.category === product.category && s.code === product.code)
     ?? specs.find(s => s.category === product.category && normalize(s.name) === normalize(product.name));
   const checked = (audit.products as Record<string, { status: string }>)[product.id];
