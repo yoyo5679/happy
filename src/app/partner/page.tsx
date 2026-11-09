@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { site } from "@/config/site";
 import { categories, products, type CategoryKey } from "@/data/products";
-import { limits, rateTargets } from "@/data/limits";
+import { limits, rateTargets, rentalOnlyNote } from "@/data/limits";
 import { AudienceTabs } from "@/components/AudienceTabs";
 import { tools } from "@/config/tools";
 
@@ -116,9 +116,9 @@ export default function Partner() {
                   <tr key={l.category}>
                     <td>
                       {s === "-" ? (
-                        categories[l.category].label
+                        l.label ?? categories[l.category].label
                       ) : (
-                        <Link href={`/catalog?c=${l.category}`}>{categories[l.category].label}</Link>
+                        <Link href={`/catalog?c=${l.category}`}>{l.label ?? categories[l.category].label}</Link>
                       )}
                     </td>
                     <td>{l.durability}</td>
@@ -130,6 +130,9 @@ export default function Partner() {
             </tbody>
           </table>
         </div>
+        <p className="muted small">
+          &lsquo;쇼핑몰&rsquo;은 해피케어몰의 판매 방식이에요. 욕창예방 매트리스는 공단 기준으로 구입·대여 모두 가능해요. {rentalOnlyNote}
+        </p>
         <p className="muted small">이로움케어 복지용구 카탈로그 기준이며, 보건복지부 고시 변경에 따라 달라질 수 있어요. 수급자별 잔여 한도는 공단(☎ 1577-1000)에서 확인할 수 있어요.</p>
       </section>
 

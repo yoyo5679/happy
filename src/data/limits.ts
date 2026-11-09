@@ -1,7 +1,7 @@
 import type { CategoryKey } from "./products";
 
 // 품목별 내구연한 / 급여한도(수량) — 이로움케어 복지용구 카탈로그 기준 (공단 고시 변경 시 달라질 수 있음)
-export const limits: { category: CategoryKey; durability: string; qty: string }[] = [
+export const limits: { category: CategoryKey; durability: string; qty: string; label?: string }[] = [
   { category: "electricBed", durability: "10년", qty: "1개" },
   { category: "pressureMattress", durability: "3년", qty: "1개" },
   { category: "wheelchair", durability: "5년", qty: "1개" },
@@ -11,16 +11,20 @@ export const limits: { category: CategoryKey; durability: string; qty: string }[
   { category: "portableToilet", durability: "5년", qty: "1개" },
   { category: "bathChair", durability: "5년", qty: "1개" },
   { category: "pressureCushion", durability: "3년", qty: "1개" },
-  { category: "wanderingSensor", durability: "2년", qty: "2개" },
+  { category: "wanderingSensor", durability: "2년", qty: "2개", label: "배회감지기(태그형)" },
   { category: "oralCleaner", durability: "5년", qty: "1개" },
   { category: "safetyHandle", durability: "없음", qty: "10개" },
   { category: "antiSlipMat", durability: "없음", qty: "5개" },
-  { category: "antiSlipSocks", durability: "없음", qty: "6개" },
+  { category: "antiSlipSocks", durability: "없음", qty: "6켤레" },
   { category: "incontinence", durability: "없음", qty: "4개" },
   { category: "positioning", durability: "없음", qty: "5개" },
   { category: "simpleToilet", durability: "없음", qty: "2개" },
-  { category: "ramp", durability: "실내 2년 · 실외 8년", qty: "실내 6개 · 실외 1개" },
+  { category: "ramp", durability: "2년", qty: "6개", label: "경사로(실내용)" },
 ];
+
+/** 해피케어몰에서 팔지 않는 대여 품목 (표 아래 안내용) */
+export const rentalOnlyNote =
+  "대여 품목인 수동침대(5년·1개)·목욕리프트(3년·1개)·배회감지기 GPS형·매트형(5년·1개)·경사로(실외용, 8년·1개)는 해피케어몰에서 취급하지 않아요.";
 
 export const rateTargets = [
   { rate: "15%", who: "일반 수급자" },
