@@ -98,7 +98,7 @@ export default function Partner() {
 
       <section className="card">
         <h3>📋 품목별 내구연한 · 급여한도</h3>
-        <p className="muted small">내구연한 안에는 같은 품목을 다시 받을 수 없어요. 내구연한이 '없음'인 소모성 품목은 급여한도 수량까지 받을 수 있어요.</p>
+        <p className="muted small">내구연한 안에는 같은 품목을 다시 받을 수 없어요(성인용 보행기 2개, 경사로 실내용 6개, 배회감지기 태그형 2개까지). 내구연한이 &lsquo;없음&rsquo;인 소모성 품목은 1년 동안 급여한도 수량까지 받을 수 있어요.</p>
         <div className="tbl-wrap">
           <table className="tbl">
             <thead>
@@ -133,7 +133,10 @@ export default function Partner() {
         <p className="muted small">
           &lsquo;쇼핑몰&rsquo;은 해피케어몰의 판매 방식이에요. 욕창예방 매트리스는 공단 기준으로 구입·대여 모두 가능해요. {rentalOnlyNote}
         </p>
-        <p className="muted small">이로움케어 복지용구 카탈로그 기준이며, 보건복지부 고시 변경에 따라 달라질 수 있어요. 수급자별 잔여 한도는 공단(☎ 1577-1000)에서 확인할 수 있어요.</p>
+        <p className="muted small">
+          보건복지부 「복지용구 급여범위 및 급여기준 등에 관한 고시」 별표2 기준이며, 고시 개정에 따라 달라질 수 있어요. 내구연한이 없는 품목의 수량은 연 한도액
+          적용기간(1년) 기준이에요. 수급자별 잔여 한도는 공단(☎ 1577-1000)에서 확인할 수 있어요.
+        </p>
       </section>
 
       <section className="card cta">
