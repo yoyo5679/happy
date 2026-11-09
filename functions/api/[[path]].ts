@@ -52,20 +52,26 @@ const RETIRED_TABLES = ["items", "consents", "imweb_orders", "recipients", "kv"]
 let cleanup: Promise<void> | null = null;
 async function purgeRetiredLedger(db: D1): Promise<void> {
   return cleanup ??= (async () => {
-    await db.batch(RETIRED_TABLES.map(name => db.prepare(`DROP TABLE IF EXISTS ${name}`)));
+    // Clear data before retiring the tables; tolerate schemas from older deployments.
     const placeholders = RETIRED_TABLES.map(() => "?").join(",");
-    const remaining = await db.prepare(`SELECT COUNT(*) AS n FROM sqlite_master WHERE type = 'table' AND name IN (${placeholders})`).bind(...RETIRED_TABLES).first();
-    if (!remaining || Number(remaining.n) !== 0) throw new Error("Ledger cleanup incomplete");
+    const { results: existing } = await db.prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name IN (${placeholders})`).bind(...RETIRED_TABLES).all();
+    const present = RETIRED_TABLES.filter(name => existing.some(row => row.name === name));
+    if (present.length) await db.batch(present.map(name => db.prepare(`DELETE FROM ${name}`)));
+    for (const name of present) {
+      const remaining = await db.prepare(`SELECT COUNT(*) AS n FROM ${name}`).first();
+      if (!remaining || Number(remaining.n) !== 0) throw new Error("Ledger cleanup incomplete");
+    }
   })().catch(error => { cleanup = null; throw error; });
 }
 export async function onRequest({ request, env, params }: Ctx): Promise<Response> {
   const path = params.path ?? [];
   const retired = path[0] === "my" || (path[0] === "staff" && path[1] !== "ltc");
+  let ledgerCleanup = env.DB ? "complete" : "no_database_binding";
   if (env.DB) {
     try { await purgeRetiredLedger(env.DB); }
-    catch { return fail(503, "이전 데이터 정리를 완료하지 못했습니다."); }
+    catch { ledgerCleanup = "failed"; }
   }
-  if (retired) return json({ error: "종료된 서비스입니다.", ledgerCleanup: env.DB ? "complete" : "no_database_binding" }, 410);
+  if (retired) return json({ error: "종료된 서비스입니다.", ledgerCleanup }, 410);
   if (!env.DB) return fail(503, "setup:DB");
   if (path[0] === "ltc" && path.length === 2) return ltcPublic(request, env, env.DB, path[1]);
   if (path[0] === "staff" && path[1] === "ltc" && path.length === 3) {

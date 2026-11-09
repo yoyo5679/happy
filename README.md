@@ -130,7 +130,7 @@ npm run dev     # http://localhost:3000
 
 고객 장부·보호자 조회·동의서·아임웹 주문 가져오기 UI와 처리 코드를 제거했습니다. `/my`, `/staff`는 종료 안내만 표시하며, 기존 장부 API는 모든 메서드에서 410을 반환합니다. 브라우저의 이전 링크 키(`hc_my_k`)와 직원 인증값(`hc_staff`)은 새 페이지 접속 시 제거합니다.
 
-운영 API는 연결된 D1에서 장부 전용 `items`, `consents`, `imweb_orders`, `recipients`, `kv` 테이블을 삭제하고 부재를 확인합니다. 공개 기관 정보 `ltc`는 유지합니다. 연결되지 않은 DB, 다른 환경의 DB, 호스팅 백업·이전 배포·Git 기록은 이 마이그레이션의 삭제 대상이 아닙니다. 더 이상 사용하지 않는 Cloudflare IMWEB_API_KEY/IMWEB_SECRET_KEY는 설정에서 제거할 수 있습니다.
+운영 API는 연결된 D1에서 장부 전용 `items`, `consents`, `imweb_orders`, `recipients`, `kv` 테이블의 데이터를 삭제하고 남은 행이 없는지 확인합니다. 공개 기관 정보 `ltc`는 유지합니다. 연결되지 않은 DB, 다른 환경의 DB, 호스팅 백업·이전 배포·Git 기록은 이 마이그레이션의 삭제 대상이 아닙니다. 더 이상 사용하지 않는 Cloudflare IMWEB_API_KEY/IMWEB_SECRET_KEY는 설정에서 제거할 수 있습니다.
 
 ## 가까운 장기요양기관 찾기 (/care)
 - 데이터: 공공데이터포털 `국민건강보험공단_장기요양기관 시설별 현황`(XLSX)과 `장기요양기관 평가 결과`(CSV)를 내려받아
