@@ -30,7 +30,7 @@ export function CatalogBrowser() {
   return (
     <>
       <div className="page-title">
-        <h1>🛒 복지용구 전체 모델</h1>
+        <h1>🛒 복지용구 전체 상품</h1>
         <p className="muted">장기요양 등급이 있으면 아래 본인부담금만 내고 구입·대여할 수 있어요.</p>
       </div>
 
@@ -62,7 +62,7 @@ export function CatalogBrowser() {
         ))}
       </div>
 
-      <a href="/sizelist" className="hero-banner"><span><strong>📏 구입 전 크기와 무게 비교하기</strong><br />가가온 카탈로그 제원표 · 선택 제품 비교</span><span aria-hidden>→</span></a>
+      <a href="/sizelist" className="hero-banner"><span><strong>📏 구입 전 크기와 무게 비교하기</strong><br />제품을 골라 크기·무게를 나란히 비교하세요</span><span aria-hidden>→</span></a>
       <RatePicker rate={rate} onChange={setRate} />
       <section className="card group">
         <h3>

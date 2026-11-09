@@ -36,10 +36,10 @@ export default function Home() {
         ))}
       </div>
       <div className="home-links">
-        <Link href="/sizelist" className="btn">📏 복지용구 제원표</Link>
         <Link href="/catalog" className="btn">
-          🛒 전체 모델 보기
+          🛒 전체 상품 보기
         </Link>
+        <Link href="/sizelist" className="btn">📏 크기·무게 비교</Link>
       </div>
       <ProductPicks campaign="home" />
       <ContactCta campaign="home" />

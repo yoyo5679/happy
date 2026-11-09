@@ -23,6 +23,6 @@ const ranged={...sizeRows[0],spec:{...sizeRows[0].spec,width:'중 44.5 / 대 49.
 const removedSpec=JSON.parse(fs.readFileSync(`${root}/src/data/specifications.json`)).filter(s=>!products.some(p=>(p.code&&p.code===s.code)||(p.category===s.category&&p.name.toLowerCase().replace(/[^a-z0-9가-힣]/g,'')===s.name.toLowerCase().replace(/[^a-z0-9가-힣]/g,''))));
 for(const s of removedSpec)assert(!sizeRows.some(r=>r.spec?.code===s.code));
 const component=fs.readFileSync(`${root}/src/app/sizelist/SizeList.tsx`,'utf8');
-assert(!component.includes('openSource'));assert(!component.includes('카탈로그 원본 보기'));assert(component.includes('다른 제원만 보기'));
+assert(!component.includes('openSource'));assert(!component.includes('카탈로그 원본 보기'));assert(component.includes('다른 항목만 보기'));
 assert(!component.includes('확인 중'));
 console.log(`PASS: ${sizeRows.length} mall models; ${sizeRows.filter(r=>r.spec).length} linked specifications; ${removedSpec.length} catalog-only records excluded; missing-value states, units and range sorting verified.`);
