@@ -66,14 +66,13 @@ async function purgeRetiredLedger(db: D1): Promise<void> {
 export async function onRequest({ request, env, params }: Ctx): Promise<Response> {
   const path = params.path ?? [];
   const retired = path[0] === "my" || (path[0] === "staff" && path[1] !== "ltc");
-  let ledgerCleanup = env.DB ? "complete" : "no_database_binding";
-  if (env.DB) {
-    try { await purgeRetiredLedger(env.DB); }
-    catch { ledgerCleanup = "failed"; }
+  if (retired) {
+    let ledgerCleanup = env.DB ? "complete" : "no_database_binding";
+    if (env.DB) { try { await purgeRetiredLedger(env.DB); } catch { ledgerCleanup = "failed"; } }
+    return json({ error: "종료된 서비스입니다.", ledgerCleanup }, 410);
   }
-  if (retired) return json({ error: "종료된 서비스입니다.", ledgerCleanup }, 410);
-  if (!env.DB) return fail(503, "setup:DB");
   if (path[0] === "ltc" && path.length === 2) return ltcPublic(request, env, env.DB, path[1]);
+  if (!env.DB) return fail(503, "setup:DB");
   if (path[0] === "staff" && path[1] === "ltc" && path.length === 3) {
     if (!(await isStaff(request, env))) return fail(401, "인증이 필요합니다.");
     return ltcStaff(request, env, env.DB, path[2]);
@@ -87,6 +86,8 @@ const LTC_SCHEMA = [
     kinds TEXT NOT NULL, grades TEXT NOT NULL DEFAULT '{}', ptype TEXT NOT NULL DEFAULT '', cap INTEGER NOT NULL DEFAULT 0,
     ver TEXT NOT NULL DEFAULT '', lat REAL, lng REAL, geo_fail INTEGER NOT NULL DEFAULT 0, phone TEXT, phone_at TEXT)`,
   `CREATE INDEX IF NOT EXISTS ltc_lat ON ltc(lat)`,
+  `CREATE INDEX IF NOT EXISTS ltc_lat_lng ON ltc(lat,lng)`,
+  `CREATE INDEX IF NOT EXISTS ltc_pending_geocode ON ltc(code) WHERE lat IS NULL AND geo_fail < 2`,
 ];
 // 나중에 붙인 칸: 법정동명(못 찾을 때 대체), 대략 위치 표시
 const LTC_MIGRATIONS = [`ALTER TABLE ltc ADD COLUMN dong TEXT NOT NULL DEFAULT ''`, `ALTER TABLE ltc ADD COLUMN approx INTEGER NOT NULL DEFAULT 0`];
@@ -157,9 +158,42 @@ const ltcInit = (db: D1) =>
     throw e;
   }));
 
+// Cache public institution data only. Customer records and staff responses are never cached.
+const PUBLIC_CACHE_VERSION = "ltc-public-20261109-v1";
+const inFlight = new Map<string, Promise<unknown>>();
+function publicCache(): Cache | undefined {
+  return typeof caches === "undefined" ? undefined : (caches as unknown as { default?: Cache }).default;
+}
+async function cachedPublic<T>(request: Request, key: string, ttl: number, load: () => Promise<T>): Promise<{value:T; cache:string}> {
+  const url = new URL(`/__ltc_cache/${PUBLIC_CACHE_VERSION}/${key}`, request.url);
+  const cacheKey = new Request(url.toString());
+  const cache = publicCache();
+  const saved = await cache?.match(cacheKey).catch(() => undefined);
+  if (saved) return { value: await saved.json() as T, cache: "HIT" };
+  const pending = inFlight.get(url.toString());
+  if (pending) return { value: await pending as T, cache: "SHARED" };
+  const work = (async () => {
+    const value = await load();
+    if (cache) await cache.put(cacheKey, new Response(JSON.stringify(value), {headers: {"content-type":"application/json", "cache-control":`public, max-age=${ttl}`}})).catch(() => {});
+    return value;
+  })();
+  inFlight.set(url.toString(),work);
+  try { return {value: await work, cache:"MISS"}; } finally { inFlight.delete(url.toString()); }
+}
+let searchIndex: Promise<unknown> | null = null;
+async function ensureSearchIndex(db: D1) {
+  await (searchIndex ??= db.prepare("CREATE INDEX IF NOT EXISTS ltc_lat_lng ON ltc(lat, lng)").run().catch(() => {searchIndex=null;}));
+}
+function publicError(error: unknown): Response {
+  const message = error instanceof Error ? error.message : "";
+  if (/daily|quota|free tier|row read|row write/i.test(message)) return fail(503,"오늘 검색 이용이 집중되어 잠시 이용할 수 없어요. 한국 시간 오전 9시에 한도가 초기화됩니다. 이후 다시 찾아 주세요.");
+  if (/setup:KAKAO/.test(message)) return fail(503,"지금은 주소 검색을 이용할 수 없어요. 내 위치에서 찾기를 이용해 주세요.");
+  if (/setup:DATA_GO_KR/.test(message)) return fail(503,"전화번호를 불러오지 못했어요. 지도에서 기관 정보를 확인해 주세요.");
+  return fail(503,"기관 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.");
+}
+
 /** 누구나 쓰는 검색 (로그인 없음) */
-async function ltcPublic(request: Request, env: Env, db: D1, action: string): Promise<Response> {
-  await ltcInit(db);
+async function ltcPublic(request: Request, env: Env, db: D1 | undefined, action: string): Promise<Response> {
   const url = new URL(request.url);
   const q = url.searchParams;
   try {
@@ -173,12 +207,18 @@ async function ltcPublic(request: Request, env: Env, db: D1, action: string): Pr
       const sort = q.get("sort") ?? "near";
       const dLat = r / 111;
       const dLng = r / (111 * Math.cos((lat * Math.PI) / 180));
-      const { results } = await db
-        .prepare("SELECT code, name, addr, desig, kinds, grades, cap, lat, lng, approx FROM ltc WHERE lat BETWEEN ? AND ? AND lng BETWEEN ? AND ?")
-        .bind(lat - dLat, lat + dLat, lng - dLng, lng + dLng)
-        .all();
+      // Expand to a shared grid bounding box, but retain the exact GPS point for distances.
+      const grid = 0.02;
+      const bounds = [Math.floor((lat-dLat)/grid)*grid,Math.ceil((lat+dLat)/grid)*grid,Math.floor((lng-dLng)/grid)*grid,Math.ceil((lng+dLng)/grid)*grid].map(v=>Number(v.toFixed(4)));
+      const candidates = await cachedPublic<Row[]>(request,`area/${bounds.join(",")}`,3600,async()=>{
+        if (!db) throw new ServiceError("setup:DB");
+        await ensureSearchIndex(db);
+        const result = await db.prepare("SELECT code, name, addr, desig, kinds, grades, cap, lat, lng, approx FROM ltc WHERE lat BETWEEN ? AND ? AND lng BETWEEN ? AND ?").bind(...bounds).all();
+        return result.results;
+      });
+      const results = candidates.value;
       const want = kinds.length ? kinds : LTC_KINDS;
-      const rank = (g: string) => "ABCDE".indexOf(g) + 1 || 9;
+      const rank = (g: string) => /^[ABCDE]$/.test(g) ? "ABCDE".indexOf(g) + 1 : 9;
       const list = results
         .map((x) => {
           const ks = JSON.parse(String(x.kinds)) as string[];
@@ -191,20 +231,28 @@ async function ltcPublic(request: Request, env: Env, db: D1, action: string): Pr
       list.sort((a, b) =>
         sort === "grade" ? a.best - b.best || a.km - b.km : sort === "old" ? String(a.desig || "9").localeCompare(String(b.desig || "9")) || a.km - b.km : a.km - b.km,
       );
-      return json({ total: list.length, items: list.slice(0, 80).map(({ best: _b, ...x }) => ({ ...x, km: Math.round(x.km * 10) / 10 })) });
+      const response = json({ total: list.length, items: list.slice(0, 80).map(({ best: _b, ...x }) => ({ ...x, km: Math.round(x.km * 10) / 10 })) });
+      response.headers.set("x-ltc-candidates-cache",candidates.cache);
+      return response;
     }
     // 동네·주소로 위치 찾기: ?q=
     if (action === "place") {
       const text = (q.get("q") ?? "").trim().slice(0, 60);
       if (text.length < 2) return fail(400, "동네 이름이나 주소를 2글자 이상 입력해 주세요");
+      const digest = [...await sha(text.replace(/\s+/g," "))].map(b=>b.toString(16).padStart(2,"0")).join("");
+      const answer = await cachedPublic<{places:unknown[]}>(request,`place/${digest}`,86400,async()=>{
       const a = asList((await kakao(env, "/v2/local/search/address.json", { query: text, size: "5" })).documents);
       const k = a.length ? [] : asList((await kakao(env, "/v2/local/search/keyword.json", { query: text, size: "5" })).documents);
       const places = [...a.map((d) => ({ name: String(d.address_name), lat: Number(d.y), lng: Number(d.x) })), ...k.map((d) => ({ name: `${d.place_name} (${d.address_name})`, lat: Number(d.y), lng: Number(d.x) }))];
-      return json({ places });
+        return {places};
+      });
+      return json(answer.value);
     }
+
     // 전화번호: 공단 API(일반현황)로 조회 후 30일 저장
     if (action === "phone") {
       const code = str(q.get("c"), 20);
+      if (!db) throw new ServiceError("setup:DB");
       const row = await db.prepare("SELECT code, ptype, phone, phone_at FROM ltc WHERE code = ?").bind(code).first();
       if (!row) return fail(404, "기관을 찾을 수 없어요");
       if (row.phone_at && Date.now() - Date.parse(String(row.phone_at)) < 30 * 86400_000) return json({ phone: row.phone || "" });
@@ -223,10 +271,8 @@ async function ltcPublic(request: Request, env: Env, db: D1, action: string): Pr
       await db.prepare("UPDATE ltc SET phone = ?, phone_at = ? WHERE code = ?").bind(phone, now(), code).run();
       return json({ phone });
     }
-  } catch (e) {
-    if (e instanceof ServiceError) return fail(e.message.startsWith("setup:") ? 503 : 502, e.message);
-    return fail(502, (e as Error).message);
-  }
+  } catch (e) { return publicError(e); }
+
   return fail(404, "없는 주소예요");
 }
 
@@ -301,8 +347,8 @@ async function ltcStaff(request: Request, env: Env & { ASSETS?: { fetch: (r: Req
           )
           .bind(JSON.stringify(out))
           .run();
-      const left = await db.prepare("SELECT COUNT(*) AS n FROM ltc WHERE lat IS NULL AND geo_fail < 2").first();
-      return json({ done: out.filter((x) => x.lat != null).length, failed: out.filter((x) => x.lat == null).length, remaining: Number(left?.n ?? 0) });
+      const next = await db.prepare("SELECT code FROM ltc WHERE lat IS NULL AND geo_fail < 2 LIMIT 1").first();
+      return json({ done: out.filter((x) => x.lat != null).length, failed: out.filter((x) => x.lat == null).length, hasMore: !!next });
     }
   } catch (e) {
     if (e instanceof ServiceError) return fail(e.message.startsWith("setup:") ? 503 : 502, e.message);

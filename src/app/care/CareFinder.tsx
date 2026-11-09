@@ -80,26 +80,29 @@ export function CareFinder() {
     }
   }
 
-  const search = useCallback(async () => {
+  const search = useCallback(async (signal?: AbortSignal) => {
     if (!pos) return;
     setLoading(true);
     setErr("");
+    setItems(null);
     try {
       const p = new URLSearchParams({ lat: String(pos.lat), lng: String(pos.lng), r: String(radius), sort, kinds: kinds.join(",") });
-      const r = await fetch(`/api/ltc/search?${p}`);
+      const r = await fetch(`/api/ltc/search?${p}`, { signal });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error);
       setItems(j.items);
       setTotal(j.total);
     } catch (e) {
-      setErr((e as Error).message || "잠시 후 다시 시도해 주세요.");
+      if (!signal?.aborted) setErr(/D1_ERROR|SQLITE|Failed to fetch/i.test((e as Error).message) ? "기관 정보를 불러오지 못했어요. 잠시 후 다시 찾아 주세요." : (e as Error).message || "잠시 후 다시 시도해 주세요.");
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
   }, [pos, radius, sort, kinds]);
 
   useEffect(() => {
-    search();
+    const controller = new AbortController();
+    search(controller.signal);
+    return () => controller.abort();
   }, [search]);
 
   return (
