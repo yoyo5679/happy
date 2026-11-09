@@ -186,7 +186,7 @@ async function ensureSearchIndex(db: D1) {
 }
 function publicError(error: unknown): Response {
   const message = error instanceof Error ? error.message : "";
-  if (/daily|quota|free tier|row read|row write/i.test(message)) return fail(503,"오늘 검색 이용이 집중되어 잠시 이용할 수 없어요. 한국 시간 오전 9시에 한도가 초기화됩니다. 이후 다시 찾아 주세요.");
+  if (/daily|quota|free tier|row read|row write/i.test(message)) return fail(503,"기관 정보 조회 한도에 도달해 잠시 검색할 수 없어요. 한국 시간 오전 9시 이후 다시 찾아 주세요.");
   if (/setup:KAKAO/.test(message)) return fail(503,"지금은 주소 검색을 이용할 수 없어요. 내 위치에서 찾기를 이용해 주세요.");
   if (/setup:DATA_GO_KR/.test(message)) return fail(503,"전화번호를 불러오지 못했어요. 지도에서 기관 정보를 확인해 주세요.");
   return fail(503,"기관 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.");
@@ -246,7 +246,9 @@ async function ltcPublic(request: Request, env: Env, db: D1 | undefined, action:
       const places = [...a.map((d) => ({ name: String(d.address_name), lat: Number(d.y), lng: Number(d.x) })), ...k.map((d) => ({ name: `${d.place_name} (${d.address_name})`, lat: Number(d.y), lng: Number(d.x) }))];
         return {places};
       });
-      return json(answer.value);
+      const response = json(answer.value);
+      response.headers.set("x-ltc-place-cache",answer.cache);
+      return response;
     }
 
     // 전화번호: 공단 API(일반현황)로 조회 후 30일 저장
