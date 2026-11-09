@@ -1,0 +1,3418 @@
+{
+  "source": "가가온_26년_2호_카달로그_0915.pdf",
+  "sourcePageCount": 70,
+  "reviewedOn": "2026-11-09",
+  "method": "품목별 원본 페이지의 모델명·급여코드와 치수 화살표를 직접 대조. 원본 전체 제품 영역과 비급여 영역도 점검. 미수록은 이 첨부 문서에 해당 모델이 없다는 뜻이며 외부 자료 부재를 뜻하지 않음.",
+  "products": {
+    "T03031261101": {
+      "name": "코디-200",
+      "category": "portableToilet",
+      "status": "catalog_matched",
+      "sourcePage": 8,
+      "reviewedCategoryPages": [
+        8,
+        10
+      ]
+    },
+    "T03030232001": {
+      "name": "APT-106",
+      "category": "portableToilet",
+      "status": "catalog_matched",
+      "sourcePage": 8,
+      "reviewedCategoryPages": [
+        8,
+        10
+      ]
+    },
+    "T03030025001": {
+      "name": "SAMB",
+      "category": "portableToilet",
+      "status": "catalog_matched",
+      "sourcePage": 10,
+      "reviewedCategoryPages": [
+        8,
+        10
+      ]
+    },
+    "T03030232002": {
+      "name": "APT-126",
+      "category": "portableToilet",
+      "status": "catalog_matched",
+      "sourcePage": 8,
+      "reviewedCategoryPages": [
+        8,
+        10
+      ]
+    },
+    "T03030025104": {
+      "name": "BFMB4",
+      "category": "portableToilet",
+      "status": "catalog_matched",
+      "sourcePage": 8,
+      "reviewedCategoryPages": [
+        8,
+        10
+      ]
+    },
+    "T03030025105": {
+      "name": "BFMB5",
+      "category": "portableToilet",
+      "status": "catalog_matched",
+      "sourcePage": 9,
+      "reviewedCategoryPages": [
+        8,
+        10
+      ]
+    },
+    "T03030060102": {
+      "name": "APT-210",
+      "category": "portableToilet",
+      "status": "catalog_matched",
+      "sourcePage": 9,
+      "reviewedCategoryPages": [
+        8,
+        10
+      ]
+    },
+    "T03030043002": {
+      "name": "PT-100",
+      "category": "portableToilet",
+      "status": "catalog_matched",
+      "sourcePage": 10,
+      "reviewedCategoryPages": [
+        8,
+        10
+      ]
+    },
+    "T03030232003": {
+      "name": "APT-301",
+      "category": "portableToilet",
+      "status": "catalog_matched",
+      "sourcePage": 9,
+      "reviewedCategoryPages": [
+        8,
+        10
+      ]
+    },
+    "T03030155001": {
+      "name": "NT-CT100",
+      "category": "portableToilet",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        8,
+        10
+      ]
+    },
+    "T03030060005": {
+      "name": "APT-103",
+      "category": "portableToilet",
+      "status": "catalog_matched",
+      "sourcePage": 8,
+      "reviewedCategoryPages": [
+        8,
+        10
+      ]
+    },
+    "m1211": {
+      "name": "CS-3",
+      "category": "portableToilet",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        8,
+        10
+      ]
+    },
+    "T03030025008": {
+      "name": "BFMB8",
+      "category": "portableToilet",
+      "status": "catalog_matched",
+      "sourcePage": 9,
+      "reviewedCategoryPages": [
+        8,
+        10
+      ]
+    },
+    "T03030060001": {
+      "name": "APT-101",
+      "category": "portableToilet",
+      "status": "catalog_matched",
+      "sourcePage": 8,
+      "reviewedCategoryPages": [
+        8,
+        10
+      ]
+    },
+    "T03030025009": {
+      "name": "BFMB20",
+      "category": "portableToilet",
+      "status": "catalog_matched",
+      "sourcePage": 9,
+      "reviewedCategoryPages": [
+        8,
+        10
+      ]
+    },
+    "T03030025011": {
+      "name": "BFMB-109",
+      "category": "portableToilet",
+      "status": "catalog_matched",
+      "sourcePage": 9,
+      "reviewedCategoryPages": [
+        8,
+        10
+      ]
+    },
+    "m1215": {
+      "name": "PN-L23206KR 그라비노",
+      "category": "portableToilet",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        8,
+        10
+      ]
+    },
+    "m1214": {
+      "name": "CPT-1000",
+      "category": "portableToilet",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        8,
+        10
+      ]
+    },
+    "m1210": {
+      "name": "PN-L30200BK 라피네",
+      "category": "portableToilet",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        8,
+        10
+      ]
+    },
+    "B03180191001": {
+      "name": "CSC-1000",
+      "category": "bathChair",
+      "status": "catalog_matched",
+      "sourcePage": 11,
+      "reviewedCategoryPages": [
+        11,
+        12
+      ]
+    },
+    "m1342": {
+      "name": "SMC-01",
+      "category": "bathChair",
+      "status": "catalog_matched",
+      "sourcePage": 11,
+      "reviewedCategoryPages": [
+        11,
+        12
+      ]
+    },
+    "B03180060005": {
+      "name": "ASC-501",
+      "category": "bathChair",
+      "status": "catalog_matched",
+      "sourcePage": 11,
+      "reviewedCategoryPages": [
+        11,
+        12
+      ]
+    },
+    "B03180025104": {
+      "name": "BOFEEL8",
+      "category": "bathChair",
+      "status": "catalog_matched",
+      "sourcePage": 11,
+      "reviewedCategoryPages": [
+        11,
+        12
+      ]
+    },
+    "m1112": {
+      "name": "BOFEEL9",
+      "category": "bathChair",
+      "status": "catalog_matched",
+      "sourcePage": 12,
+      "reviewedCategoryPages": [
+        11,
+        12
+      ]
+    },
+    "B03180025015": {
+      "name": "BFSC-112",
+      "category": "bathChair",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        11,
+        12
+      ]
+    },
+    "B03180060004": {
+      "name": "ASC-502",
+      "category": "bathChair",
+      "status": "catalog_matched",
+      "sourcePage": 11,
+      "reviewedCategoryPages": [
+        11,
+        12
+      ]
+    },
+    "B03180088605": {
+      "name": "IU",
+      "category": "bathChair",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        11,
+        12
+      ]
+    },
+    "B03180043004": {
+      "name": "PT-300",
+      "category": "bathChair",
+      "status": "catalog_matched",
+      "sourcePage": 12,
+      "reviewedCategoryPages": [
+        11,
+        12
+      ]
+    },
+    "m1106": {
+      "name": "BOFEEL10",
+      "category": "bathChair",
+      "status": "catalog_matched",
+      "sourcePage": 12,
+      "reviewedCategoryPages": [
+        11,
+        12
+      ]
+    },
+    "m1104": {
+      "name": "BOFEEL11",
+      "category": "bathChair",
+      "status": "catalog_matched",
+      "sourcePage": 12,
+      "reviewedCategoryPages": [
+        11,
+        12
+      ]
+    },
+    "B03180081503": {
+      "name": "PN-L4152101D",
+      "category": "bathChair",
+      "status": "catalog_matched",
+      "sourcePage": 11,
+      "reviewedCategoryPages": [
+        11,
+        12
+      ]
+    },
+    "m1118": {
+      "name": "Clean49",
+      "category": "bathChair",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        11,
+        12
+      ]
+    },
+    "m1116": {
+      "name": "RSC01",
+      "category": "bathChair",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        11,
+        12
+      ]
+    },
+    "m1115": {
+      "name": "KSCU01",
+      "category": "bathChair",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        11,
+        12
+      ]
+    },
+    "B03180049001": {
+      "name": "MTCA",
+      "category": "bathChair",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        11,
+        12
+      ]
+    },
+    "m1109": {
+      "name": "ASC-102",
+      "category": "bathChair",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        11,
+        12
+      ]
+    },
+    "m1105": {
+      "name": "NYC-01",
+      "category": "bathChair",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        11,
+        12
+      ]
+    },
+    "m1103": {
+      "name": "K-100",
+      "category": "bathChair",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        11,
+        12
+      ]
+    },
+    "m1102": {
+      "name": "라온아띠 KCS-811",
+      "category": "bathChair",
+      "status": "catalog_matched",
+      "sourcePage": 12,
+      "reviewedCategoryPages": [
+        11,
+        12
+      ]
+    },
+    "M06090005019": {
+      "name": "실버카 아라",
+      "category": "walker",
+      "status": "catalog_matched",
+      "sourcePage": 14,
+      "reviewedCategoryPages": [
+        13,
+        16
+      ]
+    },
+    "M06090005015": {
+      "name": "실버카 단비",
+      "category": "walker",
+      "status": "catalog_matched",
+      "sourcePage": 14,
+      "reviewedCategoryPages": [
+        13,
+        16
+      ]
+    },
+    "m1349": {
+      "name": "SLT-10",
+      "category": "walker",
+      "status": "catalog_matched",
+      "sourcePage": 15,
+      "reviewedCategoryPages": [
+        13,
+        16
+      ]
+    },
+    "M06091147601": {
+      "name": "Handy",
+      "category": "walker",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        13,
+        16
+      ]
+    },
+    "M06060006003": {
+      "name": "SKB-101W",
+      "category": "walker",
+      "status": "catalog_matched",
+      "sourcePage": 16,
+      "reviewedCategoryPages": [
+        13,
+        16
+      ]
+    },
+    "m1346": {
+      "name": "PHW-07",
+      "category": "walker",
+      "status": "catalog_matched",
+      "sourcePage": 16,
+      "reviewedCategoryPages": [
+        13,
+        16
+      ]
+    },
+    "M06090224501": {
+      "name": "EXCT-01R",
+      "category": "walker",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        13,
+        16
+      ]
+    },
+    "M06060060001": {
+      "name": "AWT-501",
+      "category": "walker",
+      "status": "catalog_matched",
+      "sourcePage": 16,
+      "reviewedCategoryPages": [
+        13,
+        16
+      ]
+    },
+    "m1335": {
+      "name": "소풍 롤레이터",
+      "category": "walker",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        13,
+        16
+      ]
+    },
+    "m1325": {
+      "name": "DS-WAVE",
+      "category": "walker",
+      "status": "catalog_matched",
+      "sourcePage": 14,
+      "reviewedCategoryPages": [
+        13,
+        16
+      ]
+    },
+    "m1322": {
+      "name": "GC-R10",
+      "category": "walker",
+      "status": "catalog_matched",
+      "sourcePage": 13,
+      "reviewedCategoryPages": [
+        13,
+        16
+      ]
+    },
+    "m1321": {
+      "name": "스피릿X4",
+      "category": "walker",
+      "status": "catalog_matched",
+      "sourcePage": 13,
+      "reviewedCategoryPages": [
+        13,
+        16
+      ]
+    },
+    "M06090158001": {
+      "name": "장수(SK-120)",
+      "category": "walker",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        13,
+        16
+      ]
+    },
+    "M06061285601": {
+      "name": "SPORTY",
+      "category": "walker",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        13,
+        16
+      ]
+    },
+    "M06090005106": {
+      "name": "KS-300",
+      "category": "walker",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        13,
+        16
+      ]
+    },
+    "M06090005005": {
+      "name": "실버카 KS-130",
+      "category": "walker",
+      "status": "catalog_matched",
+      "sourcePage": 15,
+      "reviewedCategoryPages": [
+        13,
+        16
+      ]
+    },
+    "m1200": {
+      "name": "BFSC-01",
+      "category": "walker",
+      "status": "catalog_matched",
+      "sourcePage": 15,
+      "reviewedCategoryPages": [
+        13,
+        16
+      ]
+    },
+    "m1199": {
+      "name": "뉴라이트스텝",
+      "category": "walker",
+      "status": "catalog_matched",
+      "sourcePage": 15,
+      "reviewedCategoryPages": [
+        13,
+        16
+      ]
+    },
+    "m1196": {
+      "name": "효자2(SK-105)",
+      "category": "walker",
+      "status": "catalog_matched",
+      "sourcePage": 14,
+      "reviewedCategoryPages": [
+        13,
+        16
+      ]
+    },
+    "M06090005003": {
+      "name": "실버카 KS-120",
+      "category": "walker",
+      "status": "catalog_matched",
+      "sourcePage": 15,
+      "reviewedCategoryPages": [
+        13,
+        16
+      ]
+    },
+    "M06061146601": {
+      "name": "Let's Fly",
+      "category": "walker",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        13,
+        16
+      ]
+    },
+    "M06061146602": {
+      "name": "Let's Move",
+      "category": "walker",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        13,
+        16
+      ]
+    },
+    "M06090217502": {
+      "name": "WAG02",
+      "category": "walker",
+      "status": "catalog_matched",
+      "sourcePage": 13,
+      "reviewedCategoryPages": [
+        13,
+        16
+      ]
+    },
+    "M06060004003": {
+      "name": "나이스워커4S",
+      "category": "walker",
+      "status": "catalog_matched",
+      "sourcePage": 14,
+      "reviewedCategoryPages": [
+        13,
+        16
+      ]
+    },
+    "m1189": {
+      "name": "동행(SK-130)",
+      "category": "walker",
+      "status": "catalog_matched",
+      "sourcePage": 14,
+      "reviewedCategoryPages": [
+        13,
+        16
+      ]
+    },
+    "M06091152601": {
+      "name": "슬림핏(SL-0680WS)",
+      "category": "walker",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        13,
+        16
+      ]
+    },
+    "m1324": {
+      "name": "BM-70",
+      "category": "walker",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        13,
+        16
+      ]
+    },
+    "m1206": {
+      "name": "E_ZO(이조)",
+      "category": "walker",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        13,
+        16
+      ]
+    },
+    "M06060147001": {
+      "name": "코지워커 P02",
+      "category": "walker",
+      "status": "catalog_matched",
+      "sourcePage": 16,
+      "reviewedCategoryPages": [
+        13,
+        16
+      ]
+    },
+    "m1198": {
+      "name": "카본 로얄파인더",
+      "category": "walker",
+      "status": "catalog_matched",
+      "sourcePage": 13,
+      "reviewedCategoryPages": [
+        13,
+        16
+      ]
+    },
+    "M06061056103": {
+      "name": "코지워커 P04",
+      "category": "walker",
+      "status": "catalog_matched",
+      "sourcePage": 16,
+      "reviewedCategoryPages": [
+        13,
+        16
+      ]
+    },
+    "m1193": {
+      "name": "E_CHA(이차)",
+      "category": "walker",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        13,
+        16
+      ]
+    },
+    "F18030045039": {
+      "name": "YGP-002",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 20,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030191012": {
+      "name": "CV300S",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 22,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030191011": {
+      "name": "CV300",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 22,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030045042": {
+      "name": "YGW003",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 28,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030045041": {
+      "name": "YGW002",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 28,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030045040": {
+      "name": "YGW001",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 28,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030060109": {
+      "name": "ASH-111",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 26,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030060107": {
+      "name": "ASH-110",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 26,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030060105": {
+      "name": "ASH-109",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 26,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030060103": {
+      "name": "ASH-108",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 26,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030132001": {
+      "name": "ITS-501",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 18,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030060031": {
+      "name": "ASH-402",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 18,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030060026": {
+      "name": "ASH-401",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 18,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030060101": {
+      "name": "ASH-107",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 26,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "m1281": {
+      "name": "FHC600",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 25,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "m1280": {
+      "name": "FHC400",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 25,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18031160101": {
+      "name": "케어핸들 2-G",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 19,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030045105": {
+      "name": "YGH02",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 29,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18031160102": {
+      "name": "케어핸들 3-G",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 19,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030045118": {
+      "name": "YGC001",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 29,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030175004": {
+      "name": "MSP-0003",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 21,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18031069101": {
+      "name": "NSBS-LS4475",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 27,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030175001": {
+      "name": "MSP-0005",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 24,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030175003": {
+      "name": "MSP-0002",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 21,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18031141101": {
+      "name": "에스원",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 27,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030045115": {
+      "name": "YGA03",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 29,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030240002": {
+      "name": "URB-SG001[B]",
+      "category": "safetyHandle",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030045109": {
+      "name": "YGW-T",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 30,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030045119": {
+      "name": "YGC01",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 29,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030045114": {
+      "name": "YGA02",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 29,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030045112": {
+      "name": "YGA003",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 29,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030045020": {
+      "name": "WA-T100",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 30,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030045111": {
+      "name": "YGA002",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 29,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030045038": {
+      "name": "YGP-001",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 20,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030045108": {
+      "name": "YGW-L",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 30,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030045113": {
+      "name": "YGH002",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 29,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030045103": {
+      "name": "YGM03",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 19,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030045110": {
+      "name": "YGA001",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 28,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18031026109": {
+      "name": "CE400",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 27,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18031260601": {
+      "name": "LK-ST200",
+      "category": "safetyHandle",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030191006": {
+      "name": "CP800",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 27,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "m1005": {
+      "name": "CL600",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 28,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18031082101": {
+      "name": "CD-10",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 23,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030034017": {
+      "name": "MSH-508",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 18,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030025005": {
+      "name": "BFSH10",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 19,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030191004": {
+      "name": "CP600",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 27,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030060113": {
+      "name": "ASH-120",
+      "category": "safetyHandle",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030060006": {
+      "name": "ASH-105",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 26,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030060002": {
+      "name": "ASH-102",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 25,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18031026103": {
+      "name": "CC1200",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 28,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "m995": {
+      "name": "CW400",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 28,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030060021": {
+      "name": "ASH-301",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 25,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030060029": {
+      "name": "ASH-503",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 20,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030060004": {
+      "name": "ASH-103",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 25,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030060005": {
+      "name": "ASH-104",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 26,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030060028": {
+      "name": "ASH-502",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 20,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030059003": {
+      "name": "DGP-0003",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 21,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "m987": {
+      "name": "FHC03",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 20,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030059004": {
+      "name": "DGP-0004",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 21,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030060025": {
+      "name": "ASH-211",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 22,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030059007": {
+      "name": "DGP-0005",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 24,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030059002": {
+      "name": "DGP-0002",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 21,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030060120": {
+      "name": "ASH-201",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 23,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18031026107": {
+      "name": "CE600",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 27,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18031026108": {
+      "name": "CE460",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 27,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030034016": {
+      "name": "MSH-505",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 18,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "m977": {
+      "name": "CV100",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 23,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030191005": {
+      "name": "CP660",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 27,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030060003": {
+      "name": "ASH-106",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 26,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030060022": {
+      "name": "ASH-302",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 25,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030060027": {
+      "name": "ASH-501",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 20,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030060024": {
+      "name": "ASH-304",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 25,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030060023": {
+      "name": "ASH-303",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 25,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030059005": {
+      "name": "DGP-0007",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 24,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030233001": {
+      "name": "DM-310",
+      "category": "safetyHandle",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030059006": {
+      "name": "DGP-0006",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 24,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030060030": {
+      "name": "ASH-212",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 22,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18030233002": {
+      "name": "DM-320",
+      "category": "safetyHandle",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "m964": {
+      "name": "CL300",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 28,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18031081101": {
+      "name": "롱젠손잡이-01",
+      "category": "safetyHandle",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "m1017": {
+      "name": "SJ-100",
+      "category": "safetyHandle",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18031081102": {
+      "name": "롱젠손잡이-02",
+      "category": "safetyHandle",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "m998": {
+      "name": "KH-100",
+      "category": "safetyHandle",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "m989": {
+      "name": "K-300",
+      "category": "safetyHandle",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "F18031026114": {
+      "name": "CSH-5000",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 19,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "m970": {
+      "name": "CV200",
+      "category": "safetyHandle",
+      "status": "catalog_matched",
+      "sourcePage": 23,
+      "reviewedCategoryPages": [
+        18,
+        31
+      ]
+    },
+    "T03060058001": {
+      "name": "HD-B-001",
+      "category": "simpleToilet",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        41,
+        41
+      ]
+    },
+    "T03060060101": {
+      "name": "ABP-105",
+      "category": "simpleToilet",
+      "status": "catalog_matched",
+      "sourcePage": 41,
+      "reviewedCategoryPages": [
+        41,
+        41
+      ]
+    },
+    "T03060058002": {
+      "name": "HD-UM-001",
+      "category": "simpleToilet",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        41,
+        41
+      ]
+    },
+    "T03060060001": {
+      "name": "ABP101",
+      "category": "simpleToilet",
+      "status": "catalog_matched",
+      "sourcePage": 41,
+      "reviewedCategoryPages": [
+        41,
+        41
+      ]
+    },
+    "T03060025101": {
+      "name": "BFTL4",
+      "category": "simpleToilet",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        41,
+        41
+      ]
+    },
+    "T03060060102": {
+      "name": "ABP-106",
+      "category": "simpleToilet",
+      "status": "catalog_matched",
+      "sourcePage": 41,
+      "reviewedCategoryPages": [
+        41,
+        41
+      ]
+    },
+    "T03060025103": {
+      "name": "BFTL6",
+      "category": "simpleToilet",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        41,
+        41
+      ]
+    },
+    "T03060025102": {
+      "name": "BFTL5",
+      "category": "simpleToilet",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        41,
+        41
+      ]
+    },
+    "F30031091109": {
+      "name": "논슬립200",
+      "category": "antiSlipMat",
+      "status": "catalog_matched",
+      "sourcePage": 34,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "F30031067112": {
+      "name": "나이팅게일축광(중)",
+      "category": "antiSlipMat",
+      "status": "catalog_matched",
+      "sourcePage": 33,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "F30031067113": {
+      "name": "나이팅게일축광(대)",
+      "category": "antiSlipMat",
+      "status": "catalog_matched",
+      "sourcePage": 33,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "m1415": {
+      "name": "나이팅게일-B",
+      "category": "antiSlipMat",
+      "status": "catalog_matched",
+      "sourcePage": 34,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "F30030181002": {
+      "name": "URB-M101",
+      "category": "antiSlipMat",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "F30031091108": {
+      "name": "SW-지압plus",
+      "category": "antiSlipMat",
+      "status": "catalog_matched",
+      "sourcePage": 35,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "F30031091110": {
+      "name": "SW-SM03",
+      "category": "antiSlipMat",
+      "status": "catalog_matched",
+      "sourcePage": 32,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "m1411": {
+      "name": "SW-SM02",
+      "category": "antiSlipMat",
+      "status": "catalog_matched",
+      "sourcePage": 32,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "F30031091104": {
+      "name": "SW-M260",
+      "category": "antiSlipMat",
+      "status": "catalog_matched",
+      "sourcePage": 34,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "F30031091103": {
+      "name": "SW-M1",
+      "category": "antiSlipMat",
+      "status": "catalog_matched",
+      "sourcePage": 33,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "F30030006102": {
+      "name": "SKM-500 마블",
+      "category": "antiSlipMat",
+      "status": "catalog_matched",
+      "sourcePage": 34,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "F30031220103": {
+      "name": "SKC-03",
+      "category": "antiSlipMat",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "F30031036103": {
+      "name": "SC-2500",
+      "category": "antiSlipMat",
+      "status": "catalog_matched",
+      "sourcePage": 35,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "F30030155007": {
+      "name": "NT-6001",
+      "category": "antiSlipMat",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "F30030187001": {
+      "name": "NSAM-0190",
+      "category": "antiSlipMat",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "F30031133102": {
+      "name": "J-S1",
+      "category": "antiSlipMat",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "F30031106104": {
+      "name": "DM-120L",
+      "category": "antiSlipMat",
+      "status": "catalog_matched",
+      "sourcePage": 33,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "F30031106102": {
+      "name": "DM-100S",
+      "category": "antiSlipMat",
+      "status": "catalog_matched",
+      "sourcePage": 33,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "F30031036108": {
+      "name": "DA-006",
+      "category": "antiSlipMat",
+      "status": "catalog_matched",
+      "sourcePage": 35,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "F30031151104": {
+      "name": "BLS-600",
+      "category": "antiSlipMat",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "F30030060102": {
+      "name": "ASM-102",
+      "category": "antiSlipMat",
+      "status": "catalog_matched",
+      "sourcePage": 34,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "F30030078105": {
+      "name": "AFM-04",
+      "category": "antiSlipMat",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "m1338": {
+      "name": "바이오스타 논슬립매트 III",
+      "category": "antiSlipMat",
+      "status": "catalog_matched",
+      "sourcePage": 33,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "m1332": {
+      "name": "나이팅게일축광(소)",
+      "category": "antiSlipMat",
+      "status": "catalog_matched",
+      "sourcePage": 33,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "m1305": {
+      "name": "세종-M01",
+      "category": "antiSlipMat",
+      "status": "catalog_matched",
+      "sourcePage": 32,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "m1303": {
+      "name": "나이팅게일(소)",
+      "category": "antiSlipMat",
+      "status": "catalog_matched",
+      "sourcePage": 34,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "m1300": {
+      "name": "나이팅게일-A",
+      "category": "antiSlipMat",
+      "status": "catalog_matched",
+      "sourcePage": 34,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "m1291": {
+      "name": "세종-S01",
+      "category": "antiSlipMat",
+      "status": "catalog_matched",
+      "sourcePage": 32,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "F30030078003": {
+      "name": "AFM-02",
+      "category": "antiSlipMat",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "F30031220101": {
+      "name": "SKC-01",
+      "category": "antiSlipMat",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "F30031151105": {
+      "name": "BLS-800",
+      "category": "antiSlipMat",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "F30031091111": {
+      "name": "SW-SM04",
+      "category": "antiSlipMat",
+      "status": "catalog_matched",
+      "sourcePage": 32,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "F30031151106": {
+      "name": "BLS-900",
+      "category": "antiSlipMat",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "F30030205004": {
+      "name": "BLS-850",
+      "category": "antiSlipMat",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "F30031220102": {
+      "name": "SKC-02",
+      "category": "antiSlipMat",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "m1045": {
+      "name": "HM-401(중)",
+      "category": "antiSlipMat",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "m1041": {
+      "name": "HM-403(대)",
+      "category": "antiSlipMat",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        32,
+        35
+      ]
+    },
+    "m1426": {
+      "name": "컴포핸들스틱(CF-50011)",
+      "category": "cane",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        42,
+        44
+      ]
+    },
+    "m1425": {
+      "name": "이지핸들스틱(EH-50011)",
+      "category": "cane",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        42,
+        44
+      ]
+    },
+    "m1424": {
+      "name": "이지핸들2웨이스틱(EH-50042)",
+      "category": "cane",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        42,
+        44
+      ]
+    },
+    "M03031080103": {
+      "name": "안심동행401",
+      "category": "cane",
+      "status": "catalog_matched",
+      "sourcePage": 43,
+      "reviewedCategoryPages": [
+        42,
+        44
+      ]
+    },
+    "M03031083103": {
+      "name": "나래-4000",
+      "category": "cane",
+      "status": "catalog_matched",
+      "sourcePage": 44,
+      "reviewedCategoryPages": [
+        42,
+        44
+      ]
+    },
+    "M03031086001": {
+      "name": "나래-1000",
+      "category": "cane",
+      "status": "catalog_matched",
+      "sourcePage": 43,
+      "reviewedCategoryPages": [
+        42,
+        44
+      ]
+    },
+    "M03030132011": {
+      "name": "LF-S",
+      "category": "cane",
+      "status": "catalog_matched",
+      "sourcePage": 43,
+      "reviewedCategoryPages": [
+        42,
+        44
+      ]
+    },
+    "m1419": {
+      "name": "Chunji",
+      "category": "cane",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        42,
+        44
+      ]
+    },
+    "m1341": {
+      "name": "CHOICE-03",
+      "category": "cane",
+      "status": "catalog_matched",
+      "sourcePage": 43,
+      "reviewedCategoryPages": [
+        42,
+        44
+      ]
+    },
+    "m1340": {
+      "name": "CHOICE-02",
+      "category": "cane",
+      "status": "catalog_matched",
+      "sourcePage": 43,
+      "reviewedCategoryPages": [
+        42,
+        44
+      ]
+    },
+    "m1339": {
+      "name": "CHOICE-01",
+      "category": "cane",
+      "status": "catalog_matched",
+      "sourcePage": 42,
+      "reviewedCategoryPages": [
+        42,
+        44
+      ]
+    },
+    "M03031071603": {
+      "name": "백건남자지팡이-01",
+      "category": "cane",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        42,
+        44
+      ]
+    },
+    "M03030132007": {
+      "name": "LC",
+      "category": "cane",
+      "status": "catalog_matched",
+      "sourcePage": 42,
+      "reviewedCategoryPages": [
+        42,
+        44
+      ]
+    },
+    "M03031071602": {
+      "name": "백건여자지팡이-02",
+      "category": "cane",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        42,
+        44
+      ]
+    },
+    "M03030202501": {
+      "name": "TW-0128",
+      "category": "cane",
+      "status": "catalog_matched",
+      "sourcePage": 44,
+      "reviewedCategoryPages": [
+        42,
+        44
+      ]
+    },
+    "M03031033103": {
+      "name": "아이온 사발지팡이",
+      "category": "cane",
+      "status": "catalog_matched",
+      "sourcePage": 44,
+      "reviewedCategoryPages": [
+        42,
+        44
+      ]
+    },
+    "M03030132008": {
+      "name": "BS",
+      "category": "cane",
+      "status": "catalog_matched",
+      "sourcePage": 44,
+      "reviewedCategoryPages": [
+        42,
+        44
+      ]
+    },
+    "M03031080102": {
+      "name": "EL-40S",
+      "category": "cane",
+      "status": "catalog_matched",
+      "sourcePage": 44,
+      "reviewedCategoryPages": [
+        42,
+        44
+      ]
+    },
+    "M03031033104": {
+      "name": "SF",
+      "category": "cane",
+      "status": "catalog_matched",
+      "sourcePage": 42,
+      "reviewedCategoryPages": [
+        42,
+        44
+      ]
+    },
+    "M03030132002": {
+      "name": "SS",
+      "category": "cane",
+      "status": "catalog_matched",
+      "sourcePage": 44,
+      "reviewedCategoryPages": [
+        42,
+        44
+      ]
+    },
+    "M03031003103": {
+      "name": "LS-20F",
+      "category": "cane",
+      "status": "catalog_matched",
+      "sourcePage": 42,
+      "reviewedCategoryPages": [
+        42,
+        44
+      ]
+    },
+    "M03030132005": {
+      "name": "ILA",
+      "category": "cane",
+      "status": "catalog_matched",
+      "sourcePage": 42,
+      "reviewedCategoryPages": [
+        42,
+        44
+      ]
+    },
+    "M03031099101": {
+      "name": "사랑해",
+      "category": "cane",
+      "status": "catalog_matched",
+      "sourcePage": 43,
+      "reviewedCategoryPages": [
+        42,
+        44
+      ]
+    },
+    "M03031071601": {
+      "name": "백건여자지팡이-01",
+      "category": "cane",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        42,
+        44
+      ]
+    },
+    "M03030132009": {
+      "name": "NS",
+      "category": "cane",
+      "status": "catalog_matched",
+      "sourcePage": 42,
+      "reviewedCategoryPages": [
+        42,
+        44
+      ]
+    },
+    "M03031033101": {
+      "name": "ISA",
+      "category": "cane",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        42,
+        44
+      ]
+    },
+    "M03030153001": {
+      "name": "이틱",
+      "category": "cane",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        42,
+        44
+      ]
+    },
+    "M03030006101": {
+      "name": "SKL-020",
+      "category": "cane",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        42,
+        44
+      ]
+    },
+    "M03030006102": {
+      "name": "SKL-030",
+      "category": "cane",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        42,
+        44
+      ]
+    },
+    "M03030230001": {
+      "name": "이스틱-B",
+      "category": "cane",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        42,
+        44
+      ]
+    },
+    "H12031297101": {
+      "name": "Forest Cushion 1088",
+      "category": "pressureCushion",
+      "status": "catalog_matched",
+      "sourcePage": 45,
+      "reviewedCategoryPages": [
+        45,
+        47
+      ]
+    },
+    "m1284": {
+      "name": "Forever Cushion 4043",
+      "category": "pressureCushion",
+      "status": "catalog_matched",
+      "sourcePage": 46,
+      "reviewedCategoryPages": [
+        45,
+        47
+      ]
+    },
+    "m1282": {
+      "name": "JM-column",
+      "category": "pressureCushion",
+      "status": "catalog_matched",
+      "sourcePage": 46,
+      "reviewedCategoryPages": [
+        45,
+        47
+      ]
+    },
+    "H12030031004": {
+      "name": "YH-CR02",
+      "category": "pressureCushion",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        45,
+        47
+      ]
+    },
+    "H12030149001": {
+      "name": "NSBS-BM1416",
+      "category": "pressureCushion",
+      "status": "catalog_matched",
+      "sourcePage": 45,
+      "reviewedCategoryPages": [
+        45,
+        47
+      ]
+    },
+    "H12030030007": {
+      "name": "BLESSON 1",
+      "category": "pressureCushion",
+      "status": "catalog_matched",
+      "sourcePage": 46,
+      "reviewedCategoryPages": [
+        45,
+        47
+      ]
+    },
+    "H12030030010": {
+      "name": "BLESSON 7",
+      "category": "pressureCushion",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        45,
+        47
+      ]
+    },
+    "H12031019101": {
+      "name": "GLORY-2",
+      "category": "pressureCushion",
+      "status": "catalog_matched",
+      "sourcePage": 47,
+      "reviewedCategoryPages": [
+        45,
+        47
+      ]
+    },
+    "H12030184001": {
+      "name": "CD-04",
+      "category": "pressureCushion",
+      "status": "catalog_matched",
+      "sourcePage": 46,
+      "reviewedCategoryPages": [
+        45,
+        47
+      ]
+    },
+    "H12030060001": {
+      "name": "ABM-101",
+      "category": "pressureCushion",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        45,
+        47
+      ]
+    },
+    "H12030031003": {
+      "name": "YH-CR01",
+      "category": "pressureCushion",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        45,
+        47
+      ]
+    },
+    "H12031082102": {
+      "name": "CD-07",
+      "category": "pressureCushion",
+      "status": "catalog_matched",
+      "sourcePage": 46,
+      "reviewedCategoryPages": [
+        45,
+        47
+      ]
+    },
+    "H12030130009": {
+      "name": "GLORY-11",
+      "category": "pressureCushion",
+      "status": "catalog_matched",
+      "sourcePage": 46,
+      "reviewedCategoryPages": [
+        45,
+        47
+      ]
+    },
+    "H12031122101": {
+      "name": "LBC4040",
+      "category": "pressureCushion",
+      "status": "catalog_matched",
+      "sourcePage": 47,
+      "reviewedCategoryPages": [
+        45,
+        47
+      ]
+    },
+    "H12030149006": {
+      "name": "NSBS-TM3WAY",
+      "category": "pressureCushion",
+      "status": "catalog_matched",
+      "sourcePage": 45,
+      "reviewedCategoryPages": [
+        45,
+        47
+      ]
+    },
+    "H12030149005": {
+      "name": "NSBS-4WAY88",
+      "category": "pressureCushion",
+      "status": "catalog_matched",
+      "sourcePage": 45,
+      "reviewedCategoryPages": [
+        45,
+        47
+      ]
+    },
+    "H12030176004": {
+      "name": "SJK-02방석",
+      "category": "pressureCushion",
+      "status": "catalog_matched",
+      "sourcePage": 45,
+      "reviewedCategoryPages": [
+        45,
+        47
+      ]
+    },
+    "m1283": {
+      "name": "MCK88-M",
+      "category": "pressureCushion",
+      "status": "catalog_matched",
+      "sourcePage": 45,
+      "reviewedCategoryPages": [
+        45,
+        47
+      ]
+    },
+    "M30030190004": {
+      "name": "LBP-02",
+      "category": "positioning",
+      "status": "catalog_matched",
+      "sourcePage": 52,
+      "reviewedCategoryPages": [
+        51,
+        52
+      ]
+    },
+    "M30031091101": {
+      "name": "SW-J1",
+      "category": "positioning",
+      "status": "catalog_matched",
+      "sourcePage": 51,
+      "reviewedCategoryPages": [
+        51,
+        52
+      ]
+    },
+    "M30030060109": {
+      "name": "ATA-4030",
+      "category": "positioning",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        51,
+        52
+      ]
+    },
+    "m1073": {
+      "name": "CP-01",
+      "category": "positioning",
+      "status": "catalog_matched",
+      "sourcePage": 52,
+      "reviewedCategoryPages": [
+        51,
+        52
+      ]
+    },
+    "M30030078102": {
+      "name": "MPG-05",
+      "category": "positioning",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        51,
+        52
+      ]
+    },
+    "M30030190003": {
+      "name": "LBP-01",
+      "category": "positioning",
+      "status": "catalog_matched",
+      "sourcePage": 52,
+      "reviewedCategoryPages": [
+        51,
+        52
+      ]
+    },
+    "M30030060110": {
+      "name": "ATA-7030",
+      "category": "positioning",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        51,
+        52
+      ]
+    },
+    "M30030176001": {
+      "name": "DYJ-03",
+      "category": "positioning",
+      "status": "catalog_matched",
+      "sourcePage": 51,
+      "reviewedCategoryPages": [
+        51,
+        52
+      ]
+    },
+    "M30030195501": {
+      "name": "AB02",
+      "category": "positioning",
+      "status": "catalog_matched",
+      "sourcePage": 52,
+      "reviewedCategoryPages": [
+        51,
+        52
+      ]
+    },
+    "m1062": {
+      "name": "YH-LA33UL",
+      "category": "positioning",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        51,
+        52
+      ]
+    },
+    "M30031091102": {
+      "name": "SW-J2",
+      "category": "positioning",
+      "status": "catalog_matched",
+      "sourcePage": 51,
+      "reviewedCategoryPages": [
+        51,
+        52
+      ]
+    },
+    "M30030162001": {
+      "name": "SW-J3",
+      "category": "positioning",
+      "status": "catalog_matched",
+      "sourcePage": 51,
+      "reviewedCategoryPages": [
+        51,
+        52
+      ]
+    },
+    "M30030162002": {
+      "name": "SW-J4",
+      "category": "positioning",
+      "status": "catalog_matched",
+      "sourcePage": 51,
+      "reviewedCategoryPages": [
+        51,
+        52
+      ]
+    },
+    "M30031069101": {
+      "name": "NSBS-PC5033",
+      "category": "positioning",
+      "status": "catalog_matched",
+      "sourcePage": 52,
+      "reviewedCategoryPages": [
+        51,
+        52
+      ]
+    },
+    "M30030078105": {
+      "name": "MPG-06",
+      "category": "positioning",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        51,
+        52
+      ]
+    },
+    "M30030031005": {
+      "name": "YH-LA31",
+      "category": "positioning",
+      "status": "catalog_matched",
+      "sourcePage": 51,
+      "reviewedCategoryPages": [
+        51,
+        52
+      ]
+    },
+    "m1070": {
+      "name": "MPG-04",
+      "category": "positioning",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        51,
+        52
+      ]
+    },
+    "M30030049005": {
+      "name": "MTS75",
+      "category": "positioning",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        51,
+        52
+      ]
+    },
+    "M30030031006": {
+      "name": "YH-LA32",
+      "category": "positioning",
+      "status": "catalog_matched",
+      "sourcePage": 51,
+      "reviewedCategoryPages": [
+        51,
+        52
+      ]
+    },
+    "M30030078003": {
+      "name": "MPG-07",
+      "category": "positioning",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        51,
+        52
+      ]
+    },
+    "M30030031009": {
+      "name": "YH-LA33L",
+      "category": "positioning",
+      "status": "catalog_matched",
+      "sourcePage": 51,
+      "reviewedCategoryPages": [
+        51,
+        52
+      ]
+    },
+    "H12060031003": {
+      "name": "YB-1104A",
+      "category": "pressureMattress",
+      "status": "catalog_matched",
+      "sourcePage": 48,
+      "reviewedCategoryPages": [
+        48,
+        50
+      ]
+    },
+    "m1252": {
+      "name": "AD-1300 MUTE FOAM",
+      "category": "pressureMattress",
+      "status": "catalog_matched",
+      "sourcePage": 49,
+      "reviewedCategoryPages": [
+        48,
+        50
+      ]
+    },
+    "H12060130105": {
+      "name": "HG-100 MC2",
+      "category": "pressureMattress",
+      "status": "catalog_matched",
+      "sourcePage": 50,
+      "reviewedCategoryPages": [
+        48,
+        50
+      ]
+    },
+    "H12060031101": {
+      "name": "YH-0302TPU",
+      "category": "pressureMattress",
+      "status": "catalog_matched",
+      "sourcePage": 50,
+      "reviewedCategoryPages": [
+        48,
+        50
+      ]
+    },
+    "H12060037001": {
+      "name": "SM-DUB-002",
+      "category": "pressureMattress",
+      "status": "catalog_matched",
+      "sourcePage": 50,
+      "reviewedCategoryPages": [
+        48,
+        50
+      ]
+    },
+    "H12060031004": {
+      "name": "YH-0305",
+      "category": "pressureMattress",
+      "status": "catalog_matched",
+      "sourcePage": 50,
+      "reviewedCategoryPages": [
+        48,
+        50
+      ]
+    },
+    "H12060031001": {
+      "name": "YH-0302",
+      "category": "pressureMattress",
+      "status": "catalog_matched",
+      "sourcePage": 50,
+      "reviewedCategoryPages": [
+        48,
+        50
+      ]
+    },
+    "H12060196001": {
+      "name": "GR-1004H",
+      "category": "pressureMattress",
+      "status": "catalog_matched",
+      "sourcePage": 49,
+      "reviewedCategoryPages": [
+        48,
+        50
+      ]
+    },
+    "H12060130101": {
+      "name": "GLORY-MC1",
+      "category": "pressureMattress",
+      "status": "catalog_matched",
+      "sourcePage": 49,
+      "reviewedCategoryPages": [
+        48,
+        50
+      ]
+    },
+    "m1244": {
+      "name": "AD-III-Bidet",
+      "category": "pressureMattress",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        48,
+        50
+      ]
+    },
+    "H12060030118": {
+      "name": "AD-7 MUTE",
+      "category": "pressureMattress",
+      "status": "catalog_matched",
+      "sourcePage": 49,
+      "reviewedCategoryPages": [
+        48,
+        50
+      ]
+    },
+    "m1242": {
+      "name": "AD-III MUTE Bio Double",
+      "category": "pressureMattress",
+      "status": "catalog_matched",
+      "sourcePage": 49,
+      "reviewedCategoryPages": [
+        48,
+        50
+      ]
+    },
+    "H12060030019": {
+      "name": "AD-1300 MUTE PURPLE",
+      "category": "pressureMattress",
+      "status": "catalog_matched",
+      "sourcePage": 48,
+      "reviewedCategoryPages": [
+        48,
+        50
+      ]
+    },
+    "H12060031005": {
+      "name": "YH-0201D",
+      "category": "pressureMattress",
+      "status": "catalog_matched",
+      "sourcePage": 48,
+      "reviewedCategoryPages": [
+        48,
+        50
+      ]
+    },
+    "H12060030114": {
+      "name": "AD-III TPU L/V",
+      "category": "pressureMattress",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        48,
+        50
+      ]
+    },
+    "H12060030016": {
+      "name": "AD-1300 MUTE Bio Double",
+      "category": "pressureMattress",
+      "status": "catalog_matched",
+      "sourcePage": 49,
+      "reviewedCategoryPages": [
+        48,
+        50
+      ]
+    },
+    "H12060031002": {
+      "name": "YH-0301",
+      "category": "pressureMattress",
+      "status": "catalog_matched",
+      "sourcePage": 50,
+      "reviewedCategoryPages": [
+        48,
+        50
+      ]
+    },
+    "H12060130104": {
+      "name": "HG-100 M1 TPU",
+      "category": "pressureMattress",
+      "status": "catalog_matched",
+      "sourcePage": 48,
+      "reviewedCategoryPages": [
+        48,
+        50
+      ]
+    },
+    "H12060030012": {
+      "name": "AD-III TPU BEAM",
+      "category": "pressureMattress",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        48,
+        50
+      ]
+    },
+    "H12060030103": {
+      "name": "AD-1800 Turning",
+      "category": "pressureMattress",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        48,
+        50
+      ]
+    },
+    "H12060031006": {
+      "name": "YH-3&1",
+      "category": "pressureMattress",
+      "status": "catalog_matched",
+      "sourcePage": 48,
+      "reviewedCategoryPages": [
+        48,
+        50
+      ]
+    },
+    "H12060031007": {
+      "name": "YH-CB100",
+      "category": "pressureMattress",
+      "status": "catalog_matched",
+      "sourcePage": 48,
+      "reviewedCategoryPages": [
+        48,
+        50
+      ]
+    },
+    "F24010181005": {
+      "name": "URB-PR105",
+      "category": "ramp",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        56,
+        57
+      ]
+    },
+    "F24010181002": {
+      "name": "URB-PR102",
+      "category": "ramp",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        56,
+        57
+      ]
+    },
+    "F24000060001": {
+      "name": "ASW-101",
+      "category": "ramp",
+      "status": "catalog_matched",
+      "sourcePage": 56,
+      "reviewedCategoryPages": [
+        56,
+        57
+      ]
+    },
+    "F24010181003": {
+      "name": "URB-PR103",
+      "category": "ramp",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        56,
+        57
+      ]
+    },
+    "F24010181004": {
+      "name": "URB-PR104",
+      "category": "ramp",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        56,
+        57
+      ]
+    },
+    "m1130": {
+      "name": "나이팅게일단차해소기30",
+      "category": "ramp",
+      "status": "catalog_matched",
+      "sourcePage": 57,
+      "reviewedCategoryPages": [
+        56,
+        57
+      ]
+    },
+    "F24010181001": {
+      "name": "URB-PR101",
+      "category": "ramp",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        56,
+        57
+      ]
+    },
+    "F24000060002": {
+      "name": "ASW-102",
+      "category": "ramp",
+      "status": "catalog_matched",
+      "sourcePage": 56,
+      "reviewedCategoryPages": [
+        56,
+        57
+      ]
+    },
+    "F24000060004": {
+      "name": "ASW-104",
+      "category": "ramp",
+      "status": "catalog_matched",
+      "sourcePage": 56,
+      "reviewedCategoryPages": [
+        56,
+        57
+      ]
+    },
+    "F24010060101": {
+      "name": "ASW-103",
+      "category": "ramp",
+      "status": "catalog_matched",
+      "sourcePage": 56,
+      "reviewedCategoryPages": [
+        56,
+        57
+      ]
+    },
+    "F24011052103": {
+      "name": "TRA-H30",
+      "category": "ramp",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        56,
+        57
+      ]
+    },
+    "m1123": {
+      "name": "나이팅게일단차해소기10",
+      "category": "ramp",
+      "status": "catalog_matched",
+      "sourcePage": 57,
+      "reviewedCategoryPages": [
+        56,
+        57
+      ]
+    },
+    "m1122": {
+      "name": "나이팅게일단차해소기20",
+      "category": "ramp",
+      "status": "catalog_matched",
+      "sourcePage": 57,
+      "reviewedCategoryPages": [
+        56,
+        57
+      ]
+    },
+    "F24000045003": {
+      "name": "YGM4",
+      "category": "ramp",
+      "status": "catalog_matched",
+      "sourcePage": 57,
+      "reviewedCategoryPages": [
+        56,
+        57
+      ]
+    },
+    "F24000045002": {
+      "name": "YGM3",
+      "category": "ramp",
+      "status": "catalog_matched",
+      "sourcePage": 56,
+      "reviewedCategoryPages": [
+        56,
+        57
+      ]
+    },
+    "F24000045001": {
+      "name": "YGM2",
+      "category": "ramp",
+      "status": "catalog_matched",
+      "sourcePage": 56,
+      "reviewedCategoryPages": [
+        56,
+        57
+      ]
+    },
+    "F24011052101": {
+      "name": "TRA-H10",
+      "category": "ramp",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        56,
+        57
+      ]
+    },
+    "F24011052102": {
+      "name": "TRA-H20",
+      "category": "ramp",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        56,
+        57
+      ]
+    },
+    "S03090183002": {
+      "name": "SE7030",
+      "category": "electricBed",
+      "status": "catalog_matched",
+      "sourcePage": 62,
+      "reviewedCategoryPages": [
+        62,
+        62
+      ]
+    },
+    "S03090178005": {
+      "name": "천년BED ST-30",
+      "category": "electricBed",
+      "status": "catalog_matched",
+      "sourcePage": 62,
+      "reviewedCategoryPages": [
+        62,
+        62
+      ]
+    },
+    "S03090200002": {
+      "name": "NY(S)-II",
+      "category": "electricBed",
+      "status": "catalog_matched",
+      "sourcePage": 62,
+      "reviewedCategoryPages": [
+        62,
+        62
+      ]
+    },
+    "S03090200001": {
+      "name": "NY(T)-2100",
+      "category": "electricBed",
+      "status": "catalog_matched",
+      "sourcePage": 62,
+      "reviewedCategoryPages": [
+        62,
+        62
+      ]
+    },
+    "B03030031002": {
+      "name": "YH-2013",
+      "category": "bathtub",
+      "status": "catalog_matched",
+      "sourcePage": 63,
+      "reviewedCategoryPages": [
+        63,
+        63
+      ]
+    },
+    "B03030031004": {
+      "name": "YH-2014",
+      "category": "bathtub",
+      "status": "catalog_matched",
+      "sourcePage": 63,
+      "reviewedCategoryPages": [
+        63,
+        63
+      ]
+    },
+    "B03030031001": {
+      "name": "YH-2002",
+      "category": "bathtub",
+      "status": "catalog_matched",
+      "sourcePage": 63,
+      "reviewedCategoryPages": [
+        63,
+        63
+      ]
+    },
+    "M18030043001": {
+      "name": "MIRAGE7(22D)",
+      "category": "wheelchair",
+      "status": "catalog_matched",
+      "sourcePage": 61,
+      "reviewedCategoryPages": [
+        58,
+        61
+      ]
+    },
+    "M18030043005": {
+      "name": "MIRAGE(22D)",
+      "category": "wheelchair",
+      "status": "catalog_matched",
+      "sourcePage": 61,
+      "reviewedCategoryPages": [
+        58,
+        61
+      ]
+    },
+    "M18031134101": {
+      "name": "NA-101W",
+      "category": "wheelchair",
+      "status": "catalog_matched",
+      "sourcePage": 58,
+      "reviewedCategoryPages": [
+        58,
+        61
+      ]
+    },
+    "M18031139102": {
+      "name": "유닉스 22D-S",
+      "category": "wheelchair",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        58,
+        61
+      ]
+    },
+    "M18030111514": {
+      "name": "MIKI-PB",
+      "category": "wheelchair",
+      "status": "catalog_matched",
+      "sourcePage": 59,
+      "reviewedCategoryPages": [
+        58,
+        61
+      ]
+    },
+    "M18031139103": {
+      "name": "유닉스 22D-A",
+      "category": "wheelchair",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        58,
+        61
+      ]
+    },
+    "M18030043004": {
+      "name": "MIRAGE2(16D)",
+      "category": "wheelchair",
+      "status": "catalog_matched",
+      "sourcePage": 61,
+      "reviewedCategoryPages": [
+        58,
+        61
+      ]
+    },
+    "M18030043014": {
+      "name": "MIRAGE7(22D)-B",
+      "category": "wheelchair",
+      "status": "catalog_matched",
+      "sourcePage": 58,
+      "reviewedCategoryPages": [
+        58,
+        61
+      ]
+    },
+    "M18031074601": {
+      "name": "DS-801A",
+      "category": "wheelchair",
+      "status": "catalog_matched",
+      "sourcePage": 60,
+      "reviewedCategoryPages": [
+        58,
+        61
+      ]
+    },
+    "M18030111101": {
+      "name": "KR-1",
+      "category": "wheelchair",
+      "status": "catalog_matched",
+      "sourcePage": 60,
+      "reviewedCategoryPages": [
+        58,
+        61
+      ]
+    },
+    "M18030043025": {
+      "name": "MRT-7DP",
+      "category": "wheelchair",
+      "status": "catalog_matched",
+      "sourcePage": 60,
+      "reviewedCategoryPages": [
+        58,
+        61
+      ]
+    },
+    "M18030043028": {
+      "name": "MRT-7D",
+      "category": "wheelchair",
+      "status": "catalog_matched",
+      "sourcePage": 60,
+      "reviewedCategoryPages": [
+        58,
+        61
+      ]
+    },
+    "M18030111613": {
+      "name": "MIKI-LT3",
+      "category": "wheelchair",
+      "status": "catalog_matched",
+      "sourcePage": 58,
+      "reviewedCategoryPages": [
+        58,
+        61
+      ]
+    },
+    "M18030111513": {
+      "name": "MIKI-JTN",
+      "category": "wheelchair",
+      "status": "catalog_matched",
+      "sourcePage": 59,
+      "reviewedCategoryPages": [
+        58,
+        61
+      ]
+    },
+    "M18030111102": {
+      "name": "MIKI-W",
+      "category": "wheelchair",
+      "status": "catalog_matched",
+      "sourcePage": 59,
+      "reviewedCategoryPages": [
+        58,
+        61
+      ]
+    },
+    "M18030043101": {
+      "name": "MIRAGE7(16D)",
+      "category": "wheelchair",
+      "status": "catalog_matched",
+      "sourcePage": 61,
+      "reviewedCategoryPages": [
+        58,
+        61
+      ]
+    },
+    "M18030043002": {
+      "name": "HAL48(22D)",
+      "category": "wheelchair",
+      "status": "catalog_matched",
+      "sourcePage": 58,
+      "reviewedCategoryPages": [
+        58,
+        61
+      ]
+    },
+    "M18030111614": {
+      "name": "BAL-11",
+      "category": "wheelchair",
+      "status": "catalog_matched",
+      "sourcePage": 59,
+      "reviewedCategoryPages": [
+        58,
+        61
+      ]
+    },
+    "M18030043026": {
+      "name": "MRT-2DP",
+      "category": "wheelchair",
+      "status": "catalog_not_listed",
+      "sourcePage": null,
+      "reviewedCategoryPages": [
+        58,
+        61
+      ]
+    },
+    "M18030043103": {
+      "name": "MIRAGE(22D)-P",
+      "category": "wheelchair",
+      "status": "catalog_matched",
+      "sourcePage": 58,
+      "reviewedCategoryPages": [
+        58,
+        61
+      ]
+    },
+    "M18030043029": {
+      "name": "MTX-7DP",
+      "category": "wheelchair",
+      "status": "catalog_matched",
+      "sourcePage": 60,
+      "reviewedCategoryPages": [
+        58,
+        61
+      ]
+    },
+    "M18030043104": {
+      "name": "MF-22D",
+      "category": "wheelchair",
+      "status": "catalog_matched",
+      "sourcePage": 60,
+      "reviewedCategoryPages": [
+        58,
+        61
+      ]
+    },
+    "M18030043027": {
+      "name": "MRT-2D",
+      "category": "wheelchair",
+      "status": "catalog_matched",
+      "sourcePage": 59,
+      "reviewedCategoryPages": [
+        58,
+        61
+      ]
+    }
+  }
+}
