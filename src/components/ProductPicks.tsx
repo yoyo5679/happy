@@ -27,7 +27,7 @@ export function ProductPicks({ campaign, exclude = [], count = 6 }: { campaign: 
         {picks.map((p) => {
           const l = p.rent && !p.rent.soldOut ? p.rent : p.buy!;
           return (
-            <a key={p.id} className="pick" href={withUtm(productUrl(p), campaign, `pick_${p.code ?? p.id}`)} target="_blank" rel="noopener">
+            <a key={p.id} className="pick" href={withUtm(productUrl(p), campaign, `pick_${p.code ?? p.id}`)}>
               <div className="pick-img">
                 <img src={p.img} alt={p.name} loading="lazy" />
                 {l === p.rent && <span className="badge pick-badge">대여</span>}

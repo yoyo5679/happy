@@ -439,7 +439,7 @@ function PlanCard({
       <ul className="bp-lines">
         {plan.lines.map((l) => (
           <li key={l.category}>
-            <a href={withUtm(productUrl(l.product), "budget", l.product.code ?? l.product.id)} target="_blank" rel="noopener">
+            <a href={withUtm(productUrl(l.product), "budget", l.product.code ?? l.product.id)}>
               <img src={l.product.img} alt="" loading="lazy" />
               <span className="bp-name">
                 <span className="muted small">{categories[l.category].label}</span>
@@ -490,7 +490,7 @@ function PlanCard({
       )}
       {plan.lines.length > 0 && (
         <div className="bp-cart">
-          <a className="btn primary wide" href={cartUrl(plan, rate, months, "budget")} target="_blank" rel="noopener">
+          <a className="btn primary wide" href={cartUrl(plan, rate, months, "budget")}>
             🛒 {label} 세트 장바구니에 담기
           </a>
           <p className="bp-cart-note small muted">

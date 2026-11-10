@@ -38,7 +38,7 @@ export function ContactCta({ campaign }: { campaign: string }) {
           </a>
         )}
       </div>
-      <a className="cc-store" href={withUtm(site.storeUrl, campaign, "store_home")} target="_blank" rel="noopener">
+      <a className="cc-store" href={withUtm(site.storeUrl, campaign, "store_home")}>
         🛒 {site.name} 쇼핑몰 바로가기 →
       </a>
     </section>

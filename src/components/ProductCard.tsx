@@ -13,8 +13,6 @@ export function ProductCard({ product, campaign, rate = 0.15 }: { product: Produ
     <a
       className={soldOut ? "product sold-out" : "product"}
       href={withUtm(productUrl(product), campaign, product.code ?? product.id)}
-      target="_blank"
-      rel="noopener"
     >
       <div className="thumb">
         {imgOk ? (
