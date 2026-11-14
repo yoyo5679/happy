@@ -20,7 +20,7 @@ type Item = {
   /** 주소로 못 찾아 동네 중심으로 표시 */
   approx?: boolean;
 };
-type Sort = "near" | "grade" | "old";
+type Sort = "near" | "grade" | "new";
 
 const KINDS: { key: Kind; label: string; emoji: string }[] = [
   { key: "visit", label: "방문요양", emoji: "🏠" },
@@ -33,7 +33,7 @@ const label = (k: Kind) => KINDS.find((x) => x.key === k)!.label;
 const SORTS: { key: Sort; label: string }[] = [
   { key: "near", label: "가까운 순" },
   { key: "grade", label: "평가등급 순" },
-  { key: "old", label: "오래된 순" },
+  { key: "new", label: "최신 순" },
 ];
 const GRADE_NAME: Record<string, string> = { A: "최우수", B: "우수", C: "양호", D: "보통", E: "미흡" };
 const years = (d: string) => (d ? Math.max(0, new Date().getFullYear() - Number(d.slice(0, 4))) : null);

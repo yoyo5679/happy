@@ -15,8 +15,8 @@ function context(query,env={DB:db}){return {request:new Request(`https://test.ex
  assert.equal(reads,1,'concurrent sorts share one DB query');assert.equal((await a.json()).items[0].code,'near-C');assert.equal((await b.json()).items[0].code,'far-A');
  const before=queries.length;
  api=moduleApi(); // Simulate a new instance with no memory/shared promises.
- const hit=await api(context('sort=old',{DB:{prepare(){throw new Error('quota exceeded')}}}));
- assert.equal(hit.status,200);assert.equal(hit.headers.get('x-ltc-candidates-cache'),'HIT');const j=await hit.json();assert.equal(j.items[0].code,'old-unrated');assert.equal(j.total,3);assert(!j.items.some(r=>r.code==='outside'));
+ const hit=await api(context('sort=new',{DB:{prepare(){throw new Error('quota exceeded')}}}));
+ assert.equal(hit.status,200);assert.equal(hit.headers.get('x-ltc-candidates-cache'),'HIT');const j=await hit.json();assert.equal(j.items[0].code,'far-A');assert.equal(j.total,3);assert(!j.items.some(r=>r.code==='outside'));
  const shifted=context('sort=near');shifted.request=new Request('https://test.example/api/ltc/search?lat=37.604&lng=126.92&r=5&kinds=visit');const shiftedResult=await api(shifted);assert.equal(shiftedResult.headers.get('x-ltc-candidates-cache'),'HIT');assert.equal((await shiftedResult.json()).items[0].code,'old-unrated','cached candidates still use exact GPS for distances');
  assert.equal(queries.length,before,'cache hit does not create indexes or query DB');assert(!queries.some(q=>/recipients|sqlite_master|ALTER TABLE/.test(q)),'public searches do not touch ledger/schema migrations');
  const bathCtx=context('sort=grade');bathCtx.request=new Request('https://test.example/api/ltc/search?lat=37.60&lng=126.92&r=5&kinds=bath');const bath=await api(bathCtx);assert.equal((await bath.json()).items[0].code,'bath-only');assert.equal(reads,1);

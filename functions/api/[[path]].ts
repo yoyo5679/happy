@@ -229,7 +229,7 @@ async function ltcPublic(request: Request, env: Env, db: D1 | undefined, action:
         })
         .filter((x) => x.shown.length && x.km <= r);
       list.sort((a, b) =>
-        sort === "grade" ? a.best - b.best || a.km - b.km : sort === "old" ? String(a.desig || "9").localeCompare(String(b.desig || "9")) || a.km - b.km : a.km - b.km,
+        sort === "grade" ? a.best - b.best || a.km - b.km : sort === "new" ? String(b.desig || "").localeCompare(String(a.desig || "")) || a.km - b.km : a.km - b.km,
       );
       const response = json({ total: list.length, items: list.slice(0, 80).map(({ best: _b, ...x }) => ({ ...x, km: Math.round(x.km * 10) / 10 })) });
       response.headers.set("x-ltc-candidates-cache",candidates.cache);
