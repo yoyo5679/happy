@@ -217,6 +217,33 @@ async function ltcPublic(request: Request, env: Env, db: D1 | undefined, action:
   const url = new URL(request.url);
   const q = url.searchParams;
   try {
+    // Bounded, read-only monthly integration preview. No DB imports or scheduled writes.
+    if(action==="new-preview") {
+      const today=new Date();
+      const start=new Date(Date.UTC(today.getUTCFullYear(),today.getUTCMonth()-1,1)).toISOString().slice(0,10);
+      const end=new Date(Date.UTC(today.getUTCFullYear(),today.getUTCMonth(),0)).toISOString().slice(0,10);
+      const preview=await cachedPublic<Row>(request,`new-preview-v1/11380/${start}`,300,async()=>{
+        if(!env.DATA_GO_KR_KEY)return {ok:false,providerCode:"KEY_NOT_CONFIGURED"};
+        const raw=env.DATA_GO_KR_KEY.trim();
+        const key=encodeURIComponent(raw.includes("%")?decodeURIComponent(raw):raw);
+        const query=new URLSearchParams({siDoCd:"11",siGunGuCd:"380",adminPttnCd:"C01",startRgtDt:start.replace(/-/g,""),endRgtDt:end.replace(/-/g,""),pageNo:"1",numOfRows:"10"});
+        const r=await fetch(`${env.DATA_GO_KR_BASE||"https://apis.data.go.kr"}/B550928/searchLtcInsttService02/getLtcInsttSeachList02?serviceKey=${key}&${query}`,{signal:AbortSignal.timeout(12000)});
+        const xml=await r.text();
+        const status=xmlValue(xml,"resultCode"),auth=xmlValue(xml,"returnAuthMsg");
+        if(!r.ok||auth||!['00','0'].includes(status)||!/<response[\s>]/.test(xml)){
+          const code=auth||status;
+          return {ok:false,providerCode:/^[A-Z0-9_]{1,80}$/.test(code)?code:"UPSTREAM_RESPONSE_ERROR"};
+        }
+        const rawItems=Array.from(xml.matchAll(/<item(?:\s[^>]*)?>([\s\S]*?)<\/item>/g));
+        const items=rawItems.slice(0,10).map(match=>{
+          const item=match[1];return {code:xmlValue(item,"longTermAdminSym"),name:xmlValue(item,"adminNm"),type:xmlValue(item,"adminPttnCd"),sido:xmlValue(item,"siDoCd"),district:xmlValue(item,"siGunGuCd"),designated:profileDate(xmlValue(item,"longTermPeribRgtDt")),registered:profileDate(xmlValue(item,"stpRptDt"))};
+        });
+        const total=xmlValue(xml,"totalCount");
+        return {ok:true,providerCode:status,sampleOnly:true,area:"서울 은평구",kind:"방문요양 C01",from:start,to:end,total:/^\d+$/.test(total)?Number(total):null,returned:items.length,dateFilterVerified:items.length?items.every(x=>x.registered&&x.registered>=start&&x.registered<=end):null,areaFilterVerified:items.length?items.every(x=>x.sido==='11'&&x.district==='380'):null,items,checkedAt:now()};
+      });
+      const response=json(preview.value,preview.value.ok?200:502);
+      response.headers.set("x-ltc-new-preview-cache",preview.cache);return response;
+    }
     // 가까운 기관: ?lat&lng&r(km)&kinds=visit,day&sort=near|grade|old
     if (action === "search") {
       const lat = Number(q.get("lat"));
