@@ -140,7 +140,7 @@ export function CareFinder() {
               {k.emoji} {k.label}
             </button>
           ))}
-          <button className={equipment ? "chip on" : "chip"} aria-pressed={equipment} onClick={()=>{update({equipment:true});setErr("");setLoading(false);}}>🧸 복지용구</button>
+          <button className={equipment ? "chip on" : "chip"} aria-pressed={equipment} onClick={()=>{update({equipment:true});setErr("");setLoading(false);}}>복지용구</button>
         </div>
         {!equipment && <><div className="seg-group care-sort" role="tablist">
           {SORTS.map((s) => (
