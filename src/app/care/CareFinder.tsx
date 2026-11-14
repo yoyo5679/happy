@@ -20,8 +20,8 @@ const KINDS: { key: Kind; label: string; emoji: string }[] = [
 const label = (k: Kind) => KINDS.find((x) => x.key === k)!.label;
 const SORTS: { key: Sort; label: string }[] = [
   { key: "near", label: "가까운 순" },
-  { key: "grade", label: "평가등급 순" },
   { key: "new", label: "최신 순" },
+  { key: "grade", label: "평가등급 순" },
 ];
 const GRADE_NAME: Record<string, string> = { A: "최우수", B: "우수", C: "양호", D: "보통", E: "미흡" };
 const years = (d: string) => (d ? Math.max(0, new Date().getFullYear() - Number(d.slice(0, 4))) : null);
@@ -158,7 +158,8 @@ export function CareFinder() {
               </option>
             ))}
           </select>
-        </label></>}
+        </label>
+        {sort==="new"&&<p className="small muted" style={{margin:"8px 0 0"}}>반경 {radius}km 안에서 지정일이 최근인 순이에요.</p>}</>}
       </section>
 
       {equipment && <HappycareInfo />}
