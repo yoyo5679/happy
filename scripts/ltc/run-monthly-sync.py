@@ -1,9 +1,11 @@
 """Resume the server-owned monthly job using a short-lived GitHub OIDC identity.
 Provider API keys and database credentials stay in Cloudflare, never in this runner.
 """
+import io
 import json
 import os
 import re
+import subprocess
 from pathlib import Path
 import time
 import urllib.error
@@ -20,16 +22,26 @@ def oidc_token():
     with urllib.request.urlopen(req, timeout=20) as response:
         return json.load(response)["value"]
 
+def post_step(token):
+    # Use the same HTTP client as production checks. Keep the short-lived token off argv/logs.
+    config = 'header = "Authorization: Bearer ' + token + '"\nheader = "Accept: application/json"\nuser-agent = "HappycareMonthly/1.0"\n'
+    response = subprocess.run(["curl", "--silent", "--show-error", "--max-time", "110", "--request", "POST", "--config", "-", "--write-out", "\n%{http_code}", BASE + "/api/ltc/monthly-sync"], input=config, text=True, capture_output=True)
+    if response.returncode:
+        raise urllib.error.URLError("update_network_error")
+    body, status_text = response.stdout.rsplit("\n", 1)
+    status = int(status_text)
+    if status >= 400:
+        raise urllib.error.HTTPError(BASE, status, "update_request_failed", None, io.BytesIO(body.encode()))
+    return json.loads(body)
+
 def main():
     deadline = time.monotonic() + 4 * 3600
     token, token_at, failures, last_log = "", 0, 0, 0
     while time.monotonic() < deadline:
         if time.monotonic() - token_at > 180 or not token:
             token, token_at = oidc_token(), time.monotonic()
-        req = urllib.request.Request(BASE + "/api/ltc/monthly-sync", data=b"", method="POST", headers={"Authorization": "Bearer " + token})
         try:
-            with urllib.request.urlopen(req, timeout=110) as response:
-                result = json.load(response)
+            result = post_step(token)
         except (urllib.error.URLError, TimeoutError) as error:
             failures += 1
             # A code push can reach Actions before the Pages deployment is ready.
