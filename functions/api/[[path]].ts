@@ -222,11 +222,16 @@ async function ltcPublic(request: Request, env: Env, db: D1 | undefined, action:
       const today=new Date();
       const start=new Date(Date.UTC(today.getUTCFullYear(),today.getUTCMonth()-1,1)).toISOString().slice(0,10);
       const end=new Date(Date.UTC(today.getUTCFullYear(),today.getUTCMonth(),0)).toISOString().slice(0,10);
-      const preview=await cachedPublic<Row>(request,`new-preview-v1/11380/${start}`,300,async()=>{
+      const scope=q.get("scope")==="seoul"?"seoul":q.get("scope")==="control"?"control":"eunpyeong";
+      const district=scope==="control"?"110":scope==="eunpyeong"?"380":null;
+      const preview=await cachedPublic<Row>(request,`new-preview-v2/${scope}/${start}`,300,async()=>{
         if(!env.DATA_GO_KR_KEY)return {ok:false,providerCode:"KEY_NOT_CONFIGURED"};
         const raw=env.DATA_GO_KR_KEY.trim();
         const key=encodeURIComponent(raw.includes("%")?decodeURIComponent(raw):raw);
-        const query=new URLSearchParams({siDoCd:"11",siGunGuCd:"380",adminPttnCd:"C01",startRgtDt:start.replace(/-/g,""),endRgtDt:end.replace(/-/g,""),pageNo:"1",numOfRows:"10"});
+        const query=new URLSearchParams({siDoCd:"11",adminPttnCd:scope==="control"?"A03":"C01",pageNo:"1",numOfRows:"10"});
+        if(district)query.set("siGunGuCd",district);
+        if(scope==="control")query.set("adminNm","청운노인요양원");
+        else {query.set("startRgtDt",start.replace(/-/g,""));query.set("endRgtDt",end.replace(/-/g,""));}
         const r=await fetch(`${env.DATA_GO_KR_BASE||"https://apis.data.go.kr"}/B550928/searchLtcInsttService02/getLtcInsttSeachList02?serviceKey=${key}&${query}`,{signal:AbortSignal.timeout(12000)});
         const xml=await r.text();
         const status=xmlValue(xml,"resultCode"),auth=xmlValue(xml,"returnAuthMsg");
@@ -239,7 +244,7 @@ async function ltcPublic(request: Request, env: Env, db: D1 | undefined, action:
           const item=match[1];return {code:xmlValue(item,"longTermAdminSym"),name:xmlValue(item,"adminNm"),type:xmlValue(item,"adminPttnCd"),sido:xmlValue(item,"siDoCd"),district:xmlValue(item,"siGunGuCd"),designated:profileDate(xmlValue(item,"longTermPeribRgtDt")),registered:profileDate(xmlValue(item,"stpRptDt"))};
         });
         const total=xmlValue(xml,"totalCount");
-        return {ok:true,providerCode:status,sampleOnly:true,area:"서울 은평구",kind:"방문요양 C01",from:start,to:end,total:/^\d+$/.test(total)?Number(total):null,returned:items.length,dateFilterVerified:items.length?items.every(x=>x.registered&&x.registered>=start&&x.registered<=end):null,areaFilterVerified:items.length?items.every(x=>x.sido==='11'&&x.district==='380'):null,items,checkedAt:now()};
+        return {ok:true,providerCode:status,sampleOnly:true,scope,area:scope==="control"?"서울 종로구":scope==="seoul"?"서울 전체":"서울 은평구",kind:scope==="control"?"요양원 A03":"방문요양 C01",from:scope==="control"?null:start,to:scope==="control"?null:end,total:/^\d+$/.test(total)?Number(total):null,returned:items.length,dateFilterVerified:scope!=="control"&&items.length?items.every(x=>x.registered&&x.registered>=start&&x.registered<=end):null,areaFilterVerified:items.length?items.every(x=>x.sido==='11'&&(!district||x.district===district)):null,controlMatched:scope==='control'?items.some(x=>x.code==='11111000006'):null,items,checkedAt:now()};
       });
       const response=json(preview.value,preview.value.ok?200:502);
       response.headers.set("x-ltc-new-preview-cache",preview.cache);return response;
