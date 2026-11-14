@@ -73,7 +73,8 @@ export async function onRequest({ request, env, params }: Ctx): Promise<Response
   }
   if(path[0]==="ltc"&&path[1]==="monthly-sync"&&path.length===2){
     if(request.method!=="POST")return fail(405,"POST 요청이 필요합니다.");
-    if(!(await isSyncWorkflow(request)))return fail(401,"허용된 예약 실행만 사용할 수 있습니다.");
+    const auth=await isSyncWorkflow(request);
+    if(!auth.ok)return json({error:"허용된 예약 실행만 사용할 수 있습니다.",code:auth.code},401);
     if(!env.DB)return fail(503,"기관 데이터베이스에 연결하지 못했어요.");
     try{return await monthlyStep(request,env,env.DB);}catch{return fail(503,"기관 업데이트를 잠시 후 다시 시도해 주세요.");}
   }
@@ -234,24 +235,32 @@ function syncKind(type:string):string|null {
  return null; // Welfare-equipment and nursing-only providers are not published here.
 }
 function unbase64url(s:string):Uint8Array<ArrayBuffer> {return Uint8Array.from(atob(s.replace(/-/g,"+").replace(/_/g,"/")),c=>c.charCodeAt(0));}
-async function isSyncWorkflow(request:Request):Promise<boolean> {
+async function isSyncWorkflow(request:Request):Promise<{ok:boolean;code?:string}> {
+ const deny=(code:string)=>({ok:false,code});
  try {
   const token=(request.headers.get("authorization")??"").replace(/^Bearer /,"");
-  if(token.length>16000)return false;
-  const parts=token.split(".");if(parts.length!==3)return false;
+  if(token.length>16000)return deny("oidc_token_size");
+  const parts=token.split(".");if(parts.length!==3)return deny("oidc_token_format");
   const header=JSON.parse(new TextDecoder().decode(unbase64url(parts[0]))),claims=JSON.parse(new TextDecoder().decode(unbase64url(parts[1])));
   const t=Math.floor(Date.now()/1000);
-  if(header.alg!=="RS256"||typeof header.kid!=="string"||header.kid.length>120)return false;
-  if(claims.iss!=="https://token.actions.githubusercontent.com"||claims.aud!==SYNC_AUDIENCE||claims.repository!==SYNC_REPO||claims.repository_id!=="1406565226"||claims.repository_owner_id!=="62796904"||claims.ref!==SYNC_REF||claims.workflow_ref!==SYNC_WORKFLOW||!["schedule","workflow_dispatch","push"].includes(claims.event_name))return false;
-  if(typeof claims.exp!=="number"||claims.exp<=t||typeof claims.iat!=="number"||claims.iat>t+30||claims.iat<t-3600||typeof claims.nbf!=="number"||claims.nbf>t+30)return false;
+  if(header.alg!=="RS256"||typeof header.kid!=="string"||header.kid.length>120)return deny("oidc_algorithm");
+  if(claims.iss!=="https://token.actions.githubusercontent.com")return deny("oidc_issuer");
+  if(!(claims.aud===SYNC_AUDIENCE||(Array.isArray(claims.aud)&&claims.aud.includes(SYNC_AUDIENCE))))return deny("oidc_audience");
+  if(claims.repository!==SYNC_REPO)return deny("oidc_repository");
+  if(String(claims.repository_id)!=="1406565226"||String(claims.repository_owner_id)!=="62796904")return deny("oidc_repository_id");
+  if(claims.ref!==SYNC_REF)return deny("oidc_ref");
+  if(claims.workflow_ref!==SYNC_WORKFLOW)return deny("oidc_workflow");
+  if(!["schedule","workflow_dispatch","push"].includes(claims.event_name))return deny("oidc_event");
+  if(typeof claims.exp!=="number"||claims.exp<=t||typeof claims.iat!=="number"||claims.iat>t+30||claims.iat<t-3600||(claims.nbf!==undefined&&(typeof claims.nbf!=="number"||claims.nbf>t+30)))return deny("oidc_time");
   const keys=await cachedPublic<{keys:(JsonWebKey&{kid:string})[]}>(request,"github-oidc-keys",300,async()=>{
    const r=await fetch("https://token.actions.githubusercontent.com/.well-known/jwks",{signal:AbortSignal.timeout(8000)});if(!r.ok)throw new Error("oidc");return r.json();
   });
-  const jwk=keys.value.keys.find(k=>k.kid===header.kid&&k.kty==="RSA");if(!jwk)return false;
+  const jwk=keys.value.keys.find(k=>k.kid===header.kid&&k.kty==="RSA");if(!jwk)return deny("oidc_signing_key");
   const key=await crypto.subtle.importKey("jwk",jwk,{name:"RSASSA-PKCS1-v1_5",hash:"SHA-256"},false,["verify"]);
-  return crypto.subtle.verify("RSASSA-PKCS1-v1_5",key,unbase64url(parts[2]),new TextEncoder().encode(`${parts[0]}.${parts[1]}`));
- }catch{return false;}
+  return await crypto.subtle.verify("RSASSA-PKCS1-v1_5",key,unbase64url(parts[2]),new TextEncoder().encode(`${parts[0]}.${parts[1]}`))?{ok:true}:deny("oidc_signature");
+ }catch{return deny("oidc_verification_unavailable");}
 }
+
 let syncReady:Promise<void>|null=null;
 async function syncSchema(db:D1):Promise<void> {
  await (syncReady??=(async()=>{await db.batch([

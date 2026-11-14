@@ -3,6 +3,7 @@ Provider API keys and database credentials stay in Cloudflare, never in this run
 """
 import json
 import os
+import re
 from pathlib import Path
 import time
 import urllib.error
@@ -33,7 +34,16 @@ def main():
             failures += 1
             # A code push can reach Actions before the Pages deployment is ready.
             code = getattr(error, "code", "network")
-            print(f"Update temporarily unavailable ({code}); retry {failures}/12", flush=True)
+            reason = ""
+            if isinstance(error, urllib.error.HTTPError):
+                try:
+                    body = json.loads(error.read(8192))
+                    detail = body.get("code") or body.get("error") or ""
+                    if re.fullmatch(r"[a-z0-9_-]{1,80}", detail):
+                        reason = ": " + detail
+                except (ValueError, TypeError):
+                    pass
+            print(f"Update temporarily unavailable ({code}{reason}); retry {failures}/12", flush=True)
             if failures >= 12:
                 raise RuntimeError("Monthly update paused; the next scheduled run resumes its saved cursor") from None
             token = "" if code == 401 else token
