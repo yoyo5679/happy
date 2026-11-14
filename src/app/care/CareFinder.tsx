@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { rememberFacility } from "@/lib/facility";
 import { ContactCta } from "@/components/ContactCta";
 import { AudienceTabs } from "@/components/AudienceTabs";
 
@@ -39,6 +41,7 @@ const GRADE_NAME: Record<string, string> = { A: "최우수", B: "우수", C: "�
 const years = (d: string) => (d ? Math.max(0, new Date().getFullYear() - Number(d.slice(0, 4))) : null);
 
 export function CareFinder() {
+  const [equipment,setEquipment] = useState(false);
   const [pos, setPos] = useState<{ lat: number; lng: number; name: string } | null>(null);
   const [kinds, setKinds] = useState<Kind[]>([]);
   const [sort, setSort] = useState<Sort>("near");
@@ -81,7 +84,7 @@ export function CareFinder() {
   }
 
   const search = useCallback(async (signal?: AbortSignal) => {
-    if (!pos) return;
+    if (!pos || equipment) {setLoading(false);return;}
     setLoading(true);
     setErr("");
     setItems(null);
@@ -97,7 +100,7 @@ export function CareFinder() {
     } finally {
       if (!signal?.aborted) setLoading(false);
     }
-  }, [pos, radius, sort, kinds]);
+  }, [pos, radius, sort, kinds, equipment]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -113,7 +116,7 @@ export function CareFinder() {
         <p className="muted">방문요양·방문목욕·주야간보호·단기보호·요양원을 공단 평가등급과 함께 보여 드려요.</p>
       </div>
 
-      <section className="card">
+      {!equipment && <section className="card">
         <button className="btn primary wide" onClick={locate}>
           📍 내 위치에서 찾기
         </button>
@@ -139,7 +142,7 @@ export function CareFinder() {
           </ul>
         )}
         {pos && <p className="ledger-note">기준 위치: {pos.name}</p>}
-      </section>
+      </section>}
 
       <section className="card">
         <p className="small muted" style={{ margin: "0 0 6px" }}>
@@ -147,12 +150,13 @@ export function CareFinder() {
         </p>
         <div className="bp-chips" style={{ margin: 0 }}>
           {KINDS.map((k) => (
-            <button key={k.key} className={kinds.includes(k.key) ? "chip on" : "chip"} onClick={() => setKinds((s) => (s.includes(k.key) ? s.filter((x) => x !== k.key) : [...s, k.key]))}>
+            <button key={k.key} className={!equipment && kinds.includes(k.key) ? "chip on" : "chip"} onClick={() => {setEquipment(false);setKinds((s) => (s.includes(k.key) ? s.filter((x) => x !== k.key) : [...s, k.key]));}}>
               {k.emoji} {k.label}
             </button>
           ))}
+          <button className={equipment ? "chip on" : "chip"} aria-pressed={equipment} onClick={()=>{setEquipment(true);setErr("");setLoading(false);}}>🧸 복지용구</button>
         </div>
-        <div className="seg-group care-sort" role="tablist">
+        {!equipment && <><div className="seg-group care-sort" role="tablist">
           {SORTS.map((s) => (
             <button key={s.key} role="tab" aria-selected={sort === s.key} className={sort === s.key ? "seg on" : "seg"} onClick={() => setSort(s.key)}>
               <strong>{s.label}</strong>
@@ -168,13 +172,14 @@ export function CareFinder() {
               </option>
             ))}
           </select>
-        </label>
+        </label></>}
       </section>
 
-      {err && <p className="card form-err">{err}</p>}
-      {!pos && !err && <p className="muted bp-empty">위치를 정하면 가까운 기관을 보여 드려요.</p>}
-      {loading && <p className="muted">찾는 중…</p>}
-      {pos && items && !loading && (
+      {equipment && <section className="card happy-care-banner"><span className="happy-care-mascot" aria-hidden>🧸 📦</span><p className="eyebrow">복지용구 · 해피케어 직접 운영</p><h2>우리 동네가 아니어도 괜찮아요!</h2><p>해피케어는 <strong>전국 어디서나 쇼핑몰로 주문해요</strong> 💛<br/>부모님께 필요한 복지용구, 편하게 둘러보세요.</p><Link href="/care/happycare" className="btn primary wide">해피케어 자세히 보기 →</Link></section>}
+      {!equipment && err && <p className="card form-err">{err}</p>}
+      {!equipment && !pos && !err && <p className="muted bp-empty">위치를 정하면 가까운 기관을 보여 드려요.</p>}
+      {!equipment && loading && <p className="muted">찾는 중…</p>}
+      {!equipment && pos && items && !loading && (
         <>
           <p className="muted small">
             {radius}km 안에 {total}곳{total > items.length && ` (먼저 ${items.length}곳)`} · {SORTS.find((s) => s.key === sort)!.label}
@@ -190,7 +195,7 @@ export function CareFinder() {
 
       <p className="ledger-note">
         국민건강보험공단 공개자료 기준 (기관현황 2026.6.10 · 평가결과 2026.6.25). 평가등급은 공단 정기평가 결과(A 최우수 ~ E 미흡)이며, 평가 전인 기관도
-        있어요. 해피케어는 특정 기관을 추천하거나 소개 대가를 받지 않아요. 이용 전 기관에 직접 확인해 주세요.
+        있어요. 해피케어는 특정 기관을 추천하거나 소개 대가를 받지 않아요. 이용 전 기관에 직접 확인해 주세요. 복지용구 항목은 해피케어가 직접 운영하는 쇼핑몰 안내입니다.
       </p>
       <ContactCta campaign="care" />
     </>
@@ -216,7 +221,7 @@ function CareCard({ x }: { x: Item }) {
   return (
     <li className="card care-card">
       <div className="care-head">
-        <strong>{x.name}</strong>
+        <Link className="care-detail-link" href={`/care/detail?c=${x.code}`} onClick={()=>rememberFacility(x)}>{x.name} <span aria-hidden>›</span></Link>
         <span className="care-km">
           {x.approx ? "약 " : ""}
           {x.km}km
@@ -246,6 +251,7 @@ function CareCard({ x }: { x: Item }) {
         {x.cap > 0 && ` · 정원 ${x.cap}명`}
       </p>
       <div className="care-actions">
+        <Link className="btn small" href={`/care/detail?c=${x.code}`} onClick={()=>rememberFacility(x)}>기관 상세 보기 →</Link>
         {phone ? (
           <a className="btn small" href={`tel:${phone.replace(/-/g, "")}`}>
             📞 {phone}

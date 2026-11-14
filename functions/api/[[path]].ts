@@ -251,6 +251,19 @@ async function ltcPublic(request: Request, env: Env, db: D1 | undefined, action:
       return response;
     }
 
+    // Individual public institution detail, indexed by its primary key and cached.
+    if (action === "detail") {
+      const code = str(q.get("c"),20);
+      if (!/^\d{8,15}$/.test(code)) return fail(400,"기관 주소를 다시 확인해 주세요.");
+      const detail = await cachedPublic<Row | null>(request,`detail/${code}`,3600,async()=>{
+        if (!db) throw new ServiceError("setup:DB");
+        const row = await db.prepare("SELECT code, name, addr, desig, cap, kinds, grades, lat, lng, approx, phone FROM ltc WHERE code = ?").bind(code).first();
+        if (!row) return null;
+        return {...row,kinds:JSON.parse(String(row.kinds)),grades:JSON.parse(String(row.grades)),approx:Number(row.approx)===1};
+      });
+      if (!detail.value) return fail(404,"기관 정보를 찾을 수 없어요.");
+      const response=json({facility:detail.value});response.headers.set("x-ltc-detail-cache",detail.cache);return response;
+    }
     // 전화번호: 공단 API(일반현황)로 조회 후 30일 저장
     if (action === "phone") {
       const code = str(q.get("c"), 20);

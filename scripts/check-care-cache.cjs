@@ -25,5 +25,14 @@ function context(query,env={DB:db}){return {request:new Request(`https://test.ex
  globalThis.fetch=async()=>new Response(JSON.stringify({documents:[{address_name:'서울 은평구',x:'126.92',y:'37.6'}]}),{status:200});
  const place={request:new Request('https://test.example/api/ltc/place?q=은평구'),env:{KAKAO_REST_KEY:'test-only'},params:{path:['ltc','place']}};assert.equal((await api(place)).status,200,'address lookup works without D1');delete place.env.KAKAO_REST_KEY;assert.equal((await api(place)).status,200,'address lookup cached');
  assert(!source.includes('SELECT COUNT(*) AS n FROM ltc WHERE lat IS NULL'));
+ let detailReads=0;
+ const detailCtx=(code,DB)=>({request:new Request(`https://test.example/api/ltc/detail?c=${code}`),env:{DB},params:{path:['ltc','detail']}});
+ const detailDb={prepare(sql){assert(sql.includes('WHERE code = ?'),'details use primary key');return {bind(code){this.code=code;return this},async first(){detailReads++;return this.code==='12345678901'?{...rows[0],code:this.code,phone:'02-123-4567'}:null}}}};
+ const detail=await api(detailCtx('12345678901',detailDb));assert.equal(detail.status,200);assert.deepEqual((await detail.json()).facility.kinds,['visit']);
+ api=moduleApi();const detailHit=await api(detailCtx('12345678901',{prepare(){throw new Error('must use cache')}}));assert.equal(detailHit.status,200);assert.equal(detailHit.headers.get('x-ltc-detail-cache'),'HIT');assert.equal(detailReads,1);
+ assert.equal((await api(detailCtx('bad',detailDb))).status,400);assert.equal((await api(detailCtx('99999999999',detailDb))).status,404);
+ const snapshotSource=fs.readFileSync(path.join(root,'src/lib/facility.ts'),'utf8');const snapshotExports={};new Function('exports',ts.transpileModule(snapshotSource,{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText)(snapshotExports);
+ const snapshots=new Map();globalThis.sessionStorage={setItem(k,v){snapshots.set(k,v)},getItem(k){return snapshots.get(k)}};
+ snapshotExports.rememberFacility({...rows[0],code:'12345678901',kinds:['visit'],grades:{},km:0.1,visitorLat:37.6});const restored=snapshotExports.restoreFacility('12345678901');assert(restored);assert(!('km' in restored));assert(!('visitorLat' in restored));
  console.log('PASS: shared candidate cache, DB-free cache hits and address lookup, exact distance/grade/age filters, request validation and friendly quota errors.');
 })().catch(e=>{console.error(e);process.exit(1)});
