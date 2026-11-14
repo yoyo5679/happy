@@ -7,7 +7,7 @@ type D1Stmt = {
   run(): Promise<unknown>;
 };
 type D1 = { prepare(sql: string): D1Stmt; batch(s: D1Stmt[]): Promise<unknown> };
-type Env = { DB?: D1; STAFF_PASSWORD?: string; KAKAO_REST_KEY?: string; DATA_GO_KR_KEY?: string; KAKAO_BASE?: string; DATA_GO_KR_WORKFORCE_OPERATION?: string; DATA_GO_KR_BASE?: string };
+type Env = { DB?: D1; STAFF_PASSWORD?: string; KAKAO_REST_KEY?: string; DATA_GO_KR_KEY?: string; KAKAO_BASE?: string; DATA_GO_KR_BASE?: string };
 type Ctx = { request: Request; env: Env; params: { path?: string[] } };
 type Row = Record<string, unknown>;
 
@@ -285,9 +285,8 @@ async function ltcPublic(request: Request, env: Env, db: D1 | undefined, action:
         return {status:item?"ok":"empty",installed:profileDate(xmlValue(item,"stpRptDt")),designated:profileDate(xmlValue(item,"longTermPeribRgtDt")),phone:["locTelNo_1","locTelNo_2","locTelNo_3"].map(t=>xmlValue(item,t)).filter(Boolean).join("-"),fetchedAt:now()};
       });
       const workforce=(async()=>{
-        // Configure from the approved API guide; do not guess an undocumented operation URL.
-        const operation=env.DATA_GO_KR_WORKFORCE_OPERATION;
-        if(!operation||!/^get[A-Za-z0-9]+$/.test(operation))throw new ServiceError("profile:workforce-setup");
+        // Operation confirmed from the user's approved public-data API guide.
+        const operation="getStaffSttusDetailInfoItem02";
         return cachedPublic<Row>(request,`profile-staff-v1/${operation}/${code}/${ptype}`,86400,async()=>{
           const item=await nhisProfileItem(env,operation,code,ptype);
           const staff=Object.entries(profileStaffFields).map(([key,label])=>{const raw=xmlValue(item,key);return {key,label,count:/^\d+$/.test(raw)?Number(raw):null};});
