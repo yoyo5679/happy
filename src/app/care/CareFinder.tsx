@@ -5,6 +5,7 @@ import Link from "next/link";
 import { rememberFacility } from "@/lib/facility";
 import { ContactCta } from "@/components/ContactCta";
 import { AudienceTabs } from "@/components/AudienceTabs";
+import { HappycareInfo } from "@/components/HappycareInfo";
 
 type Kind = "visit" | "bath" | "day" | "short" | "home";
 type Item = {
@@ -175,7 +176,7 @@ export function CareFinder() {
         </label></>}
       </section>
 
-      {equipment && <section className="card happy-care-banner"><span className="happy-care-mascot" aria-hidden>🧸 📦</span><p className="eyebrow">복지용구 · 해피케어 직접 운영</p><h2>우리 동네가 아니어도 괜찮아요!</h2><p>해피케어는 <strong>전국 어디서나 쇼핑몰로 주문해요</strong> 💛<br/>부모님께 필요한 복지용구, 편하게 둘러보세요.</p><Link href="/care/happycare" className="btn primary wide">해피케어 자세히 보기 →</Link></section>}
+      {equipment && <HappycareInfo />}
       {!equipment && err && <p className="card form-err">{err}</p>}
       {!equipment && !pos && !err && <p className="muted bp-empty">위치를 정하면 가까운 기관을 보여 드려요.</p>}
       {!equipment && loading && <p className="muted">찾는 중…</p>}
