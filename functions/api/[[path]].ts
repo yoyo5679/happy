@@ -7,7 +7,7 @@ type D1Stmt = {
   run(): Promise<unknown>;
 };
 type D1 = { prepare(sql: string): D1Stmt; batch(s: D1Stmt[]): Promise<unknown> };
-type Env = { DB?: D1; STAFF_PASSWORD?: string; KAKAO_REST_KEY?: string; DATA_GO_KR_KEY?: string; KAKAO_BASE?: string; DATA_GO_KR_BASE?: string };
+type Env = { DB?: D1; STAFF_PASSWORD?: string; KAKAO_REST_KEY?: string; DATA_GO_KR_KEY?: string; KAKAO_BASE?: string; DATA_GO_KR_WORKFORCE_OPERATION?: string; DATA_GO_KR_BASE?: string };
 type Ctx = { request: Request; env: Env; params: { path?: string[] } };
 type Row = Record<string, unknown>;
 
@@ -193,6 +193,26 @@ function publicError(error: unknown): Response {
 }
 
 /** 누구나 쓰는 검색 (로그인 없음) */
+// Public NHIS fields only. Empty numeric tags are unknown, never zero.
+const profileStaffFields:Record<string,string>={equipLong:"시설장",socWel:"사회복지사",nur:"간호사",nurArticle:"간호조무사",physicalMTret:"물리치료사",wrkMTret:"작업치료사",recuProt_1:"요양보호사 1급",recuProt_2:"요양보호사 2급",recuProtDelay:"요양보호사 유예인원",chrgDoc:"전임 의사",chargeDoc:"촉탁 의사",hdOfce:"사무국장",ofceEmp:"사무원",nut:"영양사",cook:"조리원",hygiPrsn:"위생원",mgmtPrsn:"관리인",suppPrsn:"보조원",etcPer:"기타 인력"};
+function xmlValue(xml:string,tag:string):string {
+ const raw=xml.match(new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)</${tag}>`))?.[1]?.trim()??"";
+ return raw.replace(/^<!\[CDATA\[([\s\S]*)\]\]>$/,"$1").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,"&");
+}
+async function nhisProfileItem(env:Env,operation:string,code:string,ptype:string):Promise<string> {
+ if(!env.DATA_GO_KR_KEY)throw new ServiceError("profile:auth");
+ const key=encodeURIComponent(env.DATA_GO_KR_KEY.includes("%")?decodeURIComponent(env.DATA_GO_KR_KEY):env.DATA_GO_KR_KEY);
+ const r=await fetch(`${env.DATA_GO_KR_BASE||"https://apis.data.go.kr"}/B550928/getLtcInsttDetailInfoService02/${operation}?serviceKey=${key}&longTermAdminSym=${code}&adminPttnCd=${encodeURIComponent(ptype)}`,{signal:AbortSignal.timeout(8000)});
+ const xml=await r.text();
+ const status=xmlValue(xml,"resultCode"),auth=xmlValue(xml,"returnAuthMsg");
+ if(!r.ok||auth||(status&&status!=="00"&&status!=="0"))throw new ServiceError("profile:upstream");
+ if(!/<response[\s>]/.test(xml))throw new ServiceError("profile:upstream");
+ const item=xml.match(/<item(?:\s[^>]*)?>([\s\S]*?)<\/item>/)?.[1]??"";
+ if(item&&xmlValue(item,"longTermAdminSym")!==code)throw new ServiceError("profile:identity");
+ if(item&&xmlValue(item,"adminPttnCd")!==ptype)throw new ServiceError("profile:identity");
+ return item;
+}
+function profileDate(v:string){if(!/^\d{8}$/.test(v)||v==="00000000")return null;const date=`${v.slice(0,4)}-${v.slice(4,6)}-${v.slice(6,8)}`;return Number.isFinite(Date.parse(date))&&new Date(date).toISOString().slice(0,10)===date?date:null;}
 async function ltcPublic(request: Request, env: Env, db: D1 | undefined, action: string): Promise<Response> {
   const url = new URL(request.url);
   const q = url.searchParams;
@@ -251,6 +271,32 @@ async function ltcPublic(request: Request, env: Env, db: D1 | undefined, action:
       return response;
     }
 
+    if(action==="profile") {
+      const code=str(q.get("c"),20);if(!/^\d{8,15}$/.test(code))return fail(400,"기관 주소를 다시 확인해 주세요.");
+      // Cache each source separately so one temporary failure cannot erase another section.
+      const identity=await cachedPublic<Row|null>(request,`profile-identity/${code}`,3600,async()=>{
+        if(!db)throw new ServiceError("setup:DB");
+        return db.prepare("SELECT code, ptype FROM ltc WHERE code = ?").bind(code).first();
+      });
+      if(!identity.value)return fail(404,"기관을 찾을 수 없어요.");
+      const ptype=String(identity.value.ptype);
+      const general=cachedPublic<Row>(request,`profile-general-v1/${code}/${ptype}`,86400,async()=>{
+        const item=await nhisProfileItem(env,"getGeneralSttusDetailInfoItem02",code,ptype);
+        return {status:item?"ok":"empty",installed:profileDate(xmlValue(item,"stpRptDt")),designated:profileDate(xmlValue(item,"longTermPeribRgtDt")),phone:["locTelNo_1","locTelNo_2","locTelNo_3"].map(t=>xmlValue(item,t)).filter(Boolean).join("-"),fetchedAt:now()};
+      });
+      const workforce=(async()=>{
+        // Configure from the approved API guide; do not guess an undocumented operation URL.
+        const operation=env.DATA_GO_KR_WORKFORCE_OPERATION;
+        if(!operation||!/^get[A-Za-z0-9]+$/.test(operation))throw new ServiceError("profile:workforce-setup");
+        return cachedPublic<Row>(request,`profile-staff-v1/${operation}/${code}/${ptype}`,86400,async()=>{
+          const item=await nhisProfileItem(env,operation,code,ptype);
+          const staff=Object.entries(profileStaffFields).map(([key,label])=>{const raw=xmlValue(item,key);return {key,label,count:/^\d+$/.test(raw)?Number(raw):null};});
+          return {status:item?"ok":"empty",staff,fetchedAt:now()};
+        });
+      })();
+      const [g,w]=await Promise.allSettled([general,workforce]);
+      return json({general:g.status==="fulfilled"?g.value.value:{status:"unavailable"},workforce:w.status==="fulfilled"?w.value.value:{status:"unavailable"}});
+    }
     // Individual public institution detail, indexed by its primary key and cached.
     if (action === "detail") {
       const code = str(q.get("c"),20);
