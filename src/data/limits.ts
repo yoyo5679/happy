@@ -22,10 +22,6 @@ export const limits: { category: CategoryKey; durability: string; qty: string; l
   { category: "ramp", durability: "2년", qty: "6개", label: "경사로(실내용)" },
 ];
 
-/** 해피케어몰에서 팔지 않는 대여 품목 (표 아래 안내용) */
-export const rentalOnlyNote =
-  "해피케어몰에서 취급하지 않는 급여 품목: 대여 – 수동침대(10년·1개, 전동침대와 같은 품목으로 봄), 목욕리프트(3년·1개), 배회감지기(5년·1개), 경사로 실외용(8년·1개) · 구입 – 기저귀센서(3년·1개), 고관절보호대(2년·1개) · 구입 또는 대여 – 이승보조기기(5년·1개).";
-
 export const rateTargets = [
   { rate: "15%", who: "일반 수급자" },
   { rate: "9%", who: "보험료 감경 대상자 (보험료 순위 25% 초과 50% 이하)" },
