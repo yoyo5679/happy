@@ -28,7 +28,7 @@ export function FacilityPage(){
  </div>
  {phoneError&&<p role="status" className="small form-err">{phoneError}</p>}
  <InstitutionProfile facility={facility}/>
- <p className="small muted facility-source">공단 기관현황 2026.6.10 기준. 이용 가능 여부는 기관에 직접 확인해 주세요.</p>
+ <p className="small muted facility-source">공단 공개자료 기준. 운영 현황과 이용 가능 여부는 기관에 직접 확인해 주세요.</p>
  </>}
  </article>;
 }
