@@ -6,6 +6,7 @@ import { rememberFacility } from "@/lib/facility";
 import {careSearchKey,emptyCareSearch,freshCareResult,rememberCareSearch,restoreCareSearch,type CareItem as Item,type CareSort as Sort,type CareSearchState} from "@/lib/care-search-session";
 import { ContactCta } from "@/components/ContactCta";
 import { AudienceTabs } from "@/components/AudienceTabs";
+import { CareUpdateStatus } from "@/components/CareUpdateStatus";
 import { HappycareInfo } from "@/components/HappycareInfo";
 
 type Kind = "visit" | "bath" | "day" | "short" | "home";
@@ -184,6 +185,7 @@ export function CareFinder() {
         국민건강보험공단 공개자료 기준 (기관현황 2026.6.10 · 평가결과 2026.6.25). 평가등급은 공단 정기평가 결과(A 최우수 ~ E 미흡)이며, 평가 전인 기관도
         있어요. 해피케어는 특정 기관을 추천하거나 소개 대가를 받지 않아요. 이용 전 기관에 직접 확인해 주세요. 복지용구 항목은 해피케어가 직접 운영하는 쇼핑몰 안내입니다.
       </p>
+      {!equipment && <CareUpdateStatus />}
       <ContactCta campaign="care" />
     </>
   );

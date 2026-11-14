@@ -71,6 +71,12 @@ export async function onRequest({ request, env, params }: Ctx): Promise<Response
     if (env.DB) { try { await purgeRetiredLedger(env.DB); } catch { ledgerCleanup = "failed"; } }
     return json({ error: "종료된 서비스입니다.", ledgerCleanup }, 410);
   }
+  if(path[0]==="ltc"&&path[1]==="monthly-sync"&&path.length===2){
+    if(request.method!=="POST")return fail(405,"POST 요청이 필요합니다.");
+    if(!(await isSyncWorkflow(request)))return fail(401,"허용된 예약 실행만 사용할 수 있습니다.");
+    if(!env.DB)return fail(503,"기관 데이터베이스에 연결하지 못했어요.");
+    try{return await monthlyStep(request,env,env.DB);}catch{return fail(503,"기관 업데이트를 잠시 후 다시 시도해 주세요.");}
+  }
   if (path[0] === "ltc" && path.length === 2) return ltcPublic(request, env, env.DB, path[1]);
   if (!env.DB) return fail(503, "setup:DB");
   if (path[0] === "staff" && path[1] === "ltc" && path.length === 3) {
@@ -213,10 +219,187 @@ async function nhisProfileItem(env:Env,operation:string,code:string,ptype:string
  return item;
 }
 function profileDate(v:string){if(!/^\d{8}$/.test(v)||v==="00000000")return null;const date=`${v.slice(0,4)}-${v.slice(4,6)}-${v.slice(6,8)}`;return Number.isFinite(Date.parse(date))&&new Date(date).toISOString().slice(0,10)===date?date:null;}
+// Monthly public-institution additions. Only the pinned GitHub workflow may mutate this data.
+const SYNC_REPO="yoyo5679/happy",SYNC_REF="refs/heads/claude/festive-albattani-sjd0d8";
+const SYNC_WORKFLOW=`${SYNC_REPO}/.github/workflows/ltc-monthly.yml@${SYNC_REF}`;
+const SYNC_AUDIENCE="https://happycare.pages.dev/ltc-monthly";
+const SYNC_SIDOS=["11","26","27","28","29","30","31","36","41","43","44","46","47","48","50","51","52"];
+const SYNC_AREA:Record<string,string>={"11":"서울","26":"부산","27":"대구","28":"인천","29":"광주","30":"대전","31":"울산","36":"세종","41":"경기","43":"충북","44":"충남","46":"전남","47":"경북","48":"경남","50":"제주","51":"강원","52":"전북"};
+function syncKind(type:string):string|null {
+ if(["B01","C01"].includes(type))return "visit";
+ if(["B02","C02"].includes(type))return "bath";
+ if(["B03","C03"].includes(type)||/^[HI]/.test(type))return "day";
+ if(["B04","C04","A05"].includes(type))return "short";
+ if(["A01","A02","A03","A04","S41"].includes(type)||/^[GM]/.test(type))return "home";
+ return null; // Welfare-equipment and nursing-only providers are not published here.
+}
+function unbase64url(s:string):Uint8Array<ArrayBuffer> {return Uint8Array.from(atob(s.replace(/-/g,"+").replace(/_/g,"/")),c=>c.charCodeAt(0));}
+async function isSyncWorkflow(request:Request):Promise<boolean> {
+ try {
+  const token=(request.headers.get("authorization")??"").replace(/^Bearer /,"");
+  if(token.length>16000)return false;
+  const parts=token.split(".");if(parts.length!==3)return false;
+  const header=JSON.parse(new TextDecoder().decode(unbase64url(parts[0]))),claims=JSON.parse(new TextDecoder().decode(unbase64url(parts[1])));
+  const t=Math.floor(Date.now()/1000);
+  if(header.alg!=="RS256"||typeof header.kid!=="string"||header.kid.length>120)return false;
+  if(claims.iss!=="https://token.actions.githubusercontent.com"||claims.aud!==SYNC_AUDIENCE||claims.repository!==SYNC_REPO||claims.repository_id!=="1406565226"||claims.repository_owner_id!=="62796904"||claims.ref!==SYNC_REF||claims.workflow_ref!==SYNC_WORKFLOW||!["schedule","workflow_dispatch","push"].includes(claims.event_name))return false;
+  if(typeof claims.exp!=="number"||claims.exp<=t||typeof claims.iat!=="number"||claims.iat>t+30||claims.iat<t-3600||typeof claims.nbf!=="number"||claims.nbf>t+30)return false;
+  const keys=await cachedPublic<{keys:(JsonWebKey&{kid:string})[]}>(request,"github-oidc-keys",300,async()=>{
+   const r=await fetch("https://token.actions.githubusercontent.com/.well-known/jwks",{signal:AbortSignal.timeout(8000)});if(!r.ok)throw new Error("oidc");return r.json();
+  });
+  const jwk=keys.value.keys.find(k=>k.kid===header.kid&&k.kty==="RSA");if(!jwk)return false;
+  const key=await crypto.subtle.importKey("jwk",jwk,{name:"RSASSA-PKCS1-v1_5",hash:"SHA-256"},false,["verify"]);
+  return crypto.subtle.verify("RSASSA-PKCS1-v1_5",key,unbase64url(parts[2]),new TextEncoder().encode(`${parts[0]}.${parts[1]}`));
+ }catch{return false;}
+}
+let syncReady:Promise<void>|null=null;
+async function syncSchema(db:D1):Promise<void> {
+ await (syncReady??=(async()=>{await db.batch([
+  db.prepare(`CREATE TABLE IF NOT EXISTS ltc_sync_jobs (id TEXT PRIMARY KEY, from_date TEXT NOT NULL, to_date TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'collecting', sido_index INTEGER NOT NULL DEFAULT 0, page INTEGER NOT NULL DEFAULT 1, seen INTEGER NOT NULL DEFAULT 0, last_page_key TEXT NOT NULL DEFAULT '', scanned INTEGER NOT NULL DEFAULT 0, added INTEGER NOT NULL DEFAULT 0, updated INTEGER NOT NULL DEFAULT 0, unresolved INTEGER NOT NULL DEFAULT 0, lease_owner TEXT, lease_until INTEGER NOT NULL DEFAULT 0, started_at TEXT NOT NULL, completed_at TEXT, error_code TEXT)`),
+  db.prepare(`CREATE TABLE IF NOT EXISTS ltc_sync_queue (job_id TEXT NOT NULL, code TEXT NOT NULL, payload TEXT NOT NULL, done INTEGER NOT NULL DEFAULT 0, error_code TEXT, PRIMARY KEY(job_id,code))`),
+  db.prepare(`CREATE INDEX IF NOT EXISTS ltc_sync_pending ON ltc_sync_queue(job_id,done,code)`),
+ ]);})().catch(e=>{syncReady=null;throw e;}));
+}
+type SyncCandidate={code:string;name:string;sido:string;district:string;desig:string;kinds:string[];types:string[]};
+function syncWindow(period:string,first:boolean):{from:string;to:string} {
+ const [y,m]=period.split("-").map(Number);
+ return {from:first?"2026-06-11":new Date(Date.UTC(y,m-3,1)).toISOString().slice(0,10),to:new Date(Date.UTC(y,m-1,0)).toISOString().slice(0,10)};
+}
+function syncSummary(row:Row|null){if(!row)return null;return {period:row.id,from:row.from_date,to:row.to_date,status:row.status,scanned:Number(row.scanned),added:Number(row.added),updated:Number(row.updated),unresolved:Number(row.unresolved),startedAt:row.started_at,completedAt:row.completed_at,error:row.error_code||null};}
+async function syncStatus(db:D1):Promise<Row> {
+ try {
+  const latest=await db.prepare("SELECT * FROM ltc_sync_jobs ORDER BY id DESC LIMIT 1").first();
+  const completed=await db.prepare("SELECT * FROM ltc_sync_jobs WHERE completed_at IS NOT NULL ORDER BY id DESC LIMIT 1").first();
+  return {available:true,current:syncSummary(latest),lastCompleted:syncSummary(completed)};
+ }catch(e){if(/no such table/i.test(String(e)))return {available:true,current:null,lastCompleted:null};throw e;}
+}
+async function syncRevision(request:Request,db:D1|undefined):Promise<string>{
+ if(!db)return "baseline";
+ const r=await cachedPublic<string>(request,"monthly-published-revision",60,async()=>{
+  try {const row=await db.prepare("SELECT id FROM ltc_sync_jobs WHERE completed_at IS NOT NULL ORDER BY id DESC LIMIT 1").first();return String(row?.id||"baseline");}catch{return "baseline";}
+ });return r.value;
+}
+async function monthlyList(env:Env,sido:string,from:string,to:string,page:number):Promise<{items:SyncCandidate[];rawCount:number;total:number;fingerprint:string}> {
+ if(!env.DATA_GO_KR_KEY)throw new ServiceError("sync:key");
+ const raw=env.DATA_GO_KR_KEY.trim(),key=encodeURIComponent(raw.includes("%")?decodeURIComponent(raw):raw);
+ const q=new URLSearchParams({siDoCd:sido,startRgtDt:from.replace(/-/g,""),endRgtDt:to.replace(/-/g,""),pageNo:String(page),numOfRows:"100"});
+ const r=await fetch(`${env.DATA_GO_KR_BASE||"https://apis.data.go.kr"}/B550928/searchLtcInsttService02/getLtcInsttSeachList02?serviceKey=${key}&${q}`,{signal:AbortSignal.timeout(12000)});
+ const xml=await r.text();if(!r.ok||!["00","0"].includes(xmlValue(xml,"resultCode"))||xmlValue(xml,"returnAuthMsg"))throw new ServiceError("sync:list-provider");
+ const count=xmlValue(xml,"totalCount");if(!/^\d+$/.test(count))throw new ServiceError("sync:list-count");
+ const parts=Array.from(xml.matchAll(/<item(?:\s[^>]*)?>([\s\S]*?)<\/item>/g));if(parts.length>100)throw new ServiceError("sync:page-size");
+ const grouped=new Map<string,SyncCandidate>();
+ for(const part of parts){const x=part[1],code=xmlValue(x,"longTermAdminSym"),type=xmlValue(x,"adminPttnCd"),desig=profileDate(xmlValue(x,"longTermPeribRgtDt"));
+  const kind=syncKind(type);if(!kind)continue;
+  if(!/^\d{11}$/.test(code)||xmlValue(x,"siDoCd")!==sido||!desig||desig<from||desig>to)throw new ServiceError("sync:list-validation");
+  const candidate={code,name:xmlValue(x,"adminNm"),sido,district:xmlValue(x,"siGunGuCd"),desig,kinds:[kind],types:[type]};
+  if(!candidate.name||!/^\d{3}$/.test(candidate.district))throw new ServiceError("sync:list-validation");
+  const prior=grouped.get(code);grouped.set(code,prior?{...candidate,desig:prior.desig>candidate.desig?prior.desig:candidate.desig,kinds:[...new Set([...prior.kinds,kind])],types:[...new Set([...prior.types,type])]}:candidate);
+ }
+ return {items:[...grouped.values()],rawCount:parts.length,total:Number(count),fingerprint:[...await sha(parts.map(p=>["longTermAdminSym","adminPttnCd","longTermPeribRgtDt"].map(k=>xmlValue(p[1],k)).join(":")).join("|"))].map(b=>b.toString(16).padStart(2,"0")).join("")};
+}
+async function monthlyKakao(env:Env,path:string,query:Record<string,string>):Promise<Row>{
+ if(!env.KAKAO_REST_KEY)throw new ServiceError("sync:map-key");
+ const r=await fetch(`${env.KAKAO_BASE||"https://dapi.kakao.com"}${path}?${new URLSearchParams(query)}`,{headers:{Authorization:`KakaoAK ${env.KAKAO_REST_KEY}`},signal:AbortSignal.timeout(8000)});
+ if(!r.ok)throw new ServiceError("sync:map-provider");return r.json();
+}
+function cleanInstitutionName(s:string){return s.replace(/[\s()㈜·.,\-]/g,"").toLowerCase();}
+async function resolveMonthly(env:Env,c:SyncCandidate):Promise<{addr:string;lat:number;lng:number;phone:string}|null> {
+ const type=c.types[0],general=await nhisProfileItem(env,"getGeneralSttusDetailInfoItem02",c.code,type);
+ if(!general)return null;
+ const district=xmlValue(general,"siDoCd")+xmlValue(general,"siGunGuCd");
+ if(district!==c.sido+c.district) return null;
+ const docs=asList((await monthlyKakao(env,"/v2/local/search/keyword.json",{query:`${SYNC_AREA[c.sido]} ${c.name}`,size:"15"})).documents);
+ const exact=docs.filter(x=>cleanInstitutionName(String(x.place_name||""))===cleanInstitutionName(c.name));
+ const matches:{addr:string;lat:number;lng:number;phone:string}[]=[];
+ // Reject ambiguous names instead of assigning a different institution's map pin.
+ for(const doc of exact.slice(0,2)){
+  const lat=Number(doc.y),lng=Number(doc.x);if(!(lat>32&&lat<39.5&&lng>124&&lng<132.5))continue;
+  const regions=asList((await monthlyKakao(env,"/v2/local/geo/coord2regioncode.json",{x:String(lng),y:String(lat)})).documents);
+  const sourceDong=xmlValue(general,"BDongCd"),sourceRi=xmlValue(general,"riCd");
+  const legalPrefix=district+(/^\d{3}$/.test(sourceDong)?sourceDong:"")+( /^\d{3}$/.test(sourceDong)&&/^\d{2}$/.test(sourceRi)?sourceRi:"");
+  if(!regions.some(r=>r.region_type==="B"&&String(r.code||"").startsWith(legalPrefix)))continue;
+  const road=String(doc.road_address_name||""),house=road.match(/\s(\d+)(?:-(\d+))?(?:\s|$)/);
+  const sourceMain=xmlValue(general,"gunmulMlno"),sourceSub=xmlValue(general,"gunmulSlno");
+  if(sourceMain&&Number(sourceMain)>0&&(!house||Number(house[1])!==Number(sourceMain)||Number(house[2]||0)!==Number(sourceSub||0)))continue;
+  const addr=road||String(doc.address_name||"");if(!addr)continue;
+  const phone=["locTelNo_1","locTelNo_2","locTelNo_3"].map(k=>xmlValue(general,k)).filter(Boolean).join("-");
+  matches.push({addr,lat,lng,phone});
+ }
+ return matches.length===1?matches[0]:null;
+}
+async function monthlyStep(request:Request,env:Env,db:D1):Promise<Response> {
+ await syncSchema(db);
+ const period=new Date().toISOString().slice(0,7);
+ let job=await db.prepare("SELECT * FROM ltc_sync_jobs WHERE completed_at IS NULL ORDER BY id LIMIT 1").first();
+ if(!job){
+  job=await db.prepare("SELECT * FROM ltc_sync_jobs WHERE id = ?").bind(period).first();
+  if(!job){
+   const previous=await db.prepare("SELECT * FROM ltc_sync_jobs WHERE completed_at IS NOT NULL ORDER BY id DESC LIMIT 1").first(),window=syncWindow(period,!previous);
+   await db.prepare("INSERT OR IGNORE INTO ltc_sync_jobs (id,from_date,to_date,started_at) VALUES (?,?,?,?)").bind(period,window.from,window.to,now()).run();
+   if(previous)await db.prepare("INSERT OR IGNORE INTO ltc_sync_queue (job_id,code,payload) SELECT ?,code,payload FROM ltc_sync_queue WHERE job_id = ? AND done = 2").bind(period,previous.id).run();
+   job=await db.prepare("SELECT * FROM ltc_sync_jobs WHERE id = ?").bind(period).first();
+  }
+ }
+ if(!job)throw new ServiceError("sync:job");
+ if(job.completed_at)return json({done:job.id===period,job:syncSummary(job)});
+ const id=String(job.id),owner=crypto.randomUUID(),lease=Date.now()+120_000;
+ const lock=await db.prepare("UPDATE ltc_sync_jobs SET lease_owner = ?, lease_until = ? WHERE id = ? AND lease_until < ? AND completed_at IS NULL RETURNING id").bind(owner,lease,id,Date.now()).first();
+ if(!lock)return json({done:false,busy:true,job:syncSummary(job)});
+ job=(await db.prepare("SELECT * FROM ltc_sync_jobs WHERE id=?").bind(id).first())!;
+ try {
+  if(job.status==="collecting"){
+   const sido=SYNC_SIDOS[Number(job.sido_index)],page=Number(job.page);
+   const result=await monthlyList(env,sido,String(job.from_date),String(job.to_date),page);
+   if(page>1&&result.rawCount&&job.last_page_key===result.fingerprint)throw new ServiceError("sync:pagination-repeat");
+   if(!result.rawCount&&Number(job.seen)<result.total)throw new ServiceError("sync:incomplete-page");
+   const existing=await db.prepare("SELECT code,payload FROM ltc_sync_queue WHERE job_id = ? AND code IN (SELECT value FROM json_each(?))").bind(id,JSON.stringify(result.items.map(x=>x.code))).all();
+   const merged=result.items.map(c=>{const old=existing.results.find(x=>x.code===c.code);if(!old)return c;const p=JSON.parse(String(old.payload)) as SyncCandidate;return {...c,desig:p.desig>c.desig?p.desig:c.desig,kinds:[...new Set([...p.kinds,...c.kinds])],types:[...new Set([...p.types,...c.types])]};});
+   const next=Number(job.seen)+result.rawCount>=result.total;
+   const index=Number(job.sido_index)+(next?1:0);
+   await db.batch([
+    db.prepare("INSERT INTO ltc_sync_queue (job_id,code,payload) SELECT ?,json_extract(value,'$.code'),json(value) FROM json_each(?) WHERE true ON CONFLICT(job_id,code) DO UPDATE SET payload=excluded.payload").bind(id,JSON.stringify(merged)),
+    db.prepare("UPDATE ltc_sync_jobs SET sido_index=?,page=?,seen=?,last_page_key=?,scanned=scanned+?,status=?,error_code=NULL WHERE id=? AND lease_owner=?").bind(index,next?1:page+1,next?0:Number(job.seen)+result.rawCount,next?"":result.fingerprint,result.rawCount,index>=SYNC_SIDOS.length?"publishing":"collecting",id,owner),
+   ]);
+  }else{
+   const pending=await db.prepare("SELECT code,payload FROM ltc_sync_queue WHERE job_id=? AND done=0 ORDER BY code LIMIT 4").bind(id).all();
+   if(!pending.results.length){await db.prepare("UPDATE ltc_sync_jobs SET status=CASE WHEN unresolved>0 THEN 'complete_with_warnings' ELSE 'complete' END,completed_at=?,error_code=NULL WHERE id=? AND lease_owner=?").bind(now(),id,owner).run();}
+   const outcomes=await Promise.allSettled(pending.results.map(async row=>{
+    const c=JSON.parse(String(row.payload)) as SyncCandidate;
+    const current=await db.prepare("SELECT code,name,addr,kinds,grades,desig,lat,lng,ptype,ver FROM ltc WHERE code=?").bind(c.code).first();
+    const newKinds=[...new Set([...(current?JSON.parse(String(current.kinds)):[]),...c.kinds])];
+    // Unchanged known institutions already have verified coordinates; avoid repeat external calls.
+    if(current&&current.name===c.name&&String(current.desig)>=c.desig&&JSON.stringify([...JSON.parse(String(current.kinds))].sort())===JSON.stringify([...newKinds].sort())&&current.lat!=null&&current.lng!=null){
+     await db.prepare("UPDATE ltc_sync_queue SET done=1 WHERE job_id=? AND code=?").bind(id,c.code).run();return;
+    }
+    const resolved=await resolveMonthly(env,c);
+    if(!resolved){await db.batch([db.prepare("UPDATE ltc_sync_queue SET done=2,error_code='map_unverified' WHERE job_id=? AND code=?").bind(id,c.code),db.prepare("UPDATE ltc_sync_jobs SET unresolved=unresolved+1 WHERE id=? AND lease_owner=?").bind(id,owner)]);return;}
+    // Never delete existing records or overwrite assessment grades/capacity with missing API fields.
+    await db.batch([
+     db.prepare(`INSERT INTO ltc (code,name,addr,sido,desig,kinds,grades,ptype,cap,ver,lat,lng,geo_fail,phone,phone_at,dong,approx) VALUES (?,?,?,?,?,?,'{}',?,0,?,?,?,0,?,?,'',0)
+      ON CONFLICT(code) DO UPDATE SET name=excluded.name,addr=excluded.addr,sido=excluded.sido,desig=CASE WHEN excluded.desig>ltc.desig THEN excluded.desig ELSE ltc.desig END,kinds=excluded.kinds,lat=excluded.lat,lng=excluded.lng,geo_fail=0,approx=0,phone=CASE WHEN excluded.phone!='' THEN excluded.phone ELSE ltc.phone END,phone_at=CASE WHEN excluded.phone!='' THEN excluded.phone_at ELSE ltc.phone_at END`).bind(c.code,c.name,resolved.addr,c.sido,c.desig,JSON.stringify(newKinds),current?.ptype||c.types[0],current?.ver||"2026-06-25",resolved.lat,resolved.lng,resolved.phone,now()),
+     db.prepare("UPDATE ltc_sync_queue SET done=1,error_code=NULL WHERE job_id=? AND code=?").bind(id,c.code),
+     db.prepare(`UPDATE ltc_sync_jobs SET ${current?"updated":"added"}=${current?"updated":"added"}+1,error_code=NULL WHERE id=? AND lease_owner=?`).bind(id,owner),
+    ]);
+   }));
+   const failed=outcomes.find(x=>x.status==="rejected");if(failed?.status==="rejected")throw failed.reason;
+  }
+ }catch(e){
+  const code=e instanceof ServiceError&&/^sync:[a-z-]+$/.test(e.message)?e.message.replace("sync:",""):e instanceof ServiceError&&e.message.startsWith("profile:")?"detail-provider":"temporary-provider-error";
+  await db.prepare("UPDATE ltc_sync_jobs SET error_code=? WHERE id=? AND lease_owner=?").bind(code,id,owner).run();
+  return json({done:false,retry:true,error:code,job:syncSummary(await db.prepare("SELECT * FROM ltc_sync_jobs WHERE id=?").bind(id).first())},503);
+ }finally{await db.prepare("UPDATE ltc_sync_jobs SET lease_until=0,lease_owner=NULL WHERE id=? AND lease_owner=?").bind(id,owner).run();}
+ const final=await db.prepare("SELECT * FROM ltc_sync_jobs WHERE id=?").bind(id).first();
+ return json({done:!!final?.completed_at&&id===period,job:syncSummary(final)});
+}
+
 async function ltcPublic(request: Request, env: Env, db: D1 | undefined, action: string): Promise<Response> {
   const url = new URL(request.url);
   const q = url.searchParams;
   try {
+    if(action==="update-status"){
+      if(!db)return json({available:false,current:null,lastCompleted:null});
+      const status=await cachedPublic<Row>(request,"monthly-update-status",60,()=>syncStatus(db));return json(status.value);
+    }
     // Bounded, read-only monthly integration preview. No DB imports or scheduled writes.
     if(action==="new-preview") {
       const today=new Date();
@@ -263,7 +446,8 @@ async function ltcPublic(request: Request, env: Env, db: D1 | undefined, action:
       // Expand to a shared grid bounding box, but retain the exact GPS point for distances.
       const grid = 0.02;
       const bounds = [Math.floor((lat-dLat)/grid)*grid,Math.ceil((lat+dLat)/grid)*grid,Math.floor((lng-dLng)/grid)*grid,Math.ceil((lng+dLng)/grid)*grid].map(v=>Number(v.toFixed(4)));
-      const candidates = await cachedPublic<Row[]>(request,`area/${bounds.join(",")}`,3600,async()=>{
+      const revision=await syncRevision(request,db);
+      const candidates = await cachedPublic<Row[]>(request,`area/${revision}/${bounds.join(",")}`,3600,async()=>{
         if (!db) throw new ServiceError("setup:DB");
         await ensureSearchIndex(db);
         const result = await db.prepare("SELECT code, name, addr, desig, kinds, grades, cap, lat, lng, approx FROM ltc WHERE lat BETWEEN ? AND ? AND lng BETWEEN ? AND ?").bind(...bounds).all();
@@ -333,7 +517,8 @@ async function ltcPublic(request: Request, env: Env, db: D1 | undefined, action:
     if (action === "detail") {
       const code = str(q.get("c"),20);
       if (!/^\d{8,15}$/.test(code)) return fail(400,"기관 주소를 다시 확인해 주세요.");
-      const detail = await cachedPublic<Row | null>(request,`detail/${code}`,3600,async()=>{
+      const revision=await syncRevision(request,db);
+      const detail = await cachedPublic<Row | null>(request,`detail/${revision}/${code}`,3600,async()=>{
         if (!db) throw new ServiceError("setup:DB");
         const row = await db.prepare("SELECT code, name, addr, desig, cap, kinds, grades, lat, lng, approx, phone FROM ltc WHERE code = ?").bind(code).first();
         if (!row) return null;
