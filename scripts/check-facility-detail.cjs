@@ -1,0 +1,12 @@
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),ts=require('typescript'),React=require('react'),{renderToStaticMarkup}=require('react-dom/server');
+const root=path.resolve(__dirname,'..'),exportsObject={};
+const source=fs.readFileSync(path.join(root,'src/app/care/detail/InstitutionProfile.tsx'),'utf8');
+const compiled=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;
+new Function('exports','require',compiled)(exportsObject,id=>id==='@/lib/facility'?{facilityLabels:{visit:'방문요양'}}:require(id));
+const staff=[{key:'recuProt_1',label:'요양보호사 1급',count:17},{key:'recuProt_2',label:'요양보호사 2급',count:0},{key:'socWel',label:'사회복지사',count:2},{key:'nur',label:'간호사',count:0}];
+const render=rows=>renderToStaticMarkup(React.createElement(exportsObject.StaffOverview,{staff:rows}));
+const html=render(staff),summary=html.split('<details')[0];assert(summary.includes('<strong>17</strong>'),'combine both reported caregiver categories');assert(summary.includes('<strong>0</strong>'),'real zero remains zero');assert(summary.includes('등록값 없음'),'unreported nursing assistant remains unknown');assert(!/<details[^>]*\bopen\b/.test(html),'full workforce list starts collapsed');assert(html.includes('요양보호사 1급')&&html.includes('요양보호사 2급'),'full list retains the underlying categories');
+const partial=render(staff.filter(x=>x.key!=='recuProt_2')).split('<details')[0];assert(!partial.includes('<strong>17</strong>'),'incomplete caregiver total must not be reported as a complete count');
+const facility={code:'11111000006',name:'기관',addr:'서울',desig:'2008-06-25',cap:38,kinds:['visit'],grades:{visit:['A',2025]},lat:37.6,lng:126.9};
+const panels=renderToStaticMarkup(React.createElement(exportsObject.InstitutionProfile,{facility}));assert.equal((panels.match(/role="tab"/g)||[]).length,3);assert.equal((panels.match(/role="tabpanel"/g)||[]).length,3);assert.equal((panels.match(/hidden=""/g)||[]).length,2,'only one information panel is visible');assert(panels.includes('2008-06-25')&&panels.includes('기관기호'),'basic information is preserved behind its tab');
+console.log('PASS: accurate caregiver totals and unknown/zero states, collapsed complete workforce list, three accessible tabs with one visible panel and original basic information retained.');

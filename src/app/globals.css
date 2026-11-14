@@ -523,3 +523,38 @@ em.opt { background: #eef1f0; color: var(--muted); }
 
 /* Institution detail and the directly operated nationwide equipment store. */
 .care-detail-link{font-size:1.1rem;font-weight:750;color:var(--brand,#068291);text-decoration:none;line-height:1.5}.care-detail-link span{margin-left:6px}.care-detail-link:focus-visible{outline:2px solid #068291;outline-offset:5px}.happy-care-banner{background:linear-gradient(145deg,#fff8e6,#f0faf5);text-align:center;border:1px solid #eadfbd;padding:30px 20px}.happy-care-banner h1,.happy-care-banner h2{line-height:1.5}.happy-care-banner p{line-height:1.9}.happy-care-mascot{display:block;font-size:2.6rem;margin:8px 0 18px}.happy-care-banner .care-actions{justify-content:center}.facility-detail h1{font-size:1.7rem;line-height:1.5}.facility-detail dl{display:grid;grid-template-columns:minmax(85px,1fr) minmax(0,3fr);gap:14px 16px;line-height:1.7;margin:24px 0}.facility-detail dt{color:#61717a;font-size:.9rem}.facility-detail dd{margin:0;overflow-wrap:anywhere}.facility-evaluations{list-style:none;padding:0}.facility-evaluations li{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:16px 0;border-bottom:1px solid #e4e9e7}.facility-evaluations li:last-child{border-bottom:0}
+
+/* Compact institution detail: primary actions and one information panel at a time. */
+.facility-back { display: inline-flex; align-items: center; min-height: 44px; font-size: .9rem; text-decoration: none; color: var(--brand); font-weight: 700; }
+.facility-summary { margin: 4px 0 12px; padding: 16px; }
+.facility-summary h1 { font-size: 1.35rem; line-height: 1.4; }
+.facility-summary .care-kinds { margin: 8px 0; }
+.facility-capacity { margin: 4px 0 0; }
+.facility-contact { position: sticky; top: 0; z-index: 25; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 8px 0; background: var(--bg); }
+.facility-contact .btn { min-width: 0; min-height: 48px; padding: 10px 6px; margin: 0; }
+body:has(.facility-page) .float-contact { display: none; }
+.facility-tabs-card { margin: 8px 0 12px; padding: 12px; }
+.facility-tabs { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 4px; background: var(--brand-weak); border-radius: 10px; padding: 4px; }
+.facility-tabs button { min-width: 0; min-height: 44px; border: 0; border-radius: 8px; background: transparent; color: var(--text); font: inherit; font-size: .95rem; font-weight: 700; cursor: pointer; }
+.facility-tabs button[aria-selected="true"] { background: var(--brand-solid); color: #fff; }
+.facility-tabs button:focus-visible,.facility-back:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
+.facility-tabs-panel { padding: 14px 2px 0; }
+.facility-tabs-panel h2 { font-size: 1rem; margin: 0 0 10px; }
+.facility-staff-stats { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin: 0 0 12px; }
+.facility-staff-stats > div { padding: 10px 12px; background: #f2f8f7; border-radius: 10px; }
+.facility-staff-stats dt { font-size: .85rem; color: var(--muted); }
+.facility-staff-stats dd { margin: 0; font-size: .9rem; color: var(--brand); }
+.facility-staff-stats dd strong { font-size: 1.55rem; margin-right: 4px; }
+.facility-staff-stats dd span { font-size: .8rem; color: var(--muted); }
+.facility-more { border-top: 1px solid var(--line); }
+.facility-more summary { padding: 12px 0; min-height: 44px; color: var(--brand); font-size: .9rem; font-weight: 700; cursor: pointer; }
+.facility-staff-all { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0 14px; margin: 0 0 8px; }
+.facility-staff-all > div { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; padding: 8px 0; border-bottom: 1px solid var(--line); min-width: 0; }
+.facility-staff-all dt { font-size: .8rem; overflow-wrap: anywhere; }
+.facility-staff-all dd { flex: none; margin: 0; font-size: .85rem; }
+.facility-panel-note,.facility-source { margin: 8px 0 0; font-size: .8rem; line-height: 1.6; }
+.facility-tabs-panel .facility-evaluations { margin: 0; }
+.facility-tabs-panel .facility-evaluations li { padding: 10px 0; font-size: .9rem; }
+.facility-compact-info > dl { display: grid; grid-template-columns: minmax(80px,1fr) minmax(0,2fr); gap: 10px 12px; margin: 0; font-size: .9rem; }
+.facility-compact-info > dl dt { color: var(--muted); }
+.facility-compact-info > dl dd { margin: 0; overflow-wrap: anywhere; }
