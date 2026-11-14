@@ -149,7 +149,7 @@ export function CareFinder() {
         <p className="small muted" style={{ margin: "0 0 6px" }}>
           종류 (안 고르면 전체)
         </p>
-        <div className="bp-chips" style={{ margin: 0 }}>
+        <div className="bp-chips care-category-chips" style={{ margin: 0 }}>
           {KINDS.map((k) => (
             <button key={k.key} className={!equipment && kinds.includes(k.key) ? "chip on" : "chip"} onClick={() => {setEquipment(false);setKinds((s) => (s.includes(k.key) ? s.filter((x) => x !== k.key) : [...s, k.key]));}}>
               {k.emoji} {k.label}
@@ -252,7 +252,6 @@ function CareCard({ x }: { x: Item }) {
         {x.cap > 0 && ` · 정원 ${x.cap}명`}
       </p>
       <div className="care-actions">
-        <Link className="btn small" href={`/care/detail?c=${x.code}`} onClick={()=>rememberFacility(x)}>기관 상세 보기 →</Link>
         {phone ? (
           <a className="btn small" href={`tel:${phone.replace(/-/g, "")}`}>
             📞 {phone}
