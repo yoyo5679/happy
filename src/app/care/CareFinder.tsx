@@ -3,27 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { rememberFacility } from "@/lib/facility";
+import {careSearchKey,emptyCareSearch,freshCareResult,rememberCareSearch,restoreCareSearch,type CareItem as Item,type CareSort as Sort,type CareSearchState} from "@/lib/care-search-session";
 import { ContactCta } from "@/components/ContactCta";
 import { AudienceTabs } from "@/components/AudienceTabs";
 import { HappycareInfo } from "@/components/HappycareInfo";
 
 type Kind = "visit" | "bath" | "day" | "short" | "home";
-type Item = {
-  code: string;
-  name: string;
-  addr: string;
-  desig: string;
-  cap: number;
-  kinds: Kind[];
-  grades: Partial<Record<Kind, [string, number]>>;
-  shown: Kind[];
-  km: number;
-  lat: number;
-  lng: number;
-  /** 주소로 못 찾아 동네 중심으로 표시 */
-  approx?: boolean;
-};
-type Sort = "near" | "grade" | "new";
 
 const KINDS: { key: Kind; label: string; emoji: string }[] = [
   { key: "visit", label: "방문요양", emoji: "🏠" },
@@ -42,16 +27,16 @@ const GRADE_NAME: Record<string, string> = { A: "최우수", B: "우수", C: "�
 const years = (d: string) => (d ? Math.max(0, new Date().getFullYear() - Number(d.slice(0, 4))) : null);
 
 export function CareFinder() {
-  const [equipment,setEquipment] = useState(false);
-  const [pos, setPos] = useState<{ lat: number; lng: number; name: string } | null>(null);
-  const [kinds, setKinds] = useState<Kind[]>([]);
-  const [sort, setSort] = useState<Sort>("near");
-  const [radius, setRadius] = useState(5);
-  const [items, setItems] = useState<Item[] | null>(null);
-  const [total, setTotal] = useState(0);
+  const [state,setState]=useState<CareSearchState>(emptyCareSearch);
+  const [ready,setReady]=useState(false);
+  const {equipment,pos,kinds,sort,radius,q}=state;
+  const items=state.result?.key===careSearchKey(state)?state.result.items:null;
+  const total=state.result?.total??0;
+  function update(patch:Partial<CareSearchState>){setState(s=>({...s,...patch}));}
+  useEffect(()=>{const saved=restoreCareSearch();if(saved)setState(saved);setReady(true);},[]);
+  useEffect(()=>{if(ready)rememberCareSearch(state);},[state,ready]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
-  const [q, setQ] = useState("");
   const [places, setPlaces] = useState<{ name: string; lat: number; lng: number }[] | null>(null);
 
   function locate() {
@@ -59,7 +44,7 @@ export function CareFinder() {
     if (!navigator.geolocation) return setErr("이 기기에서는 위치를 쓸 수 없어요. 동네 이름으로 찾아 주세요.");
     setLoading(true);
     navigator.geolocation.getCurrentPosition(
-      (p) => setPos({ lat: p.coords.latitude, lng: p.coords.longitude, name: "내 위치" }),
+      (p) => update({pos:{ lat: p.coords.latitude, lng: p.coords.longitude, name: "내 위치" }}),
       () => {
         setLoading(false);
         setErr("위치 권한이 꺼져 있어요. 아래에서 동네 이름이나 주소로 찾아 주세요.");
@@ -77,7 +62,7 @@ export function CareFinder() {
       const j = await r.json();
       if (!r.ok) throw new Error(j.error?.startsWith?.("setup:") ? "지금은 위치 검색을 쓸 수 없어요." : j.error);
       if (!j.places.length) throw new Error("찾는 곳이 없어요. 'OO동'이나 도로명 주소로 입력해 보세요.");
-      if (j.places.length === 1) setPos(j.places[0]);
+      if (j.places.length === 1) update({pos:j.places[0]});
       else setPlaces(j.places);
     } catch (e) {
       setErr((e as Error).message);
@@ -85,23 +70,23 @@ export function CareFinder() {
   }
 
   const search = useCallback(async (signal?: AbortSignal) => {
-    if (!pos || equipment) {setLoading(false);return;}
+    if (!ready)return;
+    if (!pos || equipment || freshCareResult(state)) {setLoading(false);return;}
     setLoading(true);
     setErr("");
-    setItems(null);
     try {
       const p = new URLSearchParams({ lat: String(pos.lat), lng: String(pos.lng), r: String(radius), sort, kinds: kinds.join(",") });
       const r = await fetch(`/api/ltc/search?${p}`, { signal });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error);
-      setItems(j.items);
-      setTotal(j.total);
+      if(signal?.aborted)return;
+      setState(s=>({...s,result:{key:careSearchKey(state),items:j.items,total:j.total,at:Date.now()}}));
     } catch (e) {
       if (!signal?.aborted) setErr(/D1_ERROR|SQLITE|Failed to fetch/i.test((e as Error).message) ? "기관 정보를 불러오지 못했어요. 잠시 후 다시 찾아 주세요." : (e as Error).message || "잠시 후 다시 시도해 주세요.");
     } finally {
       if (!signal?.aborted) setLoading(false);
     }
-  }, [pos, radius, sort, kinds, equipment]);
+  }, [state.result, ready, pos, radius, sort, kinds, equipment]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -122,7 +107,7 @@ export function CareFinder() {
           📍 내 위치에서 찾기
         </button>
         <form className="care-place" onSubmit={findPlace}>
-          <input className="staff-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="또는 동네·주소 (예: 갈현동, 통일로 83길)" />
+          <input className="staff-search" value={q} onChange={(e) => update({q:e.target.value})} placeholder="또는 동네·주소 (예: 갈현동, 통일로 83길)" />
           <button className="btn">찾기</button>
         </form>
         {places && (
@@ -132,7 +117,7 @@ export function CareFinder() {
                 <button
                   type="button"
                   onClick={() => {
-                    setPos(p);
+                    update({pos:p});
                     setPlaces(null);
                   }}
                 >
@@ -151,22 +136,22 @@ export function CareFinder() {
         </p>
         <div className="bp-chips care-category-chips" style={{ margin: 0 }}>
           {KINDS.map((k) => (
-            <button key={k.key} className={!equipment && kinds.includes(k.key) ? "chip on" : "chip"} onClick={() => {setEquipment(false);setKinds((s) => (s.includes(k.key) ? s.filter((x) => x !== k.key) : [...s, k.key]));}}>
+            <button key={k.key} className={!equipment && kinds.includes(k.key) ? "chip on" : "chip"} onClick={() => {setState(s=>({...s,equipment:false,kinds:s.kinds.includes(k.key)?s.kinds.filter(x=>x!==k.key):[...s.kinds,k.key]}));}}>
               {k.emoji} {k.label}
             </button>
           ))}
-          <button className={equipment ? "chip on" : "chip"} aria-pressed={equipment} onClick={()=>{setEquipment(true);setErr("");setLoading(false);}}>🧸 복지용구</button>
+          <button className={equipment ? "chip on" : "chip"} aria-pressed={equipment} onClick={()=>{update({equipment:true});setErr("");setLoading(false);}}>🧸 복지용구</button>
         </div>
         {!equipment && <><div className="seg-group care-sort" role="tablist">
           {SORTS.map((s) => (
-            <button key={s.key} role="tab" aria-selected={sort === s.key} className={sort === s.key ? "seg on" : "seg"} onClick={() => setSort(s.key)}>
+            <button key={s.key} role="tab" aria-selected={sort === s.key} className={sort === s.key ? "seg on" : "seg"} onClick={() => update({sort:s.key})}>
               <strong>{s.label}</strong>
             </button>
           ))}
         </div>
         <label className="small" style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 10 }}>
           반경
-          <select value={radius} onChange={(e) => setRadius(Number(e.target.value))}>
+          <select value={radius} onChange={(e) => update({radius:Number(e.target.value)})}>
             {[2, 5, 10, 20].map((r) => (
               <option key={r} value={r}>
                 {r}km
@@ -178,9 +163,9 @@ export function CareFinder() {
 
       {equipment && <HappycareInfo />}
       {!equipment && err && <p className="card form-err">{err}</p>}
-      {!equipment && !pos && !err && <p className="muted bp-empty">위치를 정하면 가까운 기관을 보여 드려요.</p>}
-      {!equipment && loading && <p className="muted">찾는 중…</p>}
-      {!equipment && pos && items && !loading && (
+      {ready && !equipment && !pos && !err && <p className="muted bp-empty">위치를 정하면 가까운 기관을 보여 드려요.</p>}
+      {(!ready||(!equipment&&loading)) && <p className="muted" role="status">{items?"목록을 새로 확인하는 중이에요…":"찾는 중…"}</p>}
+      {!equipment && pos && items && (
         <>
           <p className="muted small">
             {radius}km 안에 {total}곳{total > items.length && ` (먼저 ${items.length}곳)`} · {SORTS.find((s) => s.key === sort)!.label}
