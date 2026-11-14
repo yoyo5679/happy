@@ -30,7 +30,7 @@ let calls=[];globalThis.fetch=async url=>{calls.push(url);return new Response(JS
  h.unmount();env=environment();h=env.mount();await settle(h);assert.equal(query(h),'은평구');assert.equal(calls.length,before,'full reload restores tab state, not only module memory');
  const normalFetch=globalThis.fetch;let finishOld;globalThis.fetch=()=>new Promise(resolve=>{finishOld=resolve});
  click(h,'평가등급 순');click(h,'최신 순');finishOld(new Response(JSON.stringify({items:[{...row,name:'오래된 응답'}],total:1})));await settle(h);assert.equal(env.session.restoreCareSearch().result.items[0].name,row.name,'cancelled older response cannot replace the latest selection');globalThis.fetch=normalFetch;
- click(h,'복지용구');h.unmount();env=environment();h=env.mount();await settle(h);assert(nodes(h.tree).find(n=>text(n)==='복지용구'&&n.type==='button').props['aria-pressed'],'equipment category also survives a return');
+ click(h,'🦯 복지용구');h.unmount();env=environment();h=env.mount();await settle(h);assert(nodes(h.tree).find(n=>text(n)==='🦯 복지용구'&&n.type==='button').props['aria-pressed'],'equipment category also survives a return');
  click(h,'🏠 방문요양');await settle(h); // Toggle normal category, then save again.
  h.unmount();clock+=301_000;globalThis.fetch=async()=>new Response(JSON.stringify({error:'잠시 후 다시 찾아 주세요.'}),{status:503});env=environment();h=env.mount();assert(text(h.tree).includes('10km 안에 1곳'),'stale result remains visible while refreshing');await settle(h);assert(text(h.tree).includes('10km 안에 1곳'),'temporary API failure keeps the last matching result');assert(text(h.tree).includes('잠시 후 다시 찾아 주세요.'));
  h.unmount();clock+=3600_001;env=environment();assert.equal(env.session.restoreCareSearch(),null,'expired location and results are not restored');
