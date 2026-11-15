@@ -10,6 +10,6 @@
 4. 접속 로그가 꼭 필요하면 목적과 최소 보관기간을 정한다(예: 7일). 해당 상품에서 보관기간 조절이 불가능하면 원문 위치를 수집하지 않고, 외부 로그 저장소에는 삭제 정책을 설정한다. **7일 보관이 현재 적용됐다는 뜻은 아니다.** 기존 로그·백업·과거 배포의 데이터 보관기간은 별도로 확인한다.
 5. 보고서 전용 `ltc-update-reports` 브랜치의 Pages 프리뷰 배포가 불필요하면 Branch deployment controls에서 제외한다. 프리뷰 환경에 운영 Secret/DB 권한이 무분별하게 복제되지 않도록 확인한다.
 
-CSP는 정적 내보내기 후 각 페이지의 실제 인라인 스크립트 SHA-256으로 생성한다. `public/_headers`에 전역 CSP를 임의로 추가하면 Cloudflare의 중복 헤더 결합 때문에 Next.js 스크립트가 차단될 수 있다. 변경 시 `npm run build`와 `node scripts/security/check-headers.cjs`를 실행한다.
+CSP는 Next.js의 onBuildComplete 훅에서 정적 내보내기 후 각 페이지의 실제 인라인 스크립트 SHA-256으로 생성한다. `public/_headers`에 전역 CSP를 임의로 추가하면 Cloudflare의 중복 헤더 결합 때문에 Next.js 스크립트가 차단될 수 있다. 변경 시 `npm run build`와 `node scripts/security/check-headers.cjs`를 실행한다.
 
 호출 제한(보고서 1번)은 이번 변경 대상에서 제외했다. 캐시·보안 헤더가 반복 호출에 따른 API/DB 한도 소모를 막아 주는 것은 아니다.
