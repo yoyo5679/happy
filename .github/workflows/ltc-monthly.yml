@@ -1,7 +1,6 @@
 name: Monthly care institution additions
 on:
   schedule:
-    # 09:17 Asia/Seoul. Completed months exit immediately; interrupted runs resume next day.
     - cron: '17 0 * * *'
   workflow_dispatch:
   push:
@@ -9,9 +8,8 @@ on:
     paths:
       - '.github/workflows/ltc-monthly.yml'
       - 'scripts/ltc/run-monthly-sync.py'
-permissions:
-  contents: write
-  id-token: write
+      - 'scripts/ltc/record-monthly-report.py'
+permissions: {}
 concurrency:
   group: ltc-monthly-additions
   cancel-in-progress: false
@@ -19,19 +17,31 @@ jobs:
   update:
     runs-on: ubuntu-latest
     timeout-minutes: 300
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      report: ${{ steps.sync.outputs.report }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          persist-credentials: true
+          persist-credentials: false
       - name: Resume this month's institution additions
-        run: python3 scripts/ltc/run-monthly-sync.py
-      - name: Record completed update
+        id: sync
         run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add public/ltc/monthly-update.json
-          if ! git diff --cached --quiet; then
-            git commit -m 'Record monthly institution update'
-            git pull --rebase origin claude/festive-albattani-sjd0d8
-            git push origin HEAD:claude/festive-albattani-sjd0d8
-          fi
+          python3 scripts/ltc/run-monthly-sync.py
+          python3 -c 'import json; print("report="+json.dumps(json.load(open("public/ltc/monthly-update.json")),ensure_ascii=False,separators=(",",":")))' >> "$GITHUB_OUTPUT"
+  record:
+    needs: update
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Record counts on the audit branch
+        env:
+          GH_REPORT_TOKEN: ${{ github.token }}
+          MONTHLY_REPORT: ${{ needs.update.outputs.report }}
+        run: python3 scripts/ltc/record-monthly-report.py

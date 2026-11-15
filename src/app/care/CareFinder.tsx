@@ -59,7 +59,7 @@ export function CareFinder() {
     setErr("");
     setPlaces(null);
     try {
-      const r = await fetch(`/api/ltc/place?q=${encodeURIComponent(q)}`);
+      const r = await fetch("/api/ltc/place",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({q})});
       const j = await r.json();
       if (!r.ok) throw new Error(j.error?.startsWith?.("setup:") ? "지금은 위치 검색을 쓸 수 없어요." : j.error);
       if (!j.places.length) throw new Error("찾는 곳이 없어요. 'OO동'이나 도로명 주소로 입력해 보세요.");
@@ -77,7 +77,7 @@ export function CareFinder() {
     setErr("");
     try {
       const p = new URLSearchParams({ lat: String(pos.lat), lng: String(pos.lng), r: String(radius), sort, kinds: kinds.join(",") });
-      const r = await fetch(`/api/ltc/search?${p}`, { signal });
+      const r = await fetch("/api/ltc/search", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(Object.fromEntries(p)), signal });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error);
       if(signal?.aborted)return;
