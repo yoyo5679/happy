@@ -1,0 +1,13 @@
+{
+  "period": "2026-11",
+  "from": "2026-06-11",
+  "to": "2026-10-31",
+  "status": "complete_with_warnings",
+  "scanned": 1329,
+  "added": 264,
+  "updated": 0,
+  "unresolved": 630,
+  "startedAt": "2026-11-14T06:16:16.652Z",
+  "completedAt": "2026-11-14T06:25:16.007Z",
+  "error": null
+}
