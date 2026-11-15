@@ -204,5 +204,13 @@ npm run dev     # http://localhost:3000
 - D1 `ltc_sync_jobs`/`ltc_sync_queue`에 단계·페이지·대기 항목을 저장합니다. 120초 임대 잠금, 원자적 게시, 완료 월의 재실행 방지로 중복·중단을 처리합니다. 페이지 반복이나 범위 밖 날짜는 완료 처리하지 않습니다.
 - `/api/ltc/monthly-sync`는 POST만 허용하며 GitHub OIDC 서명을 검증합니다. 발급자·대상·만료·저장소/소유자 ID·브랜치·정확한 워크플로 파일·허용 이벤트를 모두 확인한 뒤에만 DB에 접근합니다. 제공기관 키는 Cloudflare에만 두며 GitHub에 별도 API 키/관리 비밀번호를 넣지 않습니다.
 - 공개 `/api/ltc/update-status`와 기관 찾기 하단에서 완료 범위·반영 날짜·지도 확인 대기를 확인합니다. 완료 후 검색/상세 캐시의 갱신 버전은 1분 내 바뀌고, 브라우저의 최근 검색 결과는 최대 5분 재사용됩니다.
-- 완료 요약은 `public/ltc/monthly-update.json`에 커밋해 실행 기록과 저장소 활동을 남깁니다. 고객 장부 기능과 관계없는 공개 기관 정보만 처리합니다.
+- 완료 요약은 실행용 임시 `public/ltc/monthly-update.json`을 거쳐 별도 `ltc-update-reports` 브랜치의 `reports/ltc/YYYY-MM.json`에 기록합니다. 운영 배포 브랜치에는 자동 커밋하지 않습니다. 실행 작업은 저장소 읽기/OIDC 권한만, 기록 작업은 저장소 쓰기 권한만 사용하며 Git 인증정보를 파일에 유지하지 않습니다. 고객 장부 기능과 관계없는 공개 기관 정보만 처리합니다.
 - 검사: `node scripts/check-ltc-monthly.cjs` (실제 SQLite·서명 JWT·실패/재개·중복·기관유형/지도 검증·기존 정보 보존·월 전환), 기존 care/retired-ledger 검사, Functions 타입 검사, 프런트 빌드.
+
+## 보안 보완 (2026-11-15)
+
+- `/api/staff/ltc/*`는 비밀번호 유무와 관계없이 410이며 DB에 접근하지 않습니다. 초기 가져오기·삭제·구형 지오코딩 API와 `STAFF_PASSWORD` 코드 의존성을 제거했습니다. 기관 추가는 검증된 OIDC 월별 실행만 사용합니다.
+- Next.js 16.4.6, 고정 액션 커밋 SHA, 읽기 전용 검증 CI, 작업별 최소 권한을 적용합니다.
+- `npm run build`가 페이지별 CSP 해시를 생성합니다. 코드와 헤더 검사는 `node scripts/security/check-api.cjs`, `node scripts/security/check-headers.cjs`입니다.
+- 위치·주소 검색은 POST 본문으로 전송하고 서버 응답에 보안 헤더를 설정합니다. 구버전 탭의 GET 검색은 당분간 호환 지원합니다.
+- 계정 MFA, Secret 저장 유형, 로그 수집/보관 및 프리뷰 권한은 [관리자 확인 문서](docs/security/cloudflare-settings.md)를 따릅니다. 관리자 설정은 이 코드만으로 적용되지 않습니다.
