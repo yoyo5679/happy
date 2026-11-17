@@ -7,6 +7,15 @@
 /*.webmanifest
   Content-Type: application/manifest+json
 
+# 서비스워커는 항상 새로 받게 (앱 업데이트가 바로 반영되도록)
+/sw.js
+  Cache-Control: no-cache
+
+# 플레이스토어 앱(TWA)과 사이트 연결 인증
+/.well-known/assetlinks.json
+  Content-Type: application/json
+  Access-Control-Allow-Origin: *
+
 # Shared security headers; per-page CSP hashes are generated after the static build.
 /*
   Strict-Transport-Security: max-age=31536000

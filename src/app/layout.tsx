@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { business, site } from "@/config/site";
 import { SourceTracker } from "@/components/SourceTracker";
+import { ServiceWorker } from "@/components/ServiceWorker";
 import { FloatingContact } from "@/components/FloatingContact";
 import { FontToggle } from "@/components/FontToggle";
 import { InstallApp } from "@/components/InstallApp";
@@ -39,6 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <SourceTracker />
+        <ServiceWorker />
         <header className="site-header">
           <div className="hdr">
             <div className="hdr-left">
