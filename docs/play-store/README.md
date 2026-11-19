@@ -13,34 +13,18 @@
 - 2023년 11월 13일 이후 만든 개인 계정이라, **정식 출시 전에 비공개 테스트(테스터 12명 이상 · 14일 연속)**가 필요합니다. → 아래 3-1 참고
 - 스토어에는 개발자 이름과 연락 이메일이 공개됩니다.
 
-## 2. 앱 파일 만들기 – PWABuilder (직접, 10분)
+## 2. 앱 파일 – 완료 (Bubblewrap으로 직접 빌드)
 
-1. https://www.pwabuilder.com 접속 → 주소에 `https://happycare.pages.dev` 입력 → **Start**.
-2. **Package For Stores → Android → Generate Package**.
-3. 옵션(Options)에서 아래처럼 입력:
+- 구글 공식 도구 Bubblewrap으로 `android/` 폴더에 앱 프로젝트를 만들고 빌드했습니다. (PWABuilder 서비스는 당시 503 장애)
+- 패키지 이름 `com.happycaremall.app` · 앱 이름 해피케어복지용구 · 아이콘 이름 해피케어 · 시작 주소 `/?src=playstore` · 위치 권한 위임 켬 · 최소 안드로이드 7.0(API 24) · 대상 API 36
+- 결과물(저장소에는 올리지 않음, 대표님께 zip으로 전달): `happycare-1.0.0.aab`(플레이 콘솔 업로드용), `happycare-1.0.0-test.apk`(휴대폰 직접 설치 테스트용), `happycare-upload.keystore` + `서명키-정보-꼭보관.txt`
+- 사이트의 `public/.well-known/assetlinks.json`에 업로드 키 지문을 넣어 배포했습니다.
 
-| 항목 | 값 |
-|---|---|
-| Package ID | `com.happycaremall.app` (한 번 정하면 바꿀 수 없음) |
-| App name | 해피케어복지용구 |
-| Short name (Launcher name) | 해피케어 |
-| App version / version code | 1.0.0 / 1 |
-| Host | happycare.pages.dev |
-| Start URL | `/?src=playstore` |
-| Theme color / Background color | `#068291` / `#FFFFFF` |
-| Display mode | Standalone |
-| Notifications | 끔 |
-| Location delegation | **켬** (기관 찾기 '내 위치' 사용) |
-| Google Play billing | 끔 |
-| Signing key | **Create new** (새로 만들기) – 이름·조직: 해피케어, 국가: KR |
-
-4. **Download** → zip 안에 다음이 들어 있습니다.
-   - `*.aab` : 플레이 콘솔에 올리는 파일
-   - `signing.keystore` + `signing-key-info.txt` : **앱 서명 키. 잃어버리면 앱을 다시 올릴 수 없으니 안전한 곳 두 군데 이상에 보관** (채팅·저장소에 올리지 마세요)
-   - `assetlinks.json` : 사이트와 앱을 잇는 인증 파일
-
-5. **`assetlinks.json` 파일 내용만** 보내 주세요. (공개해도 되는 정보: 패키지 이름 + 인증서 지문)
-   → 사이트의 `public/.well-known/assetlinks.json`에 넣어 배포합니다. 이게 있어야 앱 위쪽에 주소창이 안 보입니다.
+### 다시 빌드할 때 (버전 올리기)
+1. `android/twa-manifest.json`과 `android/app/build.gradle`의 `versionCode`(+1)·`versionName` 수정
+2. `android/`에 `happycare-upload.keystore`를 두고 `local.properties`에 `sdk.dir=안드로이드SDK경로`
+3. `./gradlew bundleRelease` → `jarsigner -keystore happycare-upload.keystore ... app-release.aab happycare`
+   (또는 `npx @bubblewrap/cli build` — 같은 키 사용)
 
 ## 3. 플레이 콘솔에 앱 만들기 (직접)
 
