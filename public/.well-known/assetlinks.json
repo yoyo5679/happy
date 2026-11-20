@@ -1,10 +1,13 @@
 [
   {
-    "relation": ["delegate_permission/common.handle_all_urls"],
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
     "target": {
       "namespace": "android_app",
       "package_name": "com.happycaremall.app",
       "sha256_cert_fingerprints": [
+        "C3:A8:90:EE:C2:0F:6C:2C:14:49:49:4A:B0:4E:7B:0A:84:D9:93:E9:19:95:E3:54:3F:80:DD:15:F9:74:19:EF",
         "B3:92:99:80:81:56:F3:71:78:09:43:F9:49:FC:53:44:E0:3F:FA:F0:3B:37:10:F0:8A:1B:34:9F:25:C1:44:FD"
       ]
     }
