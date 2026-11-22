@@ -23,6 +23,11 @@ export const metadata: Metadata = {
   // 홈 화면에 추가 (PWA)
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "해피케어", statusBarStyle: "default" },
+  // 구글 서치 콘솔 · 네이버 서치어드바이저 소유 확인 (site.ts에 코드 입력)
+  verification: {
+    ...(site.verification.google ? { google: site.verification.google } : {}),
+    ...(site.verification.naver ? { other: { "naver-site-verification": site.verification.naver } } : {}),
+  },
 };
 
 export const viewport: Viewport = { themeColor: "#068291", colorScheme: "only light" };

@@ -9,6 +9,15 @@ export const site = {
   kakaoUrl: "https://pf.kakao.com/_inqxmn",
   /** 배포 주소 (공유/OG 태그용) */
   siteUrl: "https://happycare.pages.dev",
+  /**
+   * 검색엔진 사이트 소유 확인 코드 (공개 값이라 비밀 아님)
+   * - 구글 서치 콘솔: URL 접두어 → HTML 태그 → content="..." 안의 값
+   * - 네이버 서치어드바이저: 사이트 등록 → HTML 태그 → content="..." 안의 값
+   */
+  verification: {
+    google: "",
+    naver: "",
+  },
 };
 
 // ✏️ 사업자 정보 — 푸터·개인정보처리방침·동의서에 표시
