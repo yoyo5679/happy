@@ -16,7 +16,7 @@ export const site = {
    */
   verification: {
     google: "uWfx0ELWRhfZdgNax2_xF1GDEQxkSK3jEgfbFzeze-8",
-    naver: "",
+    naver: "1b7f72c8a31b0651854b13bedbd55e25d4b656cb",
   },
 };
 
