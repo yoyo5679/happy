@@ -1,3 +1,4 @@
+import { pageMeta } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { site } from "@/config/site";
@@ -6,17 +7,13 @@ import { limits, rateTargets } from "@/data/limits";
 import { AudienceTabs } from "@/components/AudienceTabs";
 import { tools } from "@/config/tools";
 
-export const metadata: Metadata = {
-  title: "방문요양기관 선생님용 복지용구 도우미",
-  description: "수급자 맞춤 추천, 낙상 위험 점검표, 품목별 내구연한·급여한도를 한곳에서.",
-  openGraph: {
-    title: "방문요양기관 선생님용 복지용구 도우미",
-    description: "수급자 맞춤 추천 · 낙상 점검표 · 품목별 내구연한·급여한도 한눈에",
-    type: "website",
-    locale: "ko_KR",
-    images: [{ url: "/opengraph-image.png", width: 1200, height: 630 }],
-  },
-};
+export const metadata: Metadata = pageMeta({
+  path: "/partner",
+  title: "방문요양·재가기관 복지용구 도우미 (내구연한·급여한도)",
+  description: "방문요양·주야간보호 기관 선생님을 위한 복지용구 도우미. 수급자 맞춤 추천, 낙상 위험 점검표, 품목별 내구연한·급여 한도와 구입·대여 구분을 한곳에서 확인하세요.",
+  keywords: ["복지용구 내구연한", "복지용구 급여한도", "복지용구 품목 고시", "재가장기요양기관", "방문요양기관", "사회복지사", "요양보호사"],
+  ogTitle: "방문요양기관 선생님용 복지용구 도우미",
+});
 
 
 function supply(c: CategoryKey) {

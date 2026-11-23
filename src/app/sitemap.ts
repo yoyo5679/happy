@@ -12,7 +12,6 @@ const pages: { path: string; priority: number; freq: "daily" | "weekly" | "month
   { path: "/rooms", priority: 0.8, freq: "monthly" },
   { path: "/person", priority: 0.8, freq: "monthly" },
   { path: "/check", priority: 0.7, freq: "monthly" },
-  { path: "/recommend", priority: 0.7, freq: "monthly" },
   { path: "/catalog", priority: 0.7, freq: "weekly" },
   { path: "/sizelist", priority: 0.7, freq: "monthly" },
   { path: "/partner", priority: 0.6, freq: "monthly" },

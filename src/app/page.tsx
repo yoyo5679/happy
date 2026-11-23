@@ -1,8 +1,20 @@
+import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo";
 import Link from "next/link";
 import { tools } from "@/config/tools";
 import { ProductPicks } from "@/components/ProductPicks";
 import { AudienceTabs } from "@/components/AudienceTabs";
 import { ContactCta } from "@/components/ContactCta";
+
+const meta = pageMeta({
+  path: "/",
+  title: "해피케어복지용구 | 복지용구 연 160만원 · 장기요양등급 1분 확인",
+  description: "장기요양 등급이 있으면 복지용구를 연 160만원 한도에서 본인부담금 15%(감경 9%·6%, 기초수급 0%)로 구입·대여할 수 있어요. 예상 등급, 맞춤 용품, 예산 세트, 가까운 요양기관까지 무료로 확인하세요.",
+  keywords: ["복지용구 160만원", "복지용구 품목", "복지용구 신청", "장기요양등급 자가진단", "어르신 용품", "부모님 돌봄"],
+  ogTitle: "복지용구 연 160만원, 15%만 내고 쓰세요",
+  ogDescription: "우리 부모님께 필요한 복지용구와 예상 장기요양등급을 1분 만에 확인해 보세요. 무료 · 회원가입 없음",
+});
+export const metadata: Metadata = { ...meta, title: { absolute: "해피케어복지용구 | 복지용구 연 160만원 · 장기요양등급 1분 확인" } };
 
 export default function Home() {
   return (
