@@ -15,7 +15,7 @@ export const site = {
    * - 네이버 서치어드바이저: 사이트 등록 → HTML 태그 → content="..." 안의 값
    */
   verification: {
-    google: "",
+    google: "uWfx0ELWRhfZdgNax2_xF1GDEQxkSK3jEgfbFzeze-8",
     naver: "",
   },
 };
