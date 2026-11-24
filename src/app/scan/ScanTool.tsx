@@ -37,6 +37,29 @@ async function shrink(file: File): Promise<string> {
   return url.slice(url.indexOf(",") + 1);
 }
 
+/**
+ * 사진 위 번호 동그라미 위치 (단위 %). 가까우면 주변 빈자리로 비켜 나게.
+ * ratio = 사진 세로/가로 — 동그라미(약 42px)가 휴대폰 폭(약 340px)에서 차지하는 비율로 간격 계산
+ */
+function layout<T extends { x: number; y: number }>(spots: T[], ratio: number): (T & { n: number; left: number; top: number })[] {
+  const dx = 14;
+  const dy = Math.min(40, dx / Math.max(0.3, ratio));
+  const clampX = (v: number) => Math.min(94, Math.max(6, v));
+  const clampY = (v: number) => Math.min(100 - dy / 2, Math.max(dy / 2, v));
+  const moves = [[0, 0], [1, 0], [-1, 0], [0, -1], [0, 1], [1, -1], [-1, -1], [1, 1], [-1, 1], [2, 0], [-2, 0], [0, -2], [0, 2], [2, -1], [-2, -1], [2, 1], [-2, 1]];
+  const out: (T & { n: number; left: number; top: number })[] = [];
+  spots.forEach((s, i) => {
+    const bx = s.x / 10, by = s.y / 10;
+    let pick = { left: clampX(bx), top: clampY(by) };
+    for (const [mx, my] of moves) {
+      const c = { left: clampX(bx + mx * dx), top: clampY(by + my * dy) };
+      if (!out.some((o) => Math.abs(o.left - c.left) < dx && Math.abs(o.top - c.top) < dy)) { pick = c; break; }
+    }
+    out.push({ ...s, n: i + 1, ...pick });
+  });
+  return out;
+}
+
 export function ScanTool() {
   const [room, setRoom] = useState<Room>("bath");
   const [files, setFiles] = useState<{ file: File; url: string }[]>([]);
@@ -46,6 +69,7 @@ export function ScanTool() {
   const [rate, setRate] = useState(0.15);
   const [sentImages, setSentImages] = useState<string[]>([]);
   const [showStickers, setShowStickers] = useState(true);
+  const [ratios, setRatios] = useState<Record<number, number>>({});
   const cam = useRef<HTMLInputElement>(null);
   const album = useRef<HTMLInputElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
@@ -99,17 +123,17 @@ export function ScanTool() {
     for (const c of h.fix) if (categories[c] && !recs.some((r) => r.category === c)) recs.push({ category: c, reason: `${h.title} — ${h.detail}` });
 
   // 사진 위에 붙일 스티커: 위험 요소별 첫 번째 추천 용품 (같은 자리·같은 품목 중복 제거)
-  const placed: { photo: number; x: number; y: number; label: string; img?: string }[] = [];
+  const placed: { photo: number; x: number; y: number; label: string; img?: string; where?: string }[] = [];
   for (const h of result?.hazards ?? []) {
     const c = h.fix.find((f) => categories[f]);
     if (!c || h.photo < 0) continue;
     if (placed.some((p) => p.label === categories[c].label && p.photo === h.photo && Math.abs(p.x - h.x) + Math.abs(p.y - h.y) < 150)) continue;
-    placed.push({ photo: h.photo, x: h.x, y: h.y, label: categories[c].label, img: productsFor(c, 1)[0]?.img });
+    placed.push({ photo: h.photo, x: h.x, y: h.y, label: categories[c].label, img: productsFor(c, 1)[0]?.img, where: h.title });
   }
   // 기둥형 안전손잡이는 어느 집에나 도움이 되므로 항상 표시
   const poles = poleHandles(2);
   const pole = result?.pole;
-  if (result?.usable && pole && pole.photo >= 0 && poles[0]) placed.push({ photo: pole.photo, x: pole.x, y: pole.y, label: "기둥 안전손잡이", img: poles[0].img });
+  if (result?.usable && pole && pole.photo >= 0 && poles[0]) placed.push({ photo: pole.photo, x: pole.x, y: pole.y, label: "기둥 안전손잡이", img: poles[0].img, where: pole.where });
 
   return (
     <>
@@ -228,23 +252,37 @@ export function ScanTool() {
                     </button>
                   </div>
                   {sentImages.map((img, pi) => {
-                    const here = placed.filter((s) => s.photo === pi);
+                    const here = layout(placed.filter((s) => s.photo === pi), ratios[pi] ?? 0.75);
                     if (!here.length) return null;
                     return (
-                      <div key={pi} className="scan-stage">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={`data:image/jpeg;base64,${img}`} alt={`올린 사진 ${pi + 1}`} />
-                        {showStickers &&
-                          here.map((s, i) => (
-                            <div key={i} className={`scan-sticker ${s.x > 640 ? "to-left" : s.x < 360 ? "to-right" : ""}`} style={{ left: `${Math.min(97, Math.max(3, s.x / 10))}%`, top: `${Math.min(97, Math.max(28, s.y / 10))}%` }}>
-                              <div className="scan-sticker-card">
+                      <div key={pi}>
+                        <div className="scan-stage">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={`data:image/jpeg;base64,${img}`} alt={`올린 사진 ${pi + 1}`} onLoad={(e) => { const im = e.currentTarget; if (im.naturalWidth) setRatios((r) => ({ ...r, [pi]: im.naturalHeight / im.naturalWidth })); }} />
+                          {showStickers &&
+                            here.map((s) => (
+                              <span key={s.n} className="scan-dot" style={{ left: `${s.left}%`, top: `${s.top}%` }} aria-hidden>
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                                {s.img && <img src={s.img} alt="" />}
-                                <span>{s.label}</span>
-                              </div>
-                              <span className="scan-pin" aria-hidden />
-                            </div>
-                          ))}
+                                {s.img ? <img src={s.img} alt="" /> : null}
+                                <b>{s.n}</b>
+                              </span>
+                            ))}
+                        </div>
+                        {showStickers && (
+                          <ol className="scan-legend">
+                            {here.map((s) => (
+                              <li key={s.n}>
+                                <b>{s.n}</b>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                {s.img ? <img src={s.img} alt="" /> : null}
+                                <span>
+                                  <strong>{s.label}</strong>
+                                  {s.where && <small>{s.where}</small>}
+                                </span>
+                              </li>
+                            ))}
+                          </ol>
+                        )}
                       </div>
                     );
                   })}
