@@ -39,10 +39,10 @@ async function shrink(file: File): Promise<string> {
 
 /**
  * 사진 위 번호 동그라미 위치 (단위 %). 가까우면 주변 빈자리로 비켜 나게.
- * ratio = 사진 세로/가로 — 동그라미(약 42px)가 휴대폰 폭(약 340px)에서 차지하는 비율로 간격 계산
+ * ratio = 사진 세로/가로 — 번호 점(약 28px)이 휴대폰 폭(약 340px)에서 차지하는 비율로 간격 계산
  */
 function layout<T extends { x: number; y: number }>(spots: T[], ratio: number): (T & { n: number; left: number; top: number })[] {
-  const dx = 14;
+  const dx = 11;
   const dy = Math.min(40, dx / Math.max(0.3, ratio));
   const clampX = (v: number) => Math.min(94, Math.max(6, v));
   const clampY = (v: number) => Math.min(100 - dy / 2, Math.max(dy / 2, v));
@@ -242,13 +242,13 @@ export function ScanTool() {
               {placed.length > 0 && (
                 <section className="card scan-place">
                   <h3>📍 이렇게 놓으면 좋아요</h3>
-                  <p className="muted">추천 용품을 놓을 자리를 사진에 표시했어요.</p>
+                  <p className="muted">사진의 번호 자리에 아래 용품을 놓으면 좋아요.</p>
                   <div className="scan-ba" role="tablist">
                     <button role="tab" aria-selected={!showStickers} className={!showStickers ? "chip on" : "chip"} onClick={() => setShowStickers(false)}>
                       지금
                     </button>
                     <button role="tab" aria-selected={showStickers} className={showStickers ? "chip on" : "chip"} onClick={() => setShowStickers(true)}>
-                      용품 놓아 보기 ✨
+                      위치 보기 📍
                     </button>
                   </div>
                   {sentImages.map((img, pi) => {
@@ -262,9 +262,7 @@ export function ScanTool() {
                           {showStickers &&
                             here.map((s) => (
                               <span key={s.n} className="scan-dot" style={{ left: `${s.left}%`, top: `${s.top}%` }} aria-hidden>
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                {s.img ? <img src={s.img} alt="" /> : null}
-                                <b>{s.n}</b>
+                                {s.n}
                               </span>
                             ))}
                         </div>

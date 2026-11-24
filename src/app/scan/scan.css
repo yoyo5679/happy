@@ -37,10 +37,8 @@
 .scan-place h3 { margin: 0 0 4px; }
 .scan-stage { position: relative; margin: 8px 0; border-radius: 12px; overflow: hidden; }
 .scan-stage > img { width: 100%; display: block; }
-.scan-dot { position: absolute; transform: translate(-50%, -50%); width: 42px; height: 42px; border-radius: 50%; background: #fff; border: 3px solid var(--accent); box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35); display: grid; place-items: center; animation: scan-pop 0.35s ease-out both; }
-.scan-dot img { width: 32px; height: 32px; object-fit: contain; border-radius: 50%; }
-.scan-dot b { position: absolute; top: -8px; right: -8px; min-width: 22px; height: 22px; border-radius: 11px; background: var(--accent); color: #fff; font-size: 0.8rem; display: grid; place-items: center; border: 2px solid #fff; }
-@keyframes scan-pop { from { opacity: 0; transform: translate(-50%, -50%) scale(0.6); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+.scan-dot { position: absolute; transform: translate(-50%, -50%); width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 800; font-size: 0.9rem; display: grid; place-items: center; border: 2px solid #fff; box-shadow: 0 0 0 4px rgba(217, 100, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.35); animation: scan-pop 0.35s ease-out both; }
+@keyframes scan-pop { from { opacity: 0; transform: translate(-50%, -50%) scale(0.5); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
 .scan-legend { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 8px; }
 .scan-legend li { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 12px; }
 .scan-legend li > b { flex: 0 0 24px; height: 24px; border-radius: 12px; background: var(--accent); color: #fff; font-size: 0.85rem; display: grid; place-items: center; }
