@@ -66,35 +66,45 @@ export async function onRequest({ request, env, params }: Ctx): Promise<Response
 // ───────── 사진 AI 안전진단 (Gemini) ─────────
 // 사진은 분석 요청에만 쓰고 어디에도 저장하지 않는다. 남는 것은 하루 이용 횟수(익명 해시)뿐.
 const SCAN_ROOMS: Record<string, string> = { bath: "욕실·화장실", bedroom: "침실", entrance: "현관·문턱·계단", living: "거실·주방·복도" };
-const SCAN_CATEGORIES: Record<string, string> = {
-  safetyHandle: "안전손잡이(벽·변기·욕조·침대 옆 등 잡을 곳)",
-  antiSlipMat: "미끄럼방지 매트(욕실·현관 바닥)",
-  antiSlipSocks: "미끄럼방지 양말(미끄러운 마루·장판)",
-  bathChair: "목욕의자(서서 씻는 환경)",
-  bathtub: "이동욕조(욕실 이용이 어려운 경우)",
-  portableToilet: "이동변기(침실과 화장실이 멀거나 야간 이동 위험)",
-  simpleToilet: "간이변기(누워 지내는 환경)",
-  ramp: "경사로(문턱·단차·현관 턱)",
-  walker: "성인용 보행기(가구를 짚고 다녀야 하는 동선)",
-  cane: "지팡이",
-  wheelchair: "수동휠체어(넓은 동선, 보행 곤란)",
-  electricBed: "전동침대(바닥 요·낮은 침대에서 일어나기 어려움)",
-  pressureMattress: "욕창예방 매트리스(오래 누워 지내는 침상)",
-  pressureCushion: "욕창예방 방석(오래 앉아 있는 의자·휠체어)",
-  positioning: "자세변환용구(침상 생활)",
+// 장소별로 추천할 수 있는 품목과 "사진에서 이런 게 보이면" 조건.
+// 보행기·지팡이·휠체어·양말처럼 집이 아니라 어르신 몸 상태로 정하는 품목은 사진 진단에서 추천하지 않는다.
+const SCAN_ITEMS: Record<string, Record<string, string>> = {
+  bath: {
+    safetyHandle: "변기 옆·욕조 옆·샤워하는 곳 벽에 붙잡을 손잡이가 없을 때",
+    antiSlipMat: "타일 바닥이나 욕조 바닥에 미끄럼방지 매트·처리가 없을 때",
+    bathChair: "서서 씻어야 하는 샤워 공간이고 앉아서 씻을 목욕의자가 없을 때",
+  },
+  bedroom: {
+    electricBed: "바닥에 요를 깔고 주무시거나, 침대가 너무 낮아 일어나기 힘들어 보이거나, 붙잡을 난간이 없는 일반 침대일 때",
+    safetyHandle: "침대에서 일어설 때 짚을 곳(난간·지지대)이 없을 때",
+    pressureMattress: "간병용 침대나 의료용 침상이 보여 오래 누워 지내는 환경으로 보일 때만",
+    ramp: "방 문턱에 걸려 넘어질 만한 단차가 보일 때",
+  },
+  entrance: {
+    ramp: "현관 턱이나 문턱에 높은 단차가 있을 때",
+    safetyHandle: "신발을 신고 벗거나 턱을 오를 때 붙잡을 곳이 없을 때",
+    antiSlipMat: "현관 바닥이 미끄러운 타일·대리석일 때",
+  },
+  living: {
+    safetyHandle: "복도·소파 주변에 붙잡을 곳이 없어 가구를 짚고 다녀야 할 때",
+    ramp: "방·베란다·주방 사이 문턱에 단차가 보일 때",
+    antiSlipMat: "주방 싱크대 앞 등 물기가 생기는 미끄러운 바닥일 때",
+  },
 };
-const SCAN_PROMPT = (room: string) => `당신은 어르신 낙상 예방을 전문으로 하는 작업치료사입니다.
-사진은 어르신이 사는 집의 "${room}"입니다. 사진에 실제로 보이는 것만 근거로 낙상·안전 위험을 점검하세요.
+const SCAN_LABELS: Record<string, string> = { safetyHandle: "안전손잡이", antiSlipMat: "미끄럼방지 매트", bathChair: "목욕의자", electricBed: "전동침대", pressureMattress: "욕창예방 매트리스", ramp: "경사로" };
+const SCAN_PROMPT = (roomKey: string) => `당신은 어르신 낙상 예방을 전문으로 하는 작업치료사입니다.
+사진은 어르신이 사는 집의 "${SCAN_ROOMS[roomKey]}"입니다. 사진에 실제로 보이는 것만 근거로 낙상·안전 위험을 점검하세요.
 규칙:
-- 보이지 않는 것은 추측하지 마세요. 확실하지 않으면 "확인 필요"라고 쓰세요.
+- 보이지 않는 것은 추측하지 마세요. 사진 속 구체적인 위치·물건을 근거로 쓰세요(예: "변기 왼쪽 벽").
 - 사람이 찍혀 있어도 사람에 대해서는 아무 말도 하지 마세요. 집 환경만 봅니다.
 - 위험 요소는 중요한 순서로 최대 5개. 제목은 15자 이내, 설명은 1~2문장, 쉬운 존댓말(~요).
-- 각 위험 요소에 도움이 되는 복지용구를 아래 목록의 키로만 0~3개 고르세요. 맞는 것이 없으면 비워 두세요.
-${Object.entries(SCAN_CATEGORIES).map(([k, v]) => `  ${k}: ${v}`).join("\n")}
-- 이미 잘 되어 있는 점이 보이면 good에 최대 3개 짧게 쓰세요.
-- 집 안 사진이 아니거나 너무 어둡고 흐려 판단할 수 없으면 usable=false로 하고 이유를 summary에 쓰세요.
+- 각 위험 요소의 fix에는 아래 목록의 키만, 오른쪽 조건이 사진에서 분명히 확인될 때만 넣으세요. 조건이 맞지 않거나 애매하면 fix를 빈 배열로 두세요.
+${Object.entries(SCAN_ITEMS[roomKey]).map(([k, v]) => `  ${k} (${SCAN_LABELS[k]}): ${v}`).join("\n")}
+- 목록에 없는 용품(보행기, 지팡이, 휠체어, 양말 등)은 절대 추천하지 마세요. 조명·정리정돈·가구 배치처럼 용품이 필요 없는 위험은 fix를 비우고 설명에 해결 방법을 쓰세요.
+- 이미 잘 되어 있는 점이 보이면 good에 최대 3개 짧게 쓰세요(예: 이미 손잡이가 있음).
+- 집 안 사진이 아니거나 너무 어둡고 흐려 판단할 수 없으면 usable=false로 하고 이유를 summary에 쓰세요. 다른 장소 사진이면 그 사실도 summary에 쓰세요.
 - risk는 1(안전)~5(매우 위험) 정수, summary는 전체 한 줄 요약(40자 이내).`;
-const SCAN_SCHEMA = {
+const SCAN_SCHEMA = (roomKey: string) => ({
   type: "OBJECT",
   properties: {
     usable: { type: "BOOLEAN" },
@@ -108,7 +118,7 @@ const SCAN_SCHEMA = {
           title: { type: "STRING" },
           detail: { type: "STRING" },
           severity: { type: "STRING", enum: ["high", "mid", "low"] },
-          fix: { type: "ARRAY", items: { type: "STRING", enum: Object.keys(SCAN_CATEGORIES) } },
+          fix: { type: "ARRAY", items: { type: "STRING", enum: Object.keys(SCAN_ITEMS[roomKey]) } },
         },
         required: ["title", "detail", "severity", "fix"],
       },
@@ -116,7 +126,7 @@ const SCAN_SCHEMA = {
     good: { type: "ARRAY", items: { type: "STRING" } },
   },
   required: ["usable", "risk", "summary", "hazards", "good"],
-};
+});
 const B64 = /^[A-Za-z0-9+/]+={0,2}$/;
 
 async function scanQuota(request: Request, env: Env): Promise<boolean> {
@@ -158,8 +168,8 @@ async function safetyScan(request: Request, env: Env): Promise<Response> {
   catch { /* 횟수 기록 실패는 진단을 막지 않음 */ }
 
   const body = {
-    contents: [{ role: "user", parts: [{ text: SCAN_PROMPT(SCAN_ROOMS[room]) }, ...images.map(data => ({ inline_data: { mime_type: "image/jpeg", data } }))] }],
-    generationConfig: { temperature: 0.2, responseMimeType: "application/json", responseSchema: SCAN_SCHEMA },
+    contents: [{ role: "user", parts: [{ text: SCAN_PROMPT(room) }, ...images.map(data => ({ inline_data: { mime_type: "image/jpeg", data } }))] }],
+    generationConfig: { temperature: 0.2, responseMimeType: "application/json", responseSchema: SCAN_SCHEMA(room) },
   };
   try {
     let res = await callGemini(env, env.GEMINI_MODEL || "gemini-2.5-flash", body);
@@ -169,7 +179,7 @@ async function safetyScan(request: Request, env: Env): Promise<Response> {
     const data = await res.json() as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
     const text = data.candidates?.[0]?.content?.parts?.map(p => p.text ?? "").join("") ?? "";
     const r = JSON.parse(text) as Row;
-    const cats = new Set(Object.keys(SCAN_CATEGORIES));
+    const cats = new Set(Object.keys(SCAN_ITEMS[room]));
     const hazards = asList(r.hazards).slice(0, 5).map(h => ({
       title: str(h.title, 40),
       detail: str(h.detail, 240),
