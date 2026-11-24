@@ -169,7 +169,7 @@ async function scanRender(request: Request, env: Env): Promise<Response> {
   const allowed = SCAN_ITEMS[room];
   const items = asList(input.items).map(i => ({ category: str(i.category, 40), where: str(i.where, 160) })).filter(i => allowed[i.category] && RENDER_LOOK[i.category]).slice(0, 4);
   if (!items.length) return fail(400, "합성할 용품이 없어요.");
-  try { if (!(await scanQuota(request, env, "render", 5, Number(env.RENDER_DAILY_LIMIT) || 300))) return fail(429, "오늘 미리보기 가능 횟수를 모두 썼어요. 내일 다시 이용해 주세요."); }
+  try { if (!(await scanQuota(request, env, "render", 2, Number(env.RENDER_DAILY_LIMIT) || 50))) return fail(429, "오늘 미리보기 가능 횟수를 모두 썼어요. 내일 다시 이용해 주세요."); }
   catch { /* 횟수 기록 실패는 막지 않음 */ }
   const prompt = `Edit this photo of an elderly person's home (${SCAN_ROOMS[room]}). Add ONLY the following assistive products, installed realistically where they are needed, with correct perspective, scale, lighting and shadows:
 ${items.map(i => `- ${RENDER_LOOK[i.category]}. Placement hint (Korean): ${i.where}`).join("\n")}
