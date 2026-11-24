@@ -7,7 +7,7 @@ type D1Stmt = {
   run(): Promise<unknown>;
 };
 type D1 = { prepare(sql: string): D1Stmt; batch(s: D1Stmt[]): Promise<unknown> };
-type Env = { DB?: D1; KAKAO_REST_KEY?: string; DATA_GO_KR_KEY?: string; KAKAO_BASE?: string; DATA_GO_KR_BASE?: string };
+type Env = { DB?: D1; KAKAO_REST_KEY?: string; DATA_GO_KR_KEY?: string; KAKAO_BASE?: string; DATA_GO_KR_BASE?: string; GEMINI_API_KEY?: string; GEMINI_MODEL?: string; SCAN_DAILY_LIMIT?: string };
 type Ctx = { request: Request; env: Env; params: { path?: string[] } };
 type Row = Record<string, unknown>;
 
@@ -59,7 +59,133 @@ export async function onRequest({ request, env, params }: Ctx): Promise<Response
     try{return await monthlyStep(request,env,env.DB);}catch{return fail(503,"기관 업데이트를 잠시 후 다시 시도해 주세요.");}
   }
   if (path[0] === "ltc" && path.length === 2) return ltcPublic(request, env, env.DB, path[1]);
+  if (path[0] === "scan" && path.length === 1) return safetyScan(request, env);
   return fail(404, "없는 주소예요");
+}
+
+// ───────── 사진 AI 안전진단 (Gemini) ─────────
+// 사진은 분석 요청에만 쓰고 어디에도 저장하지 않는다. 남는 것은 하루 이용 횟수(익명 해시)뿐.
+const SCAN_ROOMS: Record<string, string> = { bath: "욕실·화장실", bedroom: "침실", entrance: "현관·문턱·계단", living: "거실·주방·복도" };
+const SCAN_CATEGORIES: Record<string, string> = {
+  safetyHandle: "안전손잡이(벽·변기·욕조·침대 옆 등 잡을 곳)",
+  antiSlipMat: "미끄럼방지 매트(욕실·현관 바닥)",
+  antiSlipSocks: "미끄럼방지 양말(미끄러운 마루·장판)",
+  bathChair: "목욕의자(서서 씻는 환경)",
+  bathtub: "이동욕조(욕실 이용이 어려운 경우)",
+  portableToilet: "이동변기(침실과 화장실이 멀거나 야간 이동 위험)",
+  simpleToilet: "간이변기(누워 지내는 환경)",
+  ramp: "경사로(문턱·단차·현관 턱)",
+  walker: "성인용 보행기(가구를 짚고 다녀야 하는 동선)",
+  cane: "지팡이",
+  wheelchair: "수동휠체어(넓은 동선, 보행 곤란)",
+  electricBed: "전동침대(바닥 요·낮은 침대에서 일어나기 어려움)",
+  pressureMattress: "욕창예방 매트리스(오래 누워 지내는 침상)",
+  pressureCushion: "욕창예방 방석(오래 앉아 있는 의자·휠체어)",
+  positioning: "자세변환용구(침상 생활)",
+};
+const SCAN_PROMPT = (room: string) => `당신은 어르신 낙상 예방을 전문으로 하는 작업치료사입니다.
+사진은 어르신이 사는 집의 "${room}"입니다. 사진에 실제로 보이는 것만 근거로 낙상·안전 위험을 점검하세요.
+규칙:
+- 보이지 않는 것은 추측하지 마세요. 확실하지 않으면 "확인 필요"라고 쓰세요.
+- 사람이 찍혀 있어도 사람에 대해서는 아무 말도 하지 마세요. 집 환경만 봅니다.
+- 위험 요소는 중요한 순서로 최대 5개. 제목은 15자 이내, 설명은 1~2문장, 쉬운 존댓말(~요).
+- 각 위험 요소에 도움이 되는 복지용구를 아래 목록의 키로만 0~3개 고르세요. 맞는 것이 없으면 비워 두세요.
+${Object.entries(SCAN_CATEGORIES).map(([k, v]) => `  ${k}: ${v}`).join("\n")}
+- 이미 잘 되어 있는 점이 보이면 good에 최대 3개 짧게 쓰세요.
+- 집 안 사진이 아니거나 너무 어둡고 흐려 판단할 수 없으면 usable=false로 하고 이유를 summary에 쓰세요.
+- risk는 1(안전)~5(매우 위험) 정수, summary는 전체 한 줄 요약(40자 이내).`;
+const SCAN_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    usable: { type: "BOOLEAN" },
+    risk: { type: "INTEGER" },
+    summary: { type: "STRING" },
+    hazards: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          title: { type: "STRING" },
+          detail: { type: "STRING" },
+          severity: { type: "STRING", enum: ["high", "mid", "low"] },
+          fix: { type: "ARRAY", items: { type: "STRING", enum: Object.keys(SCAN_CATEGORIES) } },
+        },
+        required: ["title", "detail", "severity", "fix"],
+      },
+    },
+    good: { type: "ARRAY", items: { type: "STRING" } },
+  },
+  required: ["usable", "risk", "summary", "hazards", "good"],
+};
+const B64 = /^[A-Za-z0-9+/]+={0,2}$/;
+
+async function scanQuota(request: Request, env: Env): Promise<boolean> {
+  if (!env.DB) return true;
+  const day = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+  const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
+  const who = Array.from(await sha(`${day}|${ip}|scan`)).slice(0, 8).map(b => b.toString(16).padStart(2, "0")).join("");
+  const global = Math.max(1, Number(env.SCAN_DAILY_LIMIT) || 1000);
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS scan_quota (k TEXT PRIMARY KEY, n INTEGER NOT NULL)").run();
+  const bump = (k: string) => env.DB!.prepare("INSERT INTO scan_quota (k, n) VALUES (?, 1) ON CONFLICT(k) DO UPDATE SET n = n + 1 RETURNING n").bind(k).first<{ n: number }>();
+  const mine = await bump(`${day}:${who}`);
+  if (Number(mine?.n) > 20) return false;
+  const all = await bump(`${day}:all`);
+  if (Math.random() < 0.02) await env.DB.prepare("DELETE FROM scan_quota WHERE k < ?").bind(day).run();
+  return Number(all?.n) <= global;
+}
+
+async function callGemini(env: Env, model: string, body: unknown): Promise<Response> {
+  return fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY! },
+    body: JSON.stringify(body),
+  });
+}
+
+async function safetyScan(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "POST") return fail(405, "POST 요청이 필요합니다.");
+  if (!env.GEMINI_API_KEY) return fail(503, "AI 진단이 아직 준비 중이에요. 잠시 후 다시 시도해 주세요.");
+  const origin = request.headers.get("origin");
+  if (origin && new URL(origin).host !== new URL(request.url).host) return fail(403, "허용되지 않은 요청이에요.");
+  if (Number(request.headers.get("content-length") || 0) > 6_000_000) return fail(413, "사진 용량이 너무 커요.");
+  let input: { room?: unknown; images?: unknown };
+  try { input = await request.json(); } catch { return fail(400, "요청 형식이 올바르지 않아요."); }
+  const room = typeof input.room === "string" && SCAN_ROOMS[input.room] ? input.room : "";
+  const images = Array.isArray(input.images) ? input.images.filter((v): v is string => typeof v === "string" && v.length > 100 && v.length < 2_000_000 && B64.test(v)) : [];
+  if (!room) return fail(400, "장소를 골라 주세요.");
+  if (images.length < 1 || images.length > 3 || images.length !== (input.images as unknown[]).length) return fail(400, "사진을 1~3장 올려 주세요.");
+  try { if (!(await scanQuota(request, env))) return fail(429, "오늘 진단 가능 횟수를 모두 썼어요. 내일 다시 이용하시거나 전화·카카오톡으로 상담해 주세요."); }
+  catch { /* 횟수 기록 실패는 진단을 막지 않음 */ }
+
+  const body = {
+    contents: [{ role: "user", parts: [{ text: SCAN_PROMPT(SCAN_ROOMS[room]) }, ...images.map(data => ({ inline_data: { mime_type: "image/jpeg", data } }))] }],
+    generationConfig: { temperature: 0.2, responseMimeType: "application/json", responseSchema: SCAN_SCHEMA },
+  };
+  try {
+    let res = await callGemini(env, env.GEMINI_MODEL || "gemini-2.5-flash", body);
+    if (res.status === 404 && !env.GEMINI_MODEL) res = await callGemini(env, "gemini-flash-latest", body);
+    if (res.status === 429) return fail(503, "지금 진단 요청이 많아요. 잠시 후 다시 시도해 주세요.");
+    if (!res.ok) return fail(502, "AI 진단에 실패했어요. 잠시 후 다시 시도해 주세요.");
+    const data = await res.json() as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
+    const text = data.candidates?.[0]?.content?.parts?.map(p => p.text ?? "").join("") ?? "";
+    const r = JSON.parse(text) as Row;
+    const cats = new Set(Object.keys(SCAN_CATEGORIES));
+    const hazards = asList(r.hazards).slice(0, 5).map(h => ({
+      title: str(h.title, 40),
+      detail: str(h.detail, 240),
+      severity: ["high", "mid", "low"].includes(String(h.severity)) ? String(h.severity) : "mid",
+      fix: (Array.isArray(h.fix) ? h.fix : []).filter((c): c is string => typeof c === "string" && cats.has(c)).slice(0, 3),
+    })).filter(h => h.title);
+    return json({
+      usable: r.usable !== false,
+      risk: Math.min(5, Math.max(1, Math.round(Number(r.risk) || 1))),
+      summary: str(r.summary, 120),
+      hazards,
+      good: (Array.isArray(r.good) ? r.good : []).map(g => str(g, 80)).filter(Boolean).slice(0, 3),
+    });
+  } catch {
+    return fail(502, "AI 진단 결과를 읽지 못했어요. 다른 사진으로 다시 시도해 주세요.");
+  }
 }
 
 const LTC_KINDS = ["visit", "bath", "day", "short", "home"];

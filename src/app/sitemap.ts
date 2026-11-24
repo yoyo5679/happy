@@ -6,6 +6,7 @@ export const dynamic = "force-static";
 // 검색엔진에 알려 줄 페이지 목록 → /sitemap.xml
 const pages: { path: string; priority: number; freq: "daily" | "weekly" | "monthly" }[] = [
   { path: "/", priority: 1, freq: "weekly" },
+  { path: "/scan", priority: 0.9, freq: "monthly" },
   { path: "/grade", priority: 0.9, freq: "monthly" },
   { path: "/care", priority: 0.9, freq: "weekly" },
   { path: "/budget", priority: 0.8, freq: "weekly" },

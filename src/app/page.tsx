@@ -30,6 +30,20 @@ export default function Home() {
         <p className="muted">우리 부모님께 필요한 용품과 예상 등급을 1분 만에 확인해 보세요. 무료 · 회원가입 없음</p>
       </section>
 
+      <Link href="/scan" className="check-cta scan-cta">
+        <span className="ico" aria-hidden>
+          📸
+        </span>
+        <span className="txt">
+          <strong>NEW · 사진 한 장 AI 안전진단</strong>
+          <br />
+          부모님 집 사진을 올리면 낙상 위험과 필요한 용품을 알려 드려요
+        </span>
+        <span className="go" aria-hidden>
+          →
+        </span>
+      </Link>
+
       <div className="tools">
         {tools.map((t, i) => (
           <Link key={t.href} href={t.href} className="tool card">

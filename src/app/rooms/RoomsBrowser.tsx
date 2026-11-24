@@ -35,6 +35,19 @@ export function RoomsBrowser() {
         <p className="muted">집 안에서 걱정되는 곳을 눌러 보세요.</p>
       </div>
 
+      <Link href="/scan" className="check-cta scan-cta">
+        <span className="ico" aria-hidden>
+          📸
+        </span>
+        <span className="txt">
+          <strong>NEW · 사진 한 장 AI 안전진단</strong>
+          <br />
+          부모님 집 사진을 올리면 낙상 위험과 필요한 용품을 알려 드려요
+        </span>
+        <span className="go" aria-hidden>
+          →
+        </span>
+      </Link>
       <Link href="/check" className="check-cta">
         <span className="ico" aria-hidden>
           🔍

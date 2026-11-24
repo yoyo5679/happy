@@ -1,0 +1,35 @@
+.scan-hero h1 { font-size: 1.7rem; }
+.scan-step { font-weight: 700; margin: 16px 0 6px; }
+.scan-step:first-child { margin-top: 0; }
+.scan-tip { font-size: 0.9rem; margin: 0 0 10px; }
+.scan-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.scan-pick .btn { width: 100%; }
+.scan-thumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+.scan-thumbs figure { position: relative; margin: 0; aspect-ratio: 1; border-radius: 12px; overflow: hidden; background: var(--brand-weak); }
+.scan-thumbs img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.scan-thumbs button { position: absolute; top: 4px; right: 4px; width: 32px; height: 32px; border: 0; border-radius: 50%; background: rgba(0, 0, 0, 0.6); color: #fff; font-size: 1rem; cursor: pointer; }
+.scan-go { margin-top: 16px; min-height: 56px; font-size: 1.05rem; }
+.scan-go:disabled { opacity: 0.6; cursor: default; }
+.scan-error { color: #b42318; font-weight: 700; margin: 10px 0 0; }
+.scan-privacy { font-size: 0.85rem; color: var(--muted); margin: 12px 0 0; }
+.scan-meter { display: flex; align-items: center; gap: 4px; margin: 10px 0 6px; }
+.scan-meter span { width: 28px; height: 10px; border-radius: 5px; background: var(--line); }
+.scan-meter strong { margin-left: 8px; font-size: 1.15rem; }
+.risk-1 .scan-meter span.on, .risk-2 .scan-meter span.on { background: #2e9e5b; }
+.risk-3 .scan-meter span.on { background: #e0a100; }
+.risk-4 .scan-meter span.on, .risk-5 .scan-meter span.on { background: #d4380d; }
+.scan-summary { font-size: 1.05rem; font-weight: 600; margin: 4px 0 12px; }
+.scan-result h3 { margin: 18px 0 8px; font-size: 1.05rem; }
+.scan-hazards { padding-left: 0; list-style: none; margin: 0; display: grid; gap: 10px; }
+.scan-hazards li { border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+.scan-hazards li p { margin: 6px 0 0; }
+.scan-fix { color: var(--brand); font-weight: 700; font-size: 0.92rem; }
+.sev { display: inline-block; font-size: 0.78rem; font-weight: 700; padding: 2px 8px; border-radius: 99px; margin-right: 6px; vertical-align: 2px; }
+.sev-high { background: #fde3dd; color: #b42318; }
+.sev-mid { background: #fff1cc; color: #8a5a00; }
+.sev-low { background: var(--brand-weak); color: var(--brand); }
+.scan-good { margin: 0; padding-left: 20px; }
+.scan-note { font-size: 0.85rem; color: var(--muted); margin: 16px 0 0; }
+.scan-rec-title { margin: 24px 0 4px; font-size: 1.2rem; }
+.scan-again { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.scan-alt { text-align: center; margin: 8px 0 24px; }
