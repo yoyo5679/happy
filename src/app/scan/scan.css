@@ -33,3 +33,6 @@
 .scan-rec-title { margin: 24px 0 4px; font-size: 1.2rem; }
 .scan-again { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
 .scan-alt { text-align: center; margin: 8px 0 24px; }
+.scan-render h3 { margin: 0 0 8px; }
+.scan-ba { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 4px 0 10px; }
+.scan-ba-img { width: 100%; border-radius: 12px; display: block; background: var(--brand-weak); }

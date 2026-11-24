@@ -42,6 +42,9 @@ export function ScanTool() {
   const [error, setError] = useState("");
   const [result, setResult] = useState<Result | null>(null);
   const [rate, setRate] = useState(0.15);
+  const [sentImages, setSentImages] = useState<string[]>([]);
+  const [render, setRender] = useState<{ busy: boolean; image: string; error: string }>({ busy: false, image: "", error: "" });
+  const [view, setView] = useState<"after" | "before">("after");
   const cam = useRef<HTMLInputElement>(null);
   const album = useRef<HTMLInputElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
@@ -54,16 +57,19 @@ export function ScanTool() {
     setFiles(next);
     setResult(null);
     setError("");
+    setRender({ busy: false, image: "", error: "" });
   }
   function remove(i: number) {
     setFiles(files.filter((_, j) => j !== i));
     setResult(null);
+    setRender({ busy: false, image: "", error: "" });
   }
   function reset(r: Room) {
     setRoom(r);
     setFiles([]);
     setResult(null);
     setError("");
+    setRender({ busy: false, image: "", error: "" });
   }
 
   async function run() {
@@ -73,6 +79,8 @@ export function ScanTool() {
     setResult(null);
     try {
       const images = await Promise.all(files.map((f) => shrink(f.file)));
+      setSentImages(images);
+      setRender({ busy: false, image: "", error: "" });
       const res = await fetch("/api/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ room, images }) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "진단에 실패했어요. 잠시 후 다시 시도해 주세요.");
@@ -82,6 +90,22 @@ export function ScanTool() {
       setError(e instanceof Error ? e.message : "진단에 실패했어요.");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function makePreview() {
+    if (!result || !sentImages[0] || render.busy) return;
+    setRender({ busy: true, image: "", error: "" });
+    try {
+      const items = result.hazards.flatMap((h) => h.fix.map((category) => ({ category, where: `${h.title}: ${h.detail}` })));
+      const uniq = items.filter((it, i) => items.findIndex((x) => x.category === it.category) === i);
+      const res = await fetch("/api/scan/render", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ room, image: sentImages[0], items: uniq }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || typeof data.image !== "string" || !data.image.startsWith("data:image/")) throw new Error(data.error || "미리보기를 만들지 못했어요.");
+      setRender({ busy: false, image: data.image, error: "" });
+      setView("after");
+    } catch (e) {
+      setRender({ busy: false, image: "", error: e instanceof Error ? e.message : "미리보기를 만들지 못했어요." });
     }
   }
 
@@ -195,6 +219,35 @@ export function ScanTool() {
                 )}
                 <p className="scan-note">※ AI가 사진만 보고 판단한 참고 결과예요. 정확한 위치·치수는 방문 측정으로 확인하는 것이 좋아요.</p>
               </section>
+
+              {recs.length > 0 && sentImages[0] && (
+                <section className="card scan-render">
+                  <h3>✨ 설치하면 이렇게 바뀌어요</h3>
+                  {!render.image ? (
+                    <>
+                      <p className="muted">AI가 추천 용품({recs.map((r) => categories[r.category].label).join(", ")})을 우리 집 사진에 그려 넣어 미리 보여 드려요.</p>
+                      <button className="btn primary wide" onClick={makePreview} disabled={render.busy}>
+                        {render.busy ? "🎨 설치 후 모습을 그리는 중… (20초 정도)" : "🎨 설치 후 모습 미리보기"}
+                      </button>
+                      {render.error && <p className="scan-error" role="alert">{render.error}</p>}
+                    </>
+                  ) : (
+                    <>
+                      <div className="scan-ba" role="tablist">
+                        <button role="tab" aria-selected={view === "before"} className={view === "before" ? "chip on" : "chip"} onClick={() => setView("before")}>
+                          지금
+                        </button>
+                        <button role="tab" aria-selected={view === "after"} className={view === "after" ? "chip on" : "chip"} onClick={() => setView("after")}>
+                          설치 후 ✨
+                        </button>
+                      </div>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img className="scan-ba-img" src={view === "after" ? render.image : `data:image/jpeg;base64,${sentImages[0]}`} alt={view === "after" ? "추천 용품을 설치한 모습 (AI 예시)" : "올린 사진"} />
+                      <p className="scan-note">※ AI가 그린 예시 이미지예요. 실제 제품 모양·설치 위치는 방문 측정 후 정해져요.</p>
+                    </>
+                  )}
+                </section>
+              )}
 
               {recs.length > 0 && (
                 <>

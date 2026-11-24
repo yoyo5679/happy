@@ -7,7 +7,7 @@ type D1Stmt = {
   run(): Promise<unknown>;
 };
 type D1 = { prepare(sql: string): D1Stmt; batch(s: D1Stmt[]): Promise<unknown> };
-type Env = { DB?: D1; KAKAO_REST_KEY?: string; DATA_GO_KR_KEY?: string; KAKAO_BASE?: string; DATA_GO_KR_BASE?: string; GEMINI_API_KEY?: string; GEMINI_MODEL?: string; SCAN_DAILY_LIMIT?: string };
+type Env = { DB?: D1; KAKAO_REST_KEY?: string; DATA_GO_KR_KEY?: string; KAKAO_BASE?: string; DATA_GO_KR_BASE?: string; GEMINI_API_KEY?: string; GEMINI_MODEL?: string; GEMINI_IMAGE_MODEL?: string; SCAN_DAILY_LIMIT?: string; RENDER_DAILY_LIMIT?: string };
 type Ctx = { request: Request; env: Env; params: { path?: string[] } };
 type Row = Record<string, unknown>;
 
@@ -60,6 +60,7 @@ export async function onRequest({ request, env, params }: Ctx): Promise<Response
   }
   if (path[0] === "ltc" && path.length === 2) return ltcPublic(request, env, env.DB, path[1]);
   if (path[0] === "scan" && path.length === 1) return safetyScan(request, env);
+  if (path[0] === "scan" && path[1] === "render" && path.length === 2) return scanRender(request, env);
   return fail(404, "없는 주소예요");
 }
 
@@ -129,19 +130,67 @@ const SCAN_SCHEMA = (roomKey: string) => ({
 });
 const B64 = /^[A-Za-z0-9+/]+={0,2}$/;
 
-async function scanQuota(request: Request, env: Env): Promise<boolean> {
+async function scanQuota(request: Request, env: Env, kind = "scan", perPerson = 20, globalLimit = Number(env.SCAN_DAILY_LIMIT) || 1000): Promise<boolean> {
   if (!env.DB) return true;
   const day = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
   const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
-  const who = Array.from(await sha(`${day}|${ip}|scan`)).slice(0, 8).map(b => b.toString(16).padStart(2, "0")).join("");
-  const global = Math.max(1, Number(env.SCAN_DAILY_LIMIT) || 1000);
+  const who = Array.from(await sha(`${day}|${ip}|${kind}`)).slice(0, 8).map(b => b.toString(16).padStart(2, "0")).join("");
+  const global = Math.max(1, globalLimit);
   await env.DB.prepare("CREATE TABLE IF NOT EXISTS scan_quota (k TEXT PRIMARY KEY, n INTEGER NOT NULL)").run();
   const bump = (k: string) => env.DB!.prepare("INSERT INTO scan_quota (k, n) VALUES (?, 1) ON CONFLICT(k) DO UPDATE SET n = n + 1 RETURNING n").bind(k).first<{ n: number }>();
-  const mine = await bump(`${day}:${who}`);
-  if (Number(mine?.n) > 20) return false;
-  const all = await bump(`${day}:all`);
+  const mine = await bump(`${day}:${kind}:${who}`);
+  if (Number(mine?.n) > perPerson) return false;
+  const all = await bump(`${day}:${kind}:all`);
   if (Math.random() < 0.02) await env.DB.prepare("DELETE FROM scan_quota WHERE k < ?").bind(day).run();
   return Number(all?.n) <= global;
+}
+
+// 설치 후 모습 합성용: 용품을 사진 속에 자연스럽게 그려 넣도록 영어로 구체적으로 묘사
+const RENDER_LOOK: Record<string, string> = {
+  safetyHandle: "a sturdy white or brushed stainless-steel wall-mounted safety grab bar, screwed firmly into the wall at hand height",
+  antiSlipMat: "a flat non-slip safety mat lying on the floor",
+  bathChair: "a white plastic shower chair with a backrest and armrests, standing on the shower floor",
+  electricBed: "a modern electric adjustable home-care bed with padded side rails, placed where the person sleeps (replacing the floor mattress or low bed)",
+  pressureMattress: "a light-blue alternating air pressure-relief mattress lying on top of the bed",
+  ramp: "a low grey rubber threshold ramp placed over the door sill so there is no step",
+};
+
+async function scanRender(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "POST") return fail(405, "POST 요청이 필요합니다.");
+  if (!env.GEMINI_API_KEY) return fail(503, "AI 미리보기가 아직 준비 중이에요.");
+  const origin = request.headers.get("origin");
+  if (origin && new URL(origin).host !== new URL(request.url).host) return fail(403, "허용되지 않은 요청이에요.");
+  if (Number(request.headers.get("content-length") || 0) > 3_000_000) return fail(413, "사진 용량이 너무 커요.");
+  let input: { room?: unknown; image?: unknown; items?: unknown };
+  try { input = await request.json(); } catch { return fail(400, "요청 형식이 올바르지 않아요."); }
+  const room = typeof input.room === "string" && SCAN_ROOMS[input.room] ? input.room : "";
+  const image = typeof input.image === "string" && input.image.length > 100 && input.image.length < 2_000_000 && B64.test(input.image) ? input.image : "";
+  if (!room || !image) return fail(400, "사진과 장소가 필요해요.");
+  const allowed = SCAN_ITEMS[room];
+  const items = asList(input.items).map(i => ({ category: str(i.category, 40), where: str(i.where, 160) })).filter(i => allowed[i.category] && RENDER_LOOK[i.category]).slice(0, 4);
+  if (!items.length) return fail(400, "합성할 용품이 없어요.");
+  try { if (!(await scanQuota(request, env, "render", 5, Number(env.RENDER_DAILY_LIMIT) || 300))) return fail(429, "오늘 미리보기 가능 횟수를 모두 썼어요. 내일 다시 이용해 주세요."); }
+  catch { /* 횟수 기록 실패는 막지 않음 */ }
+  const prompt = `Edit this photo of an elderly person's home (${SCAN_ROOMS[room]}). Add ONLY the following assistive products, installed realistically where they are needed, with correct perspective, scale, lighting and shadows:
+${items.map(i => `- ${RENDER_LOOK[i.category]}. Placement hint (Korean): ${i.where}`).join("\n")}
+Keep everything else in the photo exactly the same: same camera angle, framing, walls, floor, furniture, colours and objects. Do not remove anything. Do not add people, text, logos, labels, arrows or watermarks. Output one photorealistic image.`;
+  const body = {
+    contents: [{ role: "user", parts: [{ text: prompt }, { inline_data: { mime_type: "image/jpeg", data: image } }] }],
+    generationConfig: { responseModalities: ["IMAGE"] },
+  };
+  try {
+    const res = await callGemini(env, env.GEMINI_IMAGE_MODEL || "gemini-2.5-flash-image", body);
+    if (res.status === 429) return fail(503, "지금 요청이 많아요. 잠시 후 다시 시도해 주세요.");
+    if (!res.ok) return fail(502, "미리보기를 만들지 못했어요. 잠시 후 다시 시도해 주세요.");
+    const data = await res.json() as { candidates?: { content?: { parts?: { inlineData?: { mimeType?: string; data?: string }; inline_data?: { mime_type?: string; data?: string } }[] } }[] };
+    for (const part of data.candidates?.[0]?.content?.parts ?? []) {
+      const d = part.inlineData ?? (part.inline_data ? { mimeType: part.inline_data.mime_type, data: part.inline_data.data } : undefined);
+      if (d?.data && /^image\/(png|jpeg|webp)$/.test(d.mimeType ?? "")) return json({ image: `data:${d.mimeType};base64,${d.data}` });
+    }
+    return fail(502, "미리보기를 만들지 못했어요. 다른 사진으로 다시 시도해 주세요.");
+  } catch {
+    return fail(502, "미리보기를 만들지 못했어요. 잠시 후 다시 시도해 주세요.");
+  }
 }
 
 async function callGemini(env: Env, model: string, body: unknown): Promise<Response> {
