@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { categories, productsFor, type CategoryKey } from "@/data/products";
+import { categories, productsFor, poleHandles, POLE_HANDLE_URL, type CategoryKey } from "@/data/products";
+import { ProductCard } from "@/components/ProductCard";
+import { withUtm } from "@/lib/utm";
 import { CategoryGroup } from "@/components/CategoryGroup";
 import { RatePicker } from "@/components/RatePicker";
 import { ContactCta } from "@/components/ContactCta";
@@ -18,7 +20,7 @@ const ROOMS: { key: Room; label: string; emoji: string; tip: string }[] = [
   { key: "living", label: "거실·복도", emoji: "🛋️", tip: "자주 다니는 길과 바닥이 나오게" },
 ];
 type Hazard = { title: string; detail: string; severity: "high" | "mid" | "low"; fix: CategoryKey[]; photo: number; x: number; y: number };
-type Result = { usable: boolean; risk: number; summary: string; hazards: Hazard[]; good: string[] };
+type Result = { usable: boolean; risk: number; summary: string; hazards: Hazard[]; good: string[]; pole?: { where: string; photo: number; x: number; y: number } };
 const SEV = { high: { label: "위험", cls: "sev-high" }, mid: { label: "주의", cls: "sev-mid" }, low: { label: "참고", cls: "sev-low" } };
 const RISK = ["", "안전해요", "대체로 안전", "주의가 필요해요", "위험해요", "매우 위험해요"];
 
@@ -104,6 +106,10 @@ export function ScanTool() {
     if (placed.some((p) => p.label === categories[c].label && p.photo === h.photo && Math.abs(p.x - h.x) + Math.abs(p.y - h.y) < 150)) continue;
     placed.push({ photo: h.photo, x: h.x, y: h.y, label: categories[c].label, img: productsFor(c, 1)[0]?.img });
   }
+  // 기둥형 안전손잡이는 어느 집에나 도움이 되므로 항상 표시
+  const poles = poleHandles(2);
+  const pole = result?.pole;
+  if (result?.usable && pole && pole.photo >= 0 && poles[0]) placed.push({ photo: pole.photo, x: pole.x, y: pole.y, label: "기둥 안전손잡이", img: poles[0].img });
 
   return (
     <>
@@ -246,19 +252,34 @@ export function ScanTool() {
                 </section>
               )}
 
-              {recs.length > 0 && (
-                <>
+              <>
                   <h2 className="scan-rec-title">✅ 추천 복지용구</h2>
-                  <QuickCost categories={recs.map((r) => r.category)} rate={rate} />
+                  {recs.length > 0 && <QuickCost categories={recs.map((r) => r.category)} rate={rate} />}
                   <RatePicker rate={rate} onChange={setRate} />
+                  {poles.length > 0 && (
+                    <section className="card group pole-group">
+                      <h3>
+                        <span className="pole-badge">어디든 추천</span> 🧍 기둥 안전손잡이
+                      </h3>
+                      <p className="reason">
+                        바닥과 천장 사이에 세우는 손잡이라 벽에 구멍을 뚫지 않고 원하는 곳 어디에나 설치할 수 있어요. 일어서고 앉는 곳마다 붙잡을 곳이 생겨 낙상 예방 효과가 커요.
+                        {pole?.where && <><br /><strong>📍 이 사진에서는: {pole.where}</strong></>}
+                      </p>
+                      {poles.map((p) => (
+                        <ProductCard key={p.id} product={p} campaign={`scan_${room}_pole`} rate={rate} />
+                      ))}
+                      <a className="more" href={withUtm(POLE_HANDLE_URL, `scan_${room}_pole`, "pole_all")}>
+                        기둥 안전손잡이 전체 모델 보기 →
+                      </a>
+                    </section>
+                  )}
                   {recs.map((r, i) => (
                     <CategoryGroup key={r.category} category={r.category} campaign={`scan_${room}`} rate={rate} rank={i + 1} reason={r.reason} />
                   ))}
                   <div className="actions">
-                    <BudgetLink categories={recs.map((r) => r.category)} />
+                    <BudgetLink categories={[...new Set<CategoryKey>(["safetyHandle", ...recs.map((r) => r.category)])]} />
                   </div>
-                </>
-              )}
+              </>
             </>
           )}
           <div className="scan-again">

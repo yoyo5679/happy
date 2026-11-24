@@ -102,6 +102,7 @@ const SCAN_PROMPT = (roomKey: string) => `당신은 어르신 낙상 예방을 �
 ${Object.entries(SCAN_ITEMS[roomKey]).map(([k, v]) => `  ${k} (${SCAN_LABELS[k]}): ${v}`).join("\n")}
 - 목록에 없는 용품(보행기, 지팡이, 휠체어, 양말 등)은 절대 추천하지 마세요. 조명·정리정돈·가구 배치처럼 용품이 필요 없는 위험은 fix를 비우고 설명에 해결 방법을 쓰세요.
 - fix가 있는 위험 요소에는 그 용품을 설치·배치할 지점을 표시하세요: photo는 사진 번호(첫 사진 0부터), x·y는 그 사진의 왼쪽 위가 (0,0), 오른쪽 아래가 (1000,1000)인 좌표입니다. 예: 변기 옆 벽 손잡이 자리, 문턱 위치, 요가 깔린 자리. fix가 비어 있으면 photo·x·y는 -1로 쓰세요.
+- 기둥형 안전손잡이(바닥과 천장 사이에 세우는 세로 봉)는 어느 집에나 도움이 되니 항상 세우기 가장 좋은 자리 한 곳을 고르세요: 일어서고 앉는 곳(침대·변기·소파·의자 옆)이나 신발 신는 곳 옆, 사람이 지나다니는 길을 막지 않는 곳. pole_where에 위치를 짧게(예: "침대 오른쪽 머리맡"), pole_photo·pole_x·pole_y에 그 바닥 지점 좌표를 쓰세요. 적당한 자리가 없으면 -1.
 - 이미 잘 되어 있는 점이 보이면 good에 최대 3개 짧게 쓰세요(예: 이미 손잡이가 있음).
 - 집 안 사진이 아니거나 너무 어둡고 흐려 판단할 수 없으면 usable=false로 하고 이유를 summary에 쓰세요. 다른 장소 사진이면 그 사실도 summary에 쓰세요.
 - risk는 1(안전)~5(매우 위험) 정수, summary는 전체 한 줄 요약(40자 이내).`;
@@ -128,8 +129,12 @@ const SCAN_SCHEMA = (roomKey: string) => ({
       },
     },
     good: { type: "ARRAY", items: { type: "STRING" } },
+    pole_where: { type: "STRING" },
+    pole_photo: { type: "INTEGER" },
+    pole_x: { type: "INTEGER" },
+    pole_y: { type: "INTEGER" },
   },
-  required: ["usable", "risk", "summary", "hazards", "good"],
+  required: ["usable", "risk", "summary", "hazards", "good", "pole_where", "pole_photo", "pole_x", "pole_y"],
 });
 const B64 = /^[A-Za-z0-9+/]+={0,2}$/;
 
@@ -204,6 +209,7 @@ async function safetyScan(request: Request, env: Env): Promise<Response> {
       summary: str(r.summary, 120),
       hazards,
       good: (Array.isArray(r.good) ? r.good : []).map(g => str(g, 80)).filter(Boolean).slice(0, 3),
+      pole: { where: str(r.pole_where, 60), ...spot({ photo: r.pole_photo, x: r.pole_x, y: r.pole_y }, images.length) },
     });
   } catch {
     return fail(502, "AI 진단 결과를 읽지 못했어요. 다른 사진으로 다시 시도해 주세요.");

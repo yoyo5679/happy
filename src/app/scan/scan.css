@@ -46,3 +46,5 @@
 .scan-sticker-card span { font-size: 0.82rem; font-weight: 700; color: var(--text); white-space: nowrap; }
 .scan-pin { width: 14px; height: 14px; margin-top: 2px; border-radius: 50%; background: var(--accent); border: 3px solid #fff; box-shadow: 0 0 0 2px var(--accent); }
 @keyframes scan-pop { from { opacity: 0; transform: translate(var(--tx), -90%) scale(0.85); } to { opacity: 1; transform: translate(var(--tx), -100%) scale(1); } }
+.pole-group { border-color: var(--brand-solid); border-width: 2px; }
+.pole-badge { display: inline-block; font-size: 0.75rem; font-weight: 700; background: var(--accent); color: #fff; border-radius: 99px; padding: 2px 8px; vertical-align: 3px; margin-right: 4px; }

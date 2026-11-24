@@ -89,6 +89,16 @@ export function productsFor(category: CategoryKey, limit = 3): Product[] {
   return [...head, ...all.filter((p) => !pick.includes(p.id))].slice(0, limit);
 }
 
+/** 기둥형 안전손잡이 (바닥~천장 고정, 높이 170cm 이상) — 가가온 카탈로그 2026 22~24쪽 */
+const POLE_HANDLE_NAMES = ["CV300S", "CV300", "CV100", "ASH-201", "ASH-211", "ASH-212", "CD-10", "MSP-0005", "DGP-0005", "CV200"];
+export function poleHandles(limit = 2): Product[] {
+  return products
+    .filter((p) => p.category === "safetyHandle" && POLE_HANDLE_NAMES.includes(p.name))
+    .sort((a, b) => Number(isSoldOut(a)) - Number(isSoldOut(b)) || POLE_HANDLE_NAMES.indexOf(a.name) - POLE_HANDLE_NAMES.indexOf(b.name))
+    .slice(0, limit);
+}
+export const POLE_HANDLE_URL = "https://happycaremall.com/grab-bar-pole";
+
 export function countFor(category: CategoryKey): number {
   return products.filter((p) => p.category === category).length;
 }
