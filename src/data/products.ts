@@ -90,7 +90,7 @@ export function productsFor(category: CategoryKey, limit = 3): Product[] {
 }
 
 /** 기둥형 안전손잡이 (바닥~천장 고정, 높이 170cm 이상) — 가가온 카탈로그 2026 22~24쪽 */
-const POLE_HANDLE_NAMES = ["CV300S", "CV300", "CV100", "ASH-201", "ASH-211", "ASH-212", "CD-10", "MSP-0005", "DGP-0005", "CV200"];
+const POLE_HANDLE_NAMES = ["CD-10", "CV300S", "CV300", "CV100", "ASH-201", "ASH-211", "ASH-212", "MSP-0005", "DGP-0005", "CV200"];
 export function poleHandles(limit = 2): Product[] {
   return products
     .filter((p) => p.category === "safetyHandle" && POLE_HANDLE_NAMES.includes(p.name))
