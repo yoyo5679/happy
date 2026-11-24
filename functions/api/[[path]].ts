@@ -7,7 +7,7 @@ type D1Stmt = {
   run(): Promise<unknown>;
 };
 type D1 = { prepare(sql: string): D1Stmt; batch(s: D1Stmt[]): Promise<unknown> };
-type Env = { DB?: D1; KAKAO_REST_KEY?: string; DATA_GO_KR_KEY?: string; KAKAO_BASE?: string; DATA_GO_KR_BASE?: string; GEMINI_API_KEY?: string; GEMINI_MODEL?: string; GEMINI_IMAGE_MODEL?: string; SCAN_DAILY_LIMIT?: string; RENDER_DAILY_LIMIT?: string };
+type Env = { DB?: D1; KAKAO_REST_KEY?: string; DATA_GO_KR_KEY?: string; KAKAO_BASE?: string; DATA_GO_KR_BASE?: string; GEMINI_API_KEY?: string; GEMINI_MODEL?: string; SCAN_DAILY_LIMIT?: string };
 type Ctx = { request: Request; env: Env; params: { path?: string[] } };
 type Row = Record<string, unknown>;
 
@@ -60,7 +60,6 @@ export async function onRequest({ request, env, params }: Ctx): Promise<Response
   }
   if (path[0] === "ltc" && path.length === 2) return ltcPublic(request, env, env.DB, path[1]);
   if (path[0] === "scan" && path.length === 1) return safetyScan(request, env);
-  if (path[0] === "scan" && path[1] === "render" && path.length === 2) return scanRender(request, env);
   return fail(404, "없는 주소예요");
 }
 
@@ -102,6 +101,7 @@ const SCAN_PROMPT = (roomKey: string) => `당신은 어르신 낙상 예방을 �
 - 각 위험 요소의 fix에는 아래 목록의 키만, 오른쪽 조건이 사진에서 분명히 확인될 때만 넣으세요. 조건이 맞지 않거나 애매하면 fix를 빈 배열로 두세요.
 ${Object.entries(SCAN_ITEMS[roomKey]).map(([k, v]) => `  ${k} (${SCAN_LABELS[k]}): ${v}`).join("\n")}
 - 목록에 없는 용품(보행기, 지팡이, 휠체어, 양말 등)은 절대 추천하지 마세요. 조명·정리정돈·가구 배치처럼 용품이 필요 없는 위험은 fix를 비우고 설명에 해결 방법을 쓰세요.
+- fix가 있는 위험 요소에는 그 용품을 설치·배치할 지점을 표시하세요: photo는 사진 번호(첫 사진 0부터), x·y는 그 사진의 왼쪽 위가 (0,0), 오른쪽 아래가 (1000,1000)인 좌표입니다. 예: 변기 옆 벽 손잡이 자리, 문턱 위치, 요가 깔린 자리. fix가 비어 있으면 photo·x·y는 -1로 쓰세요.
 - 이미 잘 되어 있는 점이 보이면 good에 최대 3개 짧게 쓰세요(예: 이미 손잡이가 있음).
 - 집 안 사진이 아니거나 너무 어둡고 흐려 판단할 수 없으면 usable=false로 하고 이유를 summary에 쓰세요. 다른 장소 사진이면 그 사실도 summary에 쓰세요.
 - risk는 1(안전)~5(매우 위험) 정수, summary는 전체 한 줄 요약(40자 이내).`;
@@ -120,8 +120,11 @@ const SCAN_SCHEMA = (roomKey: string) => ({
           detail: { type: "STRING" },
           severity: { type: "STRING", enum: ["high", "mid", "low"] },
           fix: { type: "ARRAY", items: { type: "STRING", enum: Object.keys(SCAN_ITEMS[roomKey]) } },
+          photo: { type: "INTEGER" },
+          x: { type: "INTEGER" },
+          y: { type: "INTEGER" },
         },
-        required: ["title", "detail", "severity", "fix"],
+        required: ["title", "detail", "severity", "fix", "photo", "x", "y"],
       },
     },
     good: { type: "ARRAY", items: { type: "STRING" } },
@@ -145,52 +148,11 @@ async function scanQuota(request: Request, env: Env, kind = "scan", perPerson = 
   return Number(all?.n) <= global;
 }
 
-// 설치 후 모습 합성용: 용품을 사진 속에 자연스럽게 그려 넣도록 영어로 구체적으로 묘사
-const RENDER_LOOK: Record<string, string> = {
-  safetyHandle: "a sturdy white or brushed stainless-steel wall-mounted safety grab bar, screwed firmly into the wall at hand height",
-  antiSlipMat: "a flat non-slip safety mat lying on the floor",
-  bathChair: "a white plastic shower chair with a backrest and armrests, standing on the shower floor",
-  electricBed: "a modern electric adjustable home-care bed with padded side rails, placed where the person sleeps (replacing the floor mattress or low bed)",
-  pressureMattress: "a light-blue alternating air pressure-relief mattress lying on top of the bed",
-  ramp: "a low grey rubber threshold ramp placed over the door sill so there is no step",
-};
-
-async function scanRender(request: Request, env: Env): Promise<Response> {
-  if (request.method !== "POST") return fail(405, "POST 요청이 필요합니다.");
-  if (!env.GEMINI_API_KEY) return fail(503, "AI 미리보기가 아직 준비 중이에요.");
-  const origin = request.headers.get("origin");
-  if (origin && new URL(origin).host !== new URL(request.url).host) return fail(403, "허용되지 않은 요청이에요.");
-  if (Number(request.headers.get("content-length") || 0) > 3_000_000) return fail(413, "사진 용량이 너무 커요.");
-  let input: { room?: unknown; image?: unknown; items?: unknown };
-  try { input = await request.json(); } catch { return fail(400, "요청 형식이 올바르지 않아요."); }
-  const room = typeof input.room === "string" && SCAN_ROOMS[input.room] ? input.room : "";
-  const image = typeof input.image === "string" && input.image.length > 100 && input.image.length < 2_000_000 && B64.test(input.image) ? input.image : "";
-  if (!room || !image) return fail(400, "사진과 장소가 필요해요.");
-  const allowed = SCAN_ITEMS[room];
-  const items = asList(input.items).map(i => ({ category: str(i.category, 40), where: str(i.where, 160) })).filter(i => allowed[i.category] && RENDER_LOOK[i.category]).slice(0, 4);
-  if (!items.length) return fail(400, "합성할 용품이 없어요.");
-  try { if (!(await scanQuota(request, env, "render", 2, Number(env.RENDER_DAILY_LIMIT) || 50))) return fail(429, "오늘 미리보기 가능 횟수를 모두 썼어요. 내일 다시 이용해 주세요."); }
-  catch { /* 횟수 기록 실패는 막지 않음 */ }
-  const prompt = `Edit this photo of an elderly person's home (${SCAN_ROOMS[room]}). Add ONLY the following assistive products, installed realistically where they are needed, with correct perspective, scale, lighting and shadows:
-${items.map(i => `- ${RENDER_LOOK[i.category]}. Placement hint (Korean): ${i.where}`).join("\n")}
-Keep everything else in the photo exactly the same: same camera angle, framing, walls, floor, furniture, colours and objects. Do not remove anything. Do not add people, text, logos, labels, arrows or watermarks. Output one photorealistic image.`;
-  const body = {
-    contents: [{ role: "user", parts: [{ text: prompt }, { inline_data: { mime_type: "image/jpeg", data: image } }] }],
-    generationConfig: { responseModalities: ["IMAGE"] },
-  };
-  try {
-    const res = await callGemini(env, env.GEMINI_IMAGE_MODEL || "gemini-2.5-flash-image", body);
-    if (res.status === 429) return fail(503, "지금 요청이 많아요. 잠시 후 다시 시도해 주세요.");
-    if (!res.ok) return fail(502, "미리보기를 만들지 못했어요. 잠시 후 다시 시도해 주세요.");
-    const data = await res.json() as { candidates?: { content?: { parts?: { inlineData?: { mimeType?: string; data?: string }; inline_data?: { mime_type?: string; data?: string } }[] } }[] };
-    for (const part of data.candidates?.[0]?.content?.parts ?? []) {
-      const d = part.inlineData ?? (part.inline_data ? { mimeType: part.inline_data.mime_type, data: part.inline_data.data } : undefined);
-      if (d?.data && /^image\/(png|jpeg|webp)$/.test(d.mimeType ?? "")) return json({ image: `data:${d.mimeType};base64,${d.data}` });
-    }
-    return fail(502, "미리보기를 만들지 못했어요. 다른 사진으로 다시 시도해 주세요.");
-  } catch {
-    return fail(502, "미리보기를 만들지 못했어요. 잠시 후 다시 시도해 주세요.");
-  }
+/** AI가 알려 준 설치 위치(사진 번호, 0~1000 좌표)를 검증. 잘못되면 위치 없음(-1) */
+function spot(h: Row, photos: number): { photo: number; x: number; y: number } {
+  const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? Math.round(v) : -1);
+  const photo = n(h.photo), x = n(h.x), y = n(h.y);
+  return photo >= 0 && photo < photos && x >= 0 && x <= 1000 && y >= 0 && y <= 1000 ? { photo, x, y } : { photo: -1, x: -1, y: -1 };
 }
 
 async function callGemini(env: Env, model: string, body: unknown): Promise<Response> {
@@ -234,6 +196,7 @@ async function safetyScan(request: Request, env: Env): Promise<Response> {
       detail: str(h.detail, 240),
       severity: ["high", "mid", "low"].includes(String(h.severity)) ? String(h.severity) : "mid",
       fix: (Array.isArray(h.fix) ? h.fix : []).filter((c): c is string => typeof c === "string" && cats.has(c)).slice(0, 3),
+      ...spot(h, images.length),
     })).filter(h => h.title);
     return json({
       usable: r.usable !== false,

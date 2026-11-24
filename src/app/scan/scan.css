@@ -33,6 +33,16 @@
 .scan-rec-title { margin: 24px 0 4px; font-size: 1.2rem; }
 .scan-again { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
 .scan-alt { text-align: center; margin: 8px 0 24px; }
-.scan-render h3 { margin: 0 0 8px; }
 .scan-ba { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 4px 0 10px; }
-.scan-ba-img { width: 100%; border-radius: 12px; display: block; background: var(--brand-weak); }
+.scan-place h3 { margin: 0 0 4px; }
+.scan-stage { position: relative; margin: 8px 0; border-radius: 12px; overflow: hidden; }
+.scan-stage > img { width: 100%; display: block; }
+.scan-sticker { position: absolute; --tx: -50%; transform: translate(var(--tx), -100%); display: flex; flex-direction: column; align-items: center; pointer-events: none; animation: scan-pop 0.35s ease-out both; }
+.scan-sticker.to-left { --tx: calc(-100% + 13px); align-items: flex-end; }
+.scan-sticker.to-right { --tx: -13px; align-items: flex-start; }
+.scan-sticker.to-left .scan-pin, .scan-sticker.to-right .scan-pin { margin-left: 6px; margin-right: 6px; }
+.scan-sticker-card { display: flex; align-items: center; gap: 6px; background: #fff; border: 2px solid var(--brand-solid); border-radius: 12px; padding: 4px 8px 4px 4px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25); max-width: 60vw; }
+.scan-sticker-card img { width: 44px; height: 44px; object-fit: contain; border-radius: 8px; background: #fff; }
+.scan-sticker-card span { font-size: 0.82rem; font-weight: 700; color: var(--text); white-space: nowrap; }
+.scan-pin { width: 14px; height: 14px; margin-top: 2px; border-radius: 50%; background: var(--accent); border: 3px solid #fff; box-shadow: 0 0 0 2px var(--accent); }
+@keyframes scan-pop { from { opacity: 0; transform: translate(var(--tx), -90%) scale(0.85); } to { opacity: 1; transform: translate(var(--tx), -100%) scale(1); } }

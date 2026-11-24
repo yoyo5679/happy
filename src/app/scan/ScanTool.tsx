@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { categories, type CategoryKey } from "@/data/products";
+import { categories, productsFor, type CategoryKey } from "@/data/products";
 import { CategoryGroup } from "@/components/CategoryGroup";
 import { RatePicker } from "@/components/RatePicker";
 import { ContactCta } from "@/components/ContactCta";
@@ -17,7 +17,7 @@ const ROOMS: { key: Room; label: string; emoji: string; tip: string }[] = [
   { key: "entrance", label: "현관·문턱", emoji: "🚪", tip: "현관 턱과 신발 벗는 곳이 나오게" },
   { key: "living", label: "거실·복도", emoji: "🛋️", tip: "자주 다니는 길과 바닥이 나오게" },
 ];
-type Hazard = { title: string; detail: string; severity: "high" | "mid" | "low"; fix: CategoryKey[] };
+type Hazard = { title: string; detail: string; severity: "high" | "mid" | "low"; fix: CategoryKey[]; photo: number; x: number; y: number };
 type Result = { usable: boolean; risk: number; summary: string; hazards: Hazard[]; good: string[] };
 const SEV = { high: { label: "위험", cls: "sev-high" }, mid: { label: "주의", cls: "sev-mid" }, low: { label: "참고", cls: "sev-low" } };
 const RISK = ["", "안전해요", "대체로 안전", "주의가 필요해요", "위험해요", "매우 위험해요"];
@@ -43,8 +43,7 @@ export function ScanTool() {
   const [result, setResult] = useState<Result | null>(null);
   const [rate, setRate] = useState(0.15);
   const [sentImages, setSentImages] = useState<string[]>([]);
-  const [render, setRender] = useState<{ busy: boolean; image: string; error: string }>({ busy: false, image: "", error: "" });
-  const [view, setView] = useState<"after" | "before">("after");
+  const [showStickers, setShowStickers] = useState(true);
   const cam = useRef<HTMLInputElement>(null);
   const album = useRef<HTMLInputElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
@@ -57,19 +56,16 @@ export function ScanTool() {
     setFiles(next);
     setResult(null);
     setError("");
-    setRender({ busy: false, image: "", error: "" });
   }
   function remove(i: number) {
     setFiles(files.filter((_, j) => j !== i));
     setResult(null);
-    setRender({ busy: false, image: "", error: "" });
   }
   function reset(r: Room) {
     setRoom(r);
     setFiles([]);
     setResult(null);
     setError("");
-    setRender({ busy: false, image: "", error: "" });
   }
 
   async function run() {
@@ -80,7 +76,7 @@ export function ScanTool() {
     try {
       const images = await Promise.all(files.map((f) => shrink(f.file)));
       setSentImages(images);
-      setRender({ busy: false, image: "", error: "" });
+      setShowStickers(true);
       const res = await fetch("/api/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ room, images }) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "진단에 실패했어요. 잠시 후 다시 시도해 주세요.");
@@ -93,28 +89,21 @@ export function ScanTool() {
     }
   }
 
-  async function makePreview() {
-    if (!result || !sentImages[0] || render.busy) return;
-    setRender({ busy: true, image: "", error: "" });
-    try {
-      const items = result.hazards.flatMap((h) => h.fix.map((category) => ({ category, where: `${h.title}: ${h.detail}` })));
-      const uniq = items.filter((it, i) => items.findIndex((x) => x.category === it.category) === i);
-      const res = await fetch("/api/scan/render", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ room, image: sentImages[0], items: uniq }) });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || typeof data.image !== "string" || !data.image.startsWith("data:image/")) throw new Error(data.error || "미리보기를 만들지 못했어요.");
-      setRender({ busy: false, image: data.image, error: "" });
-      setView("after");
-    } catch (e) {
-      setRender({ busy: false, image: "", error: e instanceof Error ? e.message : "미리보기를 만들지 못했어요." });
-    }
-  }
-
   const info = ROOMS.find((r) => r.key === room)!;
   // 위험도 높은 순서대로 추천 품목 (중복 제거)
   const order = { high: 0, mid: 1, low: 2 };
   const recs: { category: CategoryKey; reason: string }[] = [];
   for (const h of [...(result?.hazards ?? [])].sort((a, b) => order[a.severity] - order[b.severity]))
     for (const c of h.fix) if (categories[c] && !recs.some((r) => r.category === c)) recs.push({ category: c, reason: `${h.title} — ${h.detail}` });
+
+  // 사진 위에 붙일 스티커: 위험 요소별 첫 번째 추천 용품 (같은 자리·같은 품목 중복 제거)
+  const placed: { photo: number; x: number; y: number; label: string; img?: string }[] = [];
+  for (const h of result?.hazards ?? []) {
+    const c = h.fix.find((f) => categories[f]);
+    if (!c || h.photo < 0) continue;
+    if (placed.some((p) => p.label === categories[c].label && p.photo === h.photo && Math.abs(p.x - h.x) + Math.abs(p.y - h.y) < 150)) continue;
+    placed.push({ photo: h.photo, x: h.x, y: h.y, label: categories[c].label, img: productsFor(c, 1)[0]?.img });
+  }
 
   return (
     <>
@@ -220,32 +209,40 @@ export function ScanTool() {
                 <p className="scan-note">※ AI가 사진만 보고 판단한 참고 결과예요. 정확한 위치·치수는 방문 측정으로 확인하는 것이 좋아요.</p>
               </section>
 
-              {recs.length > 0 && sentImages[0] && (
-                <section className="card scan-render">
-                  <h3>✨ 설치하면 이렇게 바뀌어요</h3>
-                  {!render.image ? (
-                    <>
-                      <p className="muted">AI가 추천 용품({recs.map((r) => categories[r.category].label).join(", ")})을 우리 집 사진에 그려 넣어 미리 보여 드려요.</p>
-                      <button className="btn primary wide" onClick={makePreview} disabled={render.busy}>
-                        {render.busy ? "🎨 설치 후 모습을 그리는 중… (20초 정도)" : "🎨 설치 후 모습 미리보기"}
-                      </button>
-                      {render.error && <p className="scan-error" role="alert">{render.error}</p>}
-                    </>
-                  ) : (
-                    <>
-                      <div className="scan-ba" role="tablist">
-                        <button role="tab" aria-selected={view === "before"} className={view === "before" ? "chip on" : "chip"} onClick={() => setView("before")}>
-                          지금
-                        </button>
-                        <button role="tab" aria-selected={view === "after"} className={view === "after" ? "chip on" : "chip"} onClick={() => setView("after")}>
-                          설치 후 ✨
-                        </button>
+              {placed.length > 0 && (
+                <section className="card scan-place">
+                  <h3>📍 이렇게 놓으면 좋아요</h3>
+                  <p className="muted">추천 용품을 놓을 자리를 사진에 표시했어요.</p>
+                  <div className="scan-ba" role="tablist">
+                    <button role="tab" aria-selected={!showStickers} className={!showStickers ? "chip on" : "chip"} onClick={() => setShowStickers(false)}>
+                      지금
+                    </button>
+                    <button role="tab" aria-selected={showStickers} className={showStickers ? "chip on" : "chip"} onClick={() => setShowStickers(true)}>
+                      용품 놓아 보기 ✨
+                    </button>
+                  </div>
+                  {sentImages.map((img, pi) => {
+                    const here = placed.filter((s) => s.photo === pi);
+                    if (!here.length) return null;
+                    return (
+                      <div key={pi} className="scan-stage">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={`data:image/jpeg;base64,${img}`} alt={`올린 사진 ${pi + 1}`} />
+                        {showStickers &&
+                          here.map((s, i) => (
+                            <div key={i} className={`scan-sticker ${s.x > 640 ? "to-left" : s.x < 360 ? "to-right" : ""}`} style={{ left: `${Math.min(97, Math.max(3, s.x / 10))}%`, top: `${Math.min(97, Math.max(28, s.y / 10))}%` }}>
+                              <div className="scan-sticker-card">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                {s.img && <img src={s.img} alt="" />}
+                                <span>{s.label}</span>
+                              </div>
+                              <span className="scan-pin" aria-hidden />
+                            </div>
+                          ))}
                       </div>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img className="scan-ba-img" src={view === "after" ? render.image : `data:image/jpeg;base64,${sentImages[0]}`} alt={view === "after" ? "추천 용품을 설치한 모습 (AI 예시)" : "올린 사진"} />
-                      <p className="scan-note">※ AI가 그린 예시 이미지예요. 실제 제품 모양·설치 위치는 방문 측정 후 정해져요.</p>
-                    </>
-                  )}
+                    );
+                  })}
+                  <p className="scan-note">※ AI가 사진을 보고 고른 대략적인 위치예요. 정확한 설치 위치는 방문 측정 후 정해져요.</p>
                 </section>
               )}
 
